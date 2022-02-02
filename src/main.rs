@@ -17,22 +17,28 @@ enum Version {
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
+    let meta_routes = Router::new()
         .route("/", get(root_handler))
-        .route("/ping", get(heartbeat_handler))
-        .route("/:version/contacts", get(contacts_handler))
-        .route("/:version/dictionary", get(dictionary_handler))
-        .route("/:version/faqs", get(faqs_handler))
-        .route("/:version/food/named/menu/pause", get(pause_menu_handler))
-        .route(
-            "/:version/printing/color-printers",
-            get(color_printers_handler),
-        )
-        .route("/:version/spaces/hours", get(hours_handler))
-        .route("/:version/tools/help", get(help_handler))
-        .route("/:version/transit/bus", get(transit_bus_handler))
-        .route("/:version/transit/modes", get(transit_modes_handler))
-        .route("/:version/webcams", get(webcams_handler))
+        .route("/ping", get(heartbeat_handler));
+
+    let transit_routes = Router::new()
+        .route("/bus", get(transit_bus_handler))
+        .route("/modes", get(transit_modes_handler));
+
+    let api_routes = Router::new()
+        .route("/contacts", get(contacts_handler))
+        .route("/dictionary", get(dictionary_handler))
+        .route("/faqs", get(faqs_handler))
+        .route("/food/named/menu/pause", get(pause_menu_handler))
+        .route("/printing/color-printers", get(color_printers_handler))
+        .route("/spaces/hours", get(hours_handler))
+        .route("/tools/help", get(help_handler))
+        .nest("/transit", transit_routes)
+        .route("/webcams", get(webcams_handler));
+
+    let app = Router::new()
+        .nest("/", meta_routes)
+        .nest("/api/:version", api_routes)
         .fallback(fallback.into_service());
 
     Server::bind(&"0.0.0.0:3000".parse().unwrap())
