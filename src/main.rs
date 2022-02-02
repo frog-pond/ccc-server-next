@@ -56,61 +56,41 @@ async fn fallback() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not Found".to_string())
 }
 
-async fn contacts_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("contact-info.json").await.unwrap();
-    Ok(data)
-}
-
-async fn dictionary_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("dictionary.json").await.unwrap();
-    Ok(data)
-}
-
-async fn faqs_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("faqs.json").await.unwrap();
-    Ok(data)
-}
-
-async fn pause_menu_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("pause-menu.json").await.unwrap();
-    Ok(data)
-}
-
-async fn color_printers_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("color-printers.json").await.unwrap();
-    Ok(data)
-}
-
-async fn hours_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("building-hours.json").await.unwrap();
-    Ok(data)
-}
-
-async fn help_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("help.json").await.unwrap();
-    Ok(data)
-}
-
-async fn transit_bus_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("bus-times.json").await.unwrap();
-    Ok(data)
-}
-
-async fn transit_modes_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("transportation.json").await.unwrap();
-    Ok(data)
-}
-
-async fn webcams_handler(_version: Version) -> Result<Json<Value>, StatusCode> {
-    let data = gh_pages_handler("webcams.json").await.unwrap();
-    Ok(data)
-}
-
 async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, StatusCode> {
     let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
     let resp = request_handler(&url).await;
     Ok(resp.unwrap())
 }
+
+macro_rules! gh_pages_handler {
+    ($name:ident,$filename:literal) => {
+        async fn $name(_version: Version) -> Result<Json<Value>, StatusCode> {
+            let data = gh_pages_handler($filename).await.unwrap();
+            Ok(data)
+        }
+    };
+}
+
+macro_rules! gh_pages_handlers {
+    ($([$name:ident, $filename:literal]),+ $(,)?) => {
+        $(
+            gh_pages_handler!($name, $filename);
+        )+
+    };
+}
+
+gh_pages_handlers!(
+    [contacts_handler, "contact-info.json"],
+    [dictionary_handler, "dictionary.json"],
+    [faqs_handler, "faqs.json"],
+    [pause_menu_handler, "pause-menu.json"],
+    [color_printers_handler, "color-printers.json"],
+    [hours_handler, "building-hours.json"],
+    [help_handler, "help.json"],
+    [transit_bus_handler, "bus-times.json"],
+    [transit_modes_handler, "transportation.json"],
+    [webcams_handler, "webcams.json"],
+);
 
 async fn request_handler(path: &str) -> Result<Json<Value>, StatusCode> {
     let result = reqwest::get(path).await;
