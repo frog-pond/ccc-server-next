@@ -1,4 +1,4 @@
-name: Build and Run
+name: Build and Test
 
 on:
   push:
@@ -27,3 +27,19 @@ jobs:
       run: |
         rustup component add clippy
         cargo clippy --workspace --all-features --all-targets -- -D clippy::all -W clippy::cargo -W clippy::pedantic -W clippy::cognitive-complexity
+  test:
+    name: Test the code
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, beta]
+    steps:
+    - name: Install the appropriate Rust toolchain
+      run: |
+        rustup toolchain install ${{ matrix.rust }}
+        rustup default ${{ matrix.rust }}
+    - uses: actions/checkout@v1
+    - name: Run cargo test
+      run: |
+        cargo test --workspace --all-features --all-targets --no-fail-fast
