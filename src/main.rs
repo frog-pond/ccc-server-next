@@ -58,8 +58,8 @@ async fn fallback() -> impl IntoResponse {
 
 async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, StatusCode> {
     let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
-    let resp = request_handler(&url).await;
-    Ok(resp.unwrap())
+    let resp = request_handler(&url).await?;
+    Ok(resp)
 }
 
 macro_rules! gh_pages_handler {
