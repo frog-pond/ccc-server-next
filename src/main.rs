@@ -44,7 +44,7 @@ async fn main() {
     Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())
         .await
-        .expect("server failed");
+        .expect("server failed to exit successfully");
 }
 
 #[allow(clippy::unused_async)]
