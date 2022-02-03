@@ -15,6 +15,9 @@ enum Version {
     V1,
 }
 
+#[derive(Debug)]
+struct JsonProxyError(reqwest::Error);
+
 #[tokio::main]
 async fn main() {
     let meta_routes = Router::new()
@@ -62,7 +65,7 @@ async fn fallback() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not Found".to_string())
 }
 
-async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, StatusCode> {
+async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, JsonProxyError> {
     let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
     let resp = request_handler(&url).await?;
     Ok(resp)
@@ -70,7 +73,7 @@ async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, StatusCode> {
 
 macro_rules! gh_pages_handler {
     ($name:ident,$filename:literal) => {
-        async fn $name(_version: Version) -> Result<Json<Value>, StatusCode> {
+        async fn $name(_version: Version) -> Result<Json<Value>, JsonProxyError> {
             let data = gh_pages_handler($filename).await.unwrap();
             Ok(data)
         }
@@ -98,15 +101,22 @@ gh_pages_handlers!(
     [webcams_handler, "webcams.json"],
 );
 
-async fn request_handler(path: &str) -> Result<Json<Value>, StatusCode> {
-    let result = reqwest::get(path).await;
+async fn request_handler(path: &str) -> Result<Json<Value>, JsonProxyError> {
+    let response = reqwest::get(path).await.map_err(JsonProxyError)?;
 
-    if result.is_err() {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    response.json().await.map(Json).map_err(JsonProxyError)
+}
+
+impl IntoResponse for JsonProxyError {
+    fn into_response(self) -> axum::response::Response {
+        // `self.0` is a `reqwest::Error`.  Just format it as a string.
+        let body = axum::body::boxed(axum::body::Full::from(self.0.to_string()));
+
+        Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(body)
+            .unwrap()
     }
-
-    let response = result.unwrap().json().await.unwrap();
-    Ok(Json(response))
 }
 
 #[async_trait]
