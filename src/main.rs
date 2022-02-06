@@ -24,20 +24,8 @@ async fn main() {
         .route("/", get(root_handler))
         .route("/ping", get(heartbeat_handler));
 
-    let transit_routes = Router::new()
-        .route("/bus", get(transit_bus_handler))
-        .route("/modes", get(transit_modes_handler));
-
     let api_routes = Router::new()
         .route("/contacts", get(contacts_handler))
-        .route("/dictionary", get(dictionary_handler))
-        .route("/faqs", get(faqs_handler))
-        .route("/food/named/menu/pause", get(pause_menu_handler))
-        .route("/printing/color-printers", get(color_printers_handler))
-        .route("/spaces/hours", get(hours_handler))
-        .route("/tools/help", get(help_handler))
-        .nest("/transit", transit_routes)
-        .route("/webcams", get(webcams_handler));
 
     let app = Router::new()
         .nest("/", meta_routes)
@@ -93,15 +81,6 @@ macro_rules! gh_pages_handlers {
 
 gh_pages_handlers!(
     [contacts_handler, "contact-info.json"],
-    [dictionary_handler, "dictionary.json"],
-    [faqs_handler, "faqs.json"],
-    [pause_menu_handler, "pause-menu.json"],
-    [color_printers_handler, "color-printers.json"],
-    [hours_handler, "building-hours.json"],
-    [help_handler, "help.json"],
-    [transit_bus_handler, "bus-times.json"],
-    [transit_modes_handler, "transportation.json"],
-    [webcams_handler, "webcams.json"],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
