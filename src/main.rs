@@ -133,7 +133,7 @@ where
 
         let version = params
             .get("version")
-            .ok_or_else(|| (StatusCode::NOT_FOUND, "missing version").into_response())?;
+            .ok_or_else(|| (StatusCode::NOT_FOUND, "Missing Version").into_response())?;
 
         match version.as_str() {
             "v1" => Ok(Version::V1),
