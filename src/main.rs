@@ -8,6 +8,7 @@ use axum::{
     Router, Server,
 };
 use routes::contacts::ContactInfoResponse;
+use routes::faqs::FAQResponse;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
@@ -26,7 +27,8 @@ async fn main() {
         .route("/ping", get(heartbeat_handler));
 
     let api_routes = Router::new()
-        .nest("/", routes::contacts::router());
+        .nest("/", routes::contacts::router())
+        .nest("/", routes::faqs::router());
 
     let app = Router::new()
         .nest("/", meta_routes)
@@ -82,6 +84,7 @@ macro_rules! gh_pages_handlers {
 
 gh_pages_handlers!(
     [contacts_handler, "contact-info.json", ContactInfoResponse],
+    [faqs_handler, "faqs.json", FAQResponse],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
