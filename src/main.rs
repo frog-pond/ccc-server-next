@@ -7,7 +7,7 @@ use axum::{
     routing::get,
     Router, Server,
 };
-use serde_json::Value;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -65,25 +65,28 @@ async fn fallback() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not Found".to_string())
 }
 
-async fn gh_pages_handler(filename: &str) -> Result<Json<Value>, JsonProxyError> {
+async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, JsonProxyError>
+where
+    T: DeserializeOwned,
+{
     let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
     let resp = request_handler(&url).await?;
     Ok(resp)
 }
 
 macro_rules! gh_pages_handler {
-    ($name:ident,$filename:literal) => {
-        async fn $name(_version: Version) -> Result<Json<Value>, JsonProxyError> {
-            let data = gh_pages_handler($filename).await.unwrap();
+    ($name:ident,$filename:literal,$response_type:ty) => {
+        async fn $name(_version: Version) -> Result<Json<$response_type>, JsonProxyError> {
+            let data = gh_pages_handler($filename).await?;
             Ok(data)
         }
     };
 }
 
 macro_rules! gh_pages_handlers {
-    ($([$name:ident, $filename:literal]),+ $(,)?) => {
+    ($([$name:ident, $filename:literal $(, $response_type:ty)?]),+ $(,)?) => {
         $(
-            gh_pages_handler!($name, $filename);
+            gh_pages_handler!($name, $filename $(, $response_type)?);
         )+
     };
 }
@@ -101,7 +104,10 @@ gh_pages_handlers!(
     [webcams_handler, "webcams.json"],
 );
 
-async fn request_handler(path: &str) -> Result<Json<Value>, JsonProxyError> {
+async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
+where
+    T: DeserializeOwned,
+{
     let response = reqwest::get(path).await.map_err(JsonProxyError)?;
 
     response.json().await.map(Json).map_err(JsonProxyError)
