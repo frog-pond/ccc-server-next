@@ -7,6 +7,7 @@ use axum::{
     routing::get,
     Router, Server,
 };
+use routes::contacts::ContactInfoResponse;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
@@ -25,7 +26,7 @@ async fn main() {
         .route("/ping", get(heartbeat_handler));
 
     let api_routes = Router::new()
-        .route("/contacts", get(contacts_handler))
+        .nest("/", routes::contacts::router());
 
     let app = Router::new()
         .nest("/", meta_routes)
@@ -80,7 +81,7 @@ macro_rules! gh_pages_handlers {
 }
 
 gh_pages_handlers!(
-    [contacts_handler, "contact-info.json"],
+    [contacts_handler, "contact-info.json", ContactInfoResponse],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
@@ -126,3 +127,5 @@ where
         }
     }
 }
+
+mod routes;
