@@ -30,6 +30,7 @@ async fn main() {
         .nest("/faqs", routes::faqs::router())
         .nest("/food", routes::food::router())
         .nest("/printing", routes::printing::router())
+        .nest("/spaces", routes::spaces::router())
         .nest("/tools", routes::tools::router())
         .nest("/transit", routes::transit::router())
         .nest("/webcams", routes::webcams::router());
@@ -108,6 +109,11 @@ gh_pages_handlers!(
         pause_menu_handler,
         "pause-menu.json",
         routes::food::PauseMenuResponse
+    ],
+    [
+        hours_handler,
+        "building-hours.json",
+        routes::spaces::HoursResponse
     ],
     [help_handler, "help.json", routes::tools::Response],
     [
