@@ -2,6 +2,7 @@ use crate::transit_bus_handler;
 use crate::transit_modes_handler;
 use axum::{routing::get, Router};
 use serde_json::value::Value;
+use std::collections::HashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ModesItem {
@@ -32,15 +33,9 @@ pub struct Colors {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Coordinate {
-    // todo: add this type
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schedule {
     days: Vec<String>,
-    // todo: add this type
-    coordinates: Option<Coordinate>,
+    coordinates: HashMap<String, Vec<f64>>,
     stops: Vec<String>,
     // todo: scope Value to String | Bool
     times: Vec<Vec<Value>>,
