@@ -35,7 +35,7 @@ pub struct Colors {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schedule {
     days: Vec<String>,
-    coordinates: HashMap<String, Vec<f64>>,
+    coordinates: HashMap<String, [f64; 2]>,
     stops: Vec<String>,
     // todo: scope Value to String | Bool
     times: Vec<Vec<Value>>,
