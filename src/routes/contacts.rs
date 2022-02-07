@@ -4,9 +4,9 @@ use axum::{routing::get, Router};
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ResponseItem {
     title: String,
-    #[serde(rename = "camelCase")]
+    #[serde(rename = "phoneNumber")]
     phone_number: Option<String>,
-    #[serde(rename = "camelCase")]
+    #[serde(rename = "buttonText")]
     button_text: Option<String>,
     category: String,
     image: Option<String>,
