@@ -3,33 +3,33 @@ use axum::{routing::get, Router};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Button {
-    pub title: String,
-    pub action: String,
-    pub params: Params,
+    title: String,
+    action: String,
+    params: Params,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Params {
-    pub url: Option<String>,
-    pub number: Option<String>,
-    pub to: Option<String>,
-    pub subject: Option<String>,
-    pub body: Option<String>,
+    url: Option<String>,
+    number: Option<String>,
+    to: Option<String>,
+    subject: Option<String>,
+    body: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ResponseItem {
-    pub key: String,
-    pub enabled: bool,
-    pub hidden: bool,
-    pub title: String,
-    pub body: String,
-    pub buttons: Vec<Button>,
+    key: String,
+    enabled: bool,
+    hidden: bool,
+    title: String,
+    body: String,
+    buttons: Vec<Button>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Response {
-    pub data: Vec<ResponseItem>,
+    data: Vec<ResponseItem>,
 }
 
 pub(crate) fn router() -> Router {
