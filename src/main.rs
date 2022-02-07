@@ -28,6 +28,7 @@ async fn main() {
         .nest("/", routes::contacts::router())
         .nest("/", routes::dictionary::router())
         .nest("/", routes::faqs::router())
+        .nest("/tools", routes::tools::router())
         .nest("/", routes::transit::router())
         .nest("/", routes::webcams::router());
 
@@ -96,6 +97,7 @@ gh_pages_handlers!(
     ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
     [webcams_handler, "webcams.json", routes::webcams::Response],
+    [help_handler, "help.json", routes::tools::Response],
     [
         transit_bus_handler,
         "bus-times.json",
