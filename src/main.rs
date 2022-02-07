@@ -26,6 +26,7 @@ async fn main() {
 
     let api_routes = Router::new()
         .nest("/", routes::contacts::router())
+        .nest("/", routes::dictionary::router())
         .nest("/", routes::faqs::router());
 
     let app = Router::new()
@@ -85,6 +86,11 @@ gh_pages_handlers!(
         contacts_handler,
         "contact-info.json",
         routes::contacts::Response
+    ],
+    [
+        dictionary_handler,
+        "dictionary.json",
+        routes::dictionary::Response
     ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
 );
