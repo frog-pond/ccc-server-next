@@ -29,6 +29,7 @@ async fn main() {
         .nest("/dictionary", routes::dictionary::router())
         .nest("/faqs", routes::faqs::router())
         .nest("/food", routes::food::router())
+        .nest("/printing", routes::printing::router())
         .nest("/tools", routes::tools::router())
         .nest("/transit", routes::transit::router())
         .nest("/webcams", routes::webcams::router());
@@ -98,6 +99,11 @@ gh_pages_handlers!(
     ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
     [webcams_handler, "webcams.json", routes::webcams::Response],
+    [
+        color_printers_handler,
+        "color-printers.json",
+        routes::printing::Response
+    ],
     [
         pause_menu_handler,
         "pause-menu.json",
