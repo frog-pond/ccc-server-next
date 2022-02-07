@@ -7,8 +7,6 @@ use axum::{
     routing::get,
     Router, Server,
 };
-use routes::contacts::ContactInfoResponse;
-use routes::faqs::FAQResponse;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
@@ -83,8 +81,12 @@ macro_rules! gh_pages_handlers {
 }
 
 gh_pages_handlers!(
-    [contacts_handler, "contact-info.json", ContactInfoResponse],
-    [faqs_handler, "faqs.json", FAQResponse],
+    [
+        contacts_handler,
+        "contact-info.json",
+        routes::contacts::Response
+    ],
+    [faqs_handler, "faqs.json", routes::faqs::Response],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>

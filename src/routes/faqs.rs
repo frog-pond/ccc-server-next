@@ -2,7 +2,7 @@ use crate::faqs_handler;
 use axum::{routing::get, Router};
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct FAQResponse {
+pub struct Response {
     text: String,
 }
 

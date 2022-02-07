@@ -2,7 +2,7 @@ use crate::contacts_handler;
 use axum::{routing::get, Router};
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct ContactInfoItem {
+pub struct ResponseItem {
     title: String,
     #[serde(rename = "camelCase")]
     phone_number: Option<String>,
@@ -15,8 +15,8 @@ pub struct ContactInfoItem {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct ContactInfoResponse {
-    data: Vec<ContactInfoItem>,
+pub struct Response {
+    data: Vec<ResponseItem>,
 }
 
 pub(crate) fn router() -> Router {
