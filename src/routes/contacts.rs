@@ -9,6 +9,7 @@ pub struct ResponseItem {
     #[serde(rename = "buttonText")]
     button_text: Option<String>,
     category: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     synopsis: String,
     text: String,
