@@ -99,7 +99,6 @@ gh_pages_handlers!(
         routes::dictionary::Response
     ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
-    [webcams_handler, "webcams.json", routes::webcams::Response],
     [
         color_printers_handler,
         "color-printers.json",
@@ -126,6 +125,7 @@ gh_pages_handlers!(
         "transportation.json",
         routes::transit::ModesResponse
     ],
+    [webcams_handler, "webcams.json", routes::webcams::Response],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
