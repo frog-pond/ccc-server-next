@@ -28,6 +28,7 @@ async fn main() {
         .nest("/", routes::contacts::router())
         .nest("/", routes::dictionary::router())
         .nest("/", routes::faqs::router())
+        .nest("/", routes::transit::router())
         .nest("/", routes::webcams::router());
 
     let app = Router::new()
@@ -95,6 +96,16 @@ gh_pages_handlers!(
     ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
     [webcams_handler, "webcams.json", routes::webcams::Response],
+    [
+        transit_bus_handler,
+        "bus-times.json",
+        routes::transit::BusTimesResponse
+    ],
+    [
+        transit_modes_handler,
+        "transportation.json",
+        routes::transit::ModesResponse
+    ],
 );
 
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
