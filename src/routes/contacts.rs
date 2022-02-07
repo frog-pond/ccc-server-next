@@ -20,5 +20,5 @@ pub struct Response {
 }
 
 pub(crate) fn router() -> Router {
-    Router::new().route("/contacts", get(contacts_handler))
+    Router::new().route("/", get(contacts_handler))
 }

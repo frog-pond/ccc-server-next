@@ -13,5 +13,5 @@ pub struct Response {
 }
 
 pub(crate) fn router() -> Router {
-    Router::new().route("/dictionary", get(dictionary_handler))
+    Router::new().route("/", get(dictionary_handler))
 }

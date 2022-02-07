@@ -25,12 +25,12 @@ async fn main() {
         .route("/ping", get(heartbeat_handler));
 
     let api_routes = Router::new()
-        .nest("/", routes::contacts::router())
-        .nest("/", routes::dictionary::router())
-        .nest("/", routes::faqs::router())
+        .nest("/contacts", routes::contacts::router())
+        .nest("/dictionary", routes::dictionary::router())
+        .nest("/faqs", routes::faqs::router())
         .nest("/tools", routes::tools::router())
-        .nest("/", routes::transit::router())
-        .nest("/", routes::webcams::router());
+        .nest("/transit", routes::transit::router())
+        .nest("/webcams", routes::webcams::router());
 
     let app = Router::new()
         .nest("/", meta_routes)

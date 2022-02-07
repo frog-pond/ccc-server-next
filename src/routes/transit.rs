@@ -47,9 +47,7 @@ pub struct BusTimesResponse {
 }
 
 pub(crate) fn router() -> Router {
-    let transit_routes = Router::new()
+    Router::new()
         .route("/bus", get(transit_bus_handler))
-        .route("/modes", get(transit_modes_handler));
-
-    Router::new().nest("/transit", transit_routes)
+        .route("/modes", get(transit_modes_handler))
 }

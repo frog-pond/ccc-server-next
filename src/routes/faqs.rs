@@ -7,5 +7,5 @@ pub struct Response {
 }
 
 pub(crate) fn router() -> Router {
-    Router::new().route("/faqs", get(faqs_handler))
+    Router::new().route("/", get(faqs_handler))
 }

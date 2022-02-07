@@ -25,5 +25,5 @@ pub struct Response {
 }
 
 pub(crate) fn router() -> Router {
-    Router::new().route("/webcams", get(webcams_handler))
+    Router::new().route("/", get(webcams_handler))
 }
