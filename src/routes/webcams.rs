@@ -10,6 +10,7 @@ pub struct ResponseItem {
     stream_url: String,
     thumbnail: String,
     #[serde(rename = "thumbnailUrl")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     thumbnail_url: Option<String>,
     tagline: String,
     #[serde(rename = "accentColor")]
