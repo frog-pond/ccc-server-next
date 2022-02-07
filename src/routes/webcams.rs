@@ -13,6 +13,7 @@ pub struct ResponseItem {
     thumbnail_url: Option<String>,
     tagline: String,
     #[serde(rename = "accentColor")]
+    // todo: scope this to an array of 3 values
     accent_color: Vec<i64>,
     #[serde(rename = "textColor")]
     text_color: String,
