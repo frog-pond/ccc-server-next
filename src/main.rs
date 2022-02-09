@@ -64,7 +64,7 @@ async fn main() {
 async fn map_request(req: Request<Body>) -> Result<Request<Body>, BoxError> {
     let (mut parts, body) = req.into_parts();
 
-    let new_path = parts.uri.to_string().replace("/v1", "");
+    let new_path = parts.uri.path().replace("/v1", "");
     let uri = uri::Builder::new().path_and_query(new_path).build()?;
 
     parts.uri = uri;
