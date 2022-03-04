@@ -118,7 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [faqs_handler, "faqs.json", routes::faqs::Response],
     [
         color_printers_handler,
         "color-printers.json",

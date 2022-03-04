@@ -9,3 +9,4 @@ gh_pages_handlers!(
         "dictionary.json",
         types::dictionary::Response
     ],
+    [faqs_handler, "faqs.json", types::faqs::Response],
