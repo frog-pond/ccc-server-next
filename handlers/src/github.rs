@@ -1,3 +1,39 @@
+use axum::{
+    http::Response,
+    response::{IntoResponse, Json},
+};
+use reqwest::StatusCode;
+use serde::de::DeserializeOwned;
+
+#[derive(Debug)]
+pub struct JsonProxyError(reqwest::Error);
+
+async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, JsonProxyError>
+where
+    T: DeserializeOwned,
+{
+    let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
+    let resp = request_handler(&url).await?;
+    Ok(resp)
+}
+
+macro_rules! gh_pages_handler {
+    ($name:ident,$filename:literal,$response_type:ty) => {
+        pub async fn $name() -> Result<Json<$response_type>, JsonProxyError> {
+            let data = gh_pages_handler($filename).await?;
+            Ok(data)
+        }
+    };
+}
+
+macro_rules! gh_pages_handlers {
+    ($([$name:ident, $filename:literal $(, $response_type:ty)?]),+ $(,)?) => {
+        $(
+            gh_pages_handler!($name, $filename $(, $response_type)?);
+        )+
+    };
+}
+
 gh_pages_handlers!(
     [
         contacts_handler,
@@ -39,3 +75,23 @@ gh_pages_handlers!(
     [webcams_handler, "webcams.json", types::webcams::Response],
 );
 
+async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
+where
+    T: DeserializeOwned,
+{
+    let response = reqwest::get(path).await.map_err(JsonProxyError)?;
+
+    response.json().await.map(Json).map_err(JsonProxyError)
+}
+
+impl IntoResponse for JsonProxyError {
+    fn into_response(self) -> axum::response::Response {
+        // `self.0` is a `reqwest::Error`.  Just format it as a string.
+        let body = axum::body::boxed(axum::body::Full::from(self.0.to_string()));
+
+        Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(body)
+            .unwrap()
+    }
+}
