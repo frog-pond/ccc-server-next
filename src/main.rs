@@ -118,12 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-gh_pages_handlers!(
-    [
-        contacts_handler,
-        "contact-info.json",
-        routes::contacts::Response
-    ],
     [
         dictionary_handler,
         "dictionary.json",
