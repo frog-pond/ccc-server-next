@@ -12,6 +12,8 @@ use tower::{filter::AsyncFilterLayer, util::AndThenLayer, ServiceBuilder};
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
+
     let middleware_stack = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(|error| async move {
             (
