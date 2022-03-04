@@ -20,3 +20,8 @@ gh_pages_handlers!(
         "pause-menu.json",
         types::food::PauseMenuResponse
     ],
+    [
+        hours_handler,
+        "building-hours.json",
+        types::spaces::HoursResponse
+    ],

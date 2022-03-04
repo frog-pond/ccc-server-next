@@ -118,11 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [
-        hours_handler,
-        "building-hours.json",
-        routes::spaces::HoursResponse
-    ],
     [help_handler, "help.json", routes::tools::Response],
     [
         transit_bus_handler,

@@ -1,19 +1,21 @@
-use crate::hours_handler;
-use axum::{routing::get, Router};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct Schedule {
     title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
     hours: Vec<Hour>,
-    #[serde(rename = "closedForChapel")]
     closed_for_chapel_time: Option<bool>,
-    #[serde(rename = "isPhysicallyOpen")]
     is_physically_open: Option<bool>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub enum DayOfWeek {
     Mo,
     Tu,
@@ -24,14 +26,18 @@ pub enum DayOfWeek {
     Su,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct Hour {
     days: Vec<DayOfWeek>,
     from: String,
     to: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct BreakSchedule {
     fall: Vec<Schedule>,
     thanksgiving: Vec<Schedule>,
@@ -42,24 +48,23 @@ pub struct BreakSchedule {
     summer: Vec<Schedule>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct HoursItem {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     category: String,
-    schedule: Vec<Schedule>,
-    #[serde(rename = "breakSchedule")]
+    schedule: Vec<BreakSchedule>,
     break_schedule: BreakSchedule,
     #[serde(skip_serializing_if = "Option::is_none")]
     subtitle: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct HoursResponse {
     data: Vec<HoursItem>,
-}
-
-pub(crate) fn router() -> Router {
-    Router::new().route("/hours", get(hours_handler))
 }
