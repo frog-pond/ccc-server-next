@@ -26,3 +26,13 @@ gh_pages_handlers!(
         types::spaces::HoursResponse
     ],
     [help_handler, "help.json", types::tools::Response],
+    [
+        transit_bus_handler,
+        "bus-times.json",
+        types::transit::BusTimesResponse
+    ],
+    [
+        transit_modes_handler,
+        "transportation.json",
+        types::transit::ModesResponse
+    ],

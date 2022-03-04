@@ -118,16 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [
-        transit_bus_handler,
-        "bus-times.json",
-        routes::transit::BusTimesResponse
-    ],
-    [
-        transit_modes_handler,
-        "transportation.json",
-        routes::transit::ModesResponse
-    ],
     [webcams_handler, "webcams.json", routes::webcams::Response],
 );
 
