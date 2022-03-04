@@ -36,3 +36,6 @@ gh_pages_handlers!(
         "transportation.json",
         types::transit::ModesResponse
     ],
+    [webcams_handler, "webcams.json", types::webcams::Response],
+);
+

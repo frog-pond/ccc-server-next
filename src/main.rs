@@ -118,9 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [webcams_handler, "webcams.json", routes::webcams::Response],
-);
-
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
 where
     T: DeserializeOwned,
