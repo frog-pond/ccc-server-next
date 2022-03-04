@@ -118,7 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [help_handler, "help.json", routes::tools::Response],
     [
         transit_bus_handler,
         "bus-times.json",

@@ -25,3 +25,4 @@ gh_pages_handlers!(
         "building-hours.json",
         types::spaces::HoursResponse
     ],
+    [help_handler, "help.json", types::tools::Response],
