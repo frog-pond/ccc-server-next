@@ -119,11 +119,6 @@ macro_rules! gh_pages_handlers {
 }
 
     [
-        pause_menu_handler,
-        "pause-menu.json",
-        routes::food::PauseMenuResponse
-    ],
-    [
         hours_handler,
         "building-hours.json",
         routes::spaces::HoursResponse

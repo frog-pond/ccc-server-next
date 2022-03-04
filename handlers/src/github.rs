@@ -15,3 +15,8 @@ gh_pages_handlers!(
         "color-printers.json",
         types::printing::Response
     ],
+    [
+        pause_menu_handler,
+        "pause-menu.json",
+        types::food::PauseMenuResponse
+    ],
