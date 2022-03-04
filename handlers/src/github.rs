@@ -10,3 +10,8 @@ gh_pages_handlers!(
         types::dictionary::Response
     ],
     [faqs_handler, "faqs.json", types::faqs::Response],
+    [
+        color_printers_handler,
+        "color-printers.json",
+        types::printing::Response
+    ],

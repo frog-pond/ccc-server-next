@@ -119,11 +119,6 @@ macro_rules! gh_pages_handlers {
 }
 
     [
-        color_printers_handler,
-        "color-printers.json",
-        routes::printing::Response
-    ],
-    [
         pause_menu_handler,
         "pause-menu.json",
         routes::food::PauseMenuResponse
