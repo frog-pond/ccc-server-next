@@ -118,11 +118,6 @@ macro_rules! gh_pages_handlers {
     };
 }
 
-    [
-        dictionary_handler,
-        "dictionary.json",
-        routes::dictionary::Response
-    ],
     [faqs_handler, "faqs.json", routes::faqs::Response],
     [
         color_printers_handler,

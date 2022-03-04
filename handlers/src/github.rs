@@ -4,3 +4,8 @@ gh_pages_handlers!(
         "contact-info.json",
         types::contacts::Response
     ],
+    [
+        dictionary_handler,
+        "dictionary.json",
+        types::dictionary::Response
+    ],
