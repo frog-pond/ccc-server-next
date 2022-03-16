@@ -5,12 +5,12 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 #[ts(export, rename = "ColorPrintersResponseItem")]
 pub struct ResponseItem {
-    color_printers: Vec<String>,
+	color_printers: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, rename = "ColorPrintersResponse")]
 pub struct Response {
-    data: ResponseItem,
+	data: ResponseItem,
 }
