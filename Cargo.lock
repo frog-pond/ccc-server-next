@@ -260,6 +260,7 @@ dependencies = [
  "axum",
  "reqwest",
  "serde",
+ "thiserror",
  "types",
 ]
 

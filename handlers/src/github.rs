@@ -5,8 +5,11 @@ use axum::{
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 
-#[derive(Debug)]
-pub struct JsonProxyError(reqwest::Error);
+#[derive(thiserror::Error, Debug)]
+pub enum JsonProxyError {
+    #[error("error during proxied request")]
+    Request(#[from] reqwest::Error),
+}
 
 async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, JsonProxyError>
 where
@@ -79,15 +82,23 @@ async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
 where
     T: DeserializeOwned,
 {
-    let response = reqwest::get(path).await.map_err(JsonProxyError)?;
+    let response = reqwest::get(path).await.map_err(JsonProxyError::Request)?;
 
-    response.json().await.map(Json).map_err(JsonProxyError)
+    response
+        .json()
+        .await
+        .map(Json)
+        .map_err(JsonProxyError::Request)
 }
 
 impl IntoResponse for JsonProxyError {
     fn into_response(self) -> axum::response::Response {
-        // `self.0` is a `reqwest::Error`.  Just format it as a string.
-        let body = axum::body::boxed(axum::body::Full::from(self.0.to_string()));
+        // [this is a stub, where `self` is JsonProxyError]
+        let text = match self {
+            Self::Request(e) => e.to_string(),
+        };
+
+        let body = axum::body::boxed(axum::body::Full::from(text));
 
         Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
