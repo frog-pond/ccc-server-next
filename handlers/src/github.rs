@@ -22,6 +22,9 @@ where
 
 macro_rules! gh_pages_handler {
     ($name:ident,$filename:literal,$response_type:ty) => {
+        /// # Errors
+        ///
+        /// Will return `JsonProxyError` if the network request or json serialization failed
         pub async fn $name() -> Result<Json<$response_type>, JsonProxyError> {
             let data = gh_pages_handler($filename).await?;
             Ok(data)
