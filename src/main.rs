@@ -10,10 +10,7 @@ use axum::{
 use std::convert::Infallible;
 use tower::{filter::AsyncFilterLayer, util::AndThenLayer, ServiceBuilder};
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt::init();
-
+fn init_router() -> Router {
     let middleware_stack = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(|error| async move {
             (
@@ -39,11 +36,18 @@ async fn main() {
         .nest("/transit", routes::transit::router())
         .nest("/webcams", routes::webcams::router());
 
-    let app = Router::new()
+    Router::new()
         .nest("/", meta_routes)
         .nest("/api", api_routes)
         .layer(middleware_stack)
-        .fallback(fallback.into_service());
+        .fallback(fallback.into_service())
+}
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt::init();
+
+    let app = init_router();
 
     Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())
