@@ -1,6 +1,5 @@
 use axum::{routing::get, Router};
-use handlers::github::transit_bus_handler;
-use handlers::github::transit_modes_handler;
+use handlers::github::{transit_bus_handler, transit_modes_handler};
 
 pub fn router() -> Router {
     Router::new()
