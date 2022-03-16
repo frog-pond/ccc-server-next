@@ -18,7 +18,7 @@ export interface ContactResponse { data: Array<ContactResponseItem>, }
 
 export interface ContactResponseItem { title: string, phoneNumber: string | null, buttonText: string | null, category: string, image?: string, synopsis: string, text: string, }
 
-export type DayOfWeek = "mo" | "tu" | "we" | "th" | "fr" | "sa" | "su";
+export type DayOfWeek = "Mo" | "Tu" | "We" | "Th" | "Fr" | "Sa" | "Su";
 
 export interface DictionaryResponse { data: Array<DictionaryResponseItem>, }
 

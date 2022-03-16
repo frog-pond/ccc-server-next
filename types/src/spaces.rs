@@ -14,7 +14,6 @@ pub struct Schedule {
 }
 
 #[derive(Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum DayOfWeek {
     Mo,
