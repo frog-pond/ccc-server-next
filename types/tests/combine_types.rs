@@ -62,15 +62,20 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
 
-	for entry in paths {
-		for line in BufReader::new(File::open(&entry)?).lines().flatten() {
-			if line_should_be_included_in_output(&line.as_str()) {
-				tscode.push_str(&line);
-				tscode.push('\n');
-			}
+	for path in paths {
+		let file = File::open(&path)?;
+		let reader = BufReader::new(file);
+
+		for line in reader
+			.lines()
+			.flatten()
+			.filter(|line| line_should_be_included_in_output(&line.as_str()))
+		{
+			tscode.push_str(&line);
+			tscode.push('\n');
 		}
 
-		remove_file(Path::new(&entry))?;
+		remove_file(path)?;
 	}
 
 	Ok(tsfile.write_all(tscode.as_bytes())?)
