@@ -19,12 +19,15 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
         /* DO NOT CHANGE IT MANUALLY */\n\n",
 	);
 
+	let ts_ext = OsStr::new("ts");
+	let output_file = OsStr::new(&OUTPUT_FILE);
+
 	let mut paths: Vec<_> = read_dir(OUTPUT_DIR)?
 		.into_iter()
 		.filter(std::result::Result::is_ok)
 		.map(|r| r.unwrap().path())
-		.filter(|r| r.extension() == Some(OsStr::new("ts")))
-		.filter(|r| r.file_name() != Some(OsStr::new(&OUTPUT_FILE)))
+		.filter(|r| r.extension() == Some(ts_ext))
+		.filter(|r| r.file_name() != Some(output_file))
 		.collect();
 
 	paths.sort();
