@@ -61,7 +61,10 @@ fn run_prettier(path: &Path) -> ExitStatus {
 
 #[test]
 fn create_index() -> Result<(), Box<dyn std::error::Error>> {
-	let mut tsfile = File::create(format!("{}/{}", OUTPUT_DIR, OUTPUT_FILE))?;
+	let mut output_file = PathBuf::from(OUTPUT_DIR);
+	output_file.push(OUTPUT_FILE);
+
+	let mut tsfile = File::create(output_file.as_path())?;
 	let mut tscode = "".to_owned();
 
 	tscode.push_str(
@@ -88,5 +91,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 		remove_file(path)?;
 	}
 
-	Ok(tsfile.write_all(tscode.as_bytes())?)
+	tsfile.write_all(tscode.as_bytes())?;
+
+	Ok(())
 }
