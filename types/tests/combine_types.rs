@@ -8,6 +8,10 @@ use std::path::Path;
 const OUTPUT_DIR: &str = "./bindings";
 const OUTPUT_FILE: &str = "index.d.ts";
 
+fn line_should_be_included_in_output(line: &&str) -> bool {
+	!line.is_empty() && !line.starts_with("import")
+}
+
 #[test]
 fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 	let mut tsfile = File::create(format!("{}/{}", OUTPUT_DIR, OUTPUT_FILE))?;
@@ -34,7 +38,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	for entry in paths {
 		for line in BufReader::new(File::open(&entry)?).lines().flatten() {
-			if !line.starts_with("import") && !line.is_empty() {
+			if line_should_be_included_in_output(&line.as_str()) {
 				tscode.push_str(&line);
 				tscode.push('\n');
 			}
