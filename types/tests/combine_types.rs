@@ -34,7 +34,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	for entry in paths {
 		for line in BufReader::new(File::open(&entry)?).lines().flatten() {
-			if !line.starts_with("import") {
+			if !line.starts_with("import") && !line.is_empty() {
 				tscode.push_str(&line);
 				tscode.push('\n');
 			}
