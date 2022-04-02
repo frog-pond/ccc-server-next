@@ -93,5 +93,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	tsfile.write_all(tscode.as_bytes())?;
 
+	run_prettier(output_file.as_path());
+
 	Ok(())
 }
