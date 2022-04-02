@@ -12,24 +12,30 @@ export interface BreakSchedule {
   easter: Array<Schedule>;
   summer: Array<Schedule>;
 }
+
 export interface BusTimesResponse {
   data: Array<BusTimesResponseItem>;
 }
+
 export interface BusTimesResponseItem {
   colors: TransitColors;
   line: string;
   notice: string | null;
   schedules: Array<TransitSchedule>;
 }
+
 export interface ColorPrintersResponse {
   data: ColorPrintersResponseItem;
 }
+
 export interface ColorPrintersResponseItem {
   colorPrinters: Array<string>;
 }
+
 export interface ContactResponse {
   data: Array<ContactResponseItem>;
 }
+
 export interface ContactResponseItem {
   title: string;
   phoneNumber: string | null;
@@ -39,32 +45,40 @@ export interface ContactResponseItem {
   synopsis: string;
   text: string;
 }
+
 export type DayOfWeek = "Mo" | "Tu" | "We" | "Th" | "Fr" | "Sa" | "Su";
+
 export interface DictionaryResponse {
   data: Array<DictionaryResponseItem>;
 }
+
 export interface DictionaryResponseItem {
   word: string;
   definition: string;
 }
+
 export interface FAQResponse {
   text: string;
 }
+
 export interface FoodItemResponse {
   label: string;
   station: string;
   description?: string;
   special?: boolean;
 }
+
 export interface FoodStationMenu {
   label: string;
   note?: string;
 }
+
 export interface HelpButton {
   title: string;
   action: string;
   params: HelpParams;
 }
+
 export interface HelpParams {
   url: string | null;
   number: string | null;
@@ -72,9 +86,11 @@ export interface HelpParams {
   subject: string | null;
   body: string | null;
 }
+
 export interface HelpResponse {
   data: Array<HelpResponseItem>;
 }
+
 export interface HelpResponseItem {
   key: string;
   enabled: boolean;
@@ -83,11 +99,13 @@ export interface HelpResponseItem {
   body: string;
   buttons: Array<HelpButton>;
 }
+
 export interface Hour {
   days: Array<DayOfWeek>;
   from: string;
   to: string;
 }
+
 export interface HoursItem {
   name: string;
   image?: string;
@@ -96,9 +114,11 @@ export interface HoursItem {
   breakSchedule: BreakSchedule;
   subtitle?: string;
 }
+
 export interface HoursResponse {
   data: Array<HoursItem>;
 }
+
 export interface ModesItem {
   name: string;
   category: string;
@@ -106,17 +126,21 @@ export interface ModesItem {
   synopsis: string;
   url: string;
 }
+
 export interface ModesResponse {
   data: Array<ModesItem>;
 }
+
 export interface PauseMenuItemResponse {
   stationMenus: Array<FoodStationMenu>;
   foodItems: Array<FoodItemResponse>;
   corIcons: Array<any>;
 }
+
 export interface PauseMenuResponse {
   data: PauseMenuItemResponse;
 }
+
 export interface Schedule {
   title: string;
   notes?: string;
@@ -124,19 +148,23 @@ export interface Schedule {
   closedForChapelTime: boolean | null;
   isPhysicallyOpen: boolean | null;
 }
+
 export interface TransitColors {
   bar: string;
   dot: string;
 }
+
 export interface TransitSchedule {
   days: Array<string>;
   coordinates: Record<string, Array<number>>;
   stops: Array<string>;
   times: Array<Array<string | boolean>>;
 }
+
 export interface WebcamsResponse {
   data: Array<WebcamsResponseItem>;
 }
+
 export interface WebcamsResponseItem {
   name: string;
   pageUrl: string;

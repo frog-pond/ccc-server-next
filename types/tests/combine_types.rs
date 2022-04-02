@@ -87,7 +87,7 @@ fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> 
 			.filter(|line| should_include(line.as_str()))
 		{
 			output.push_str(&line);
-			output.push('\n');
+			output.push_str("\n\n");
 		}
 	}
 
