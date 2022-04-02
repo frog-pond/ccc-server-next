@@ -99,15 +99,15 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 	let mut output_file = PathBuf::from(OUTPUT_DIR);
 	output_file.push(OUTPUT_FILE);
 
+	let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
+
+	let tscode = generate_tscode(&paths)?;
+
+	for path in paths {
+		remove_file(path)?;
+	}
+
 	{
-		let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
-
-		let tscode = generate_tscode(&paths)?;
-
-		for path in paths {
-			remove_file(path)?;
-		}
-
 		let mut tsfile = File::create(output_file.as_path())?;
 		tsfile.write_all(tscode.as_bytes())?;
 	}
