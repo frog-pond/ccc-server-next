@@ -10,6 +10,9 @@ use std::process::{Command, ExitStatus};
 const OUTPUT_DIR: &str = "./bindings";
 const OUTPUT_FILE: &str = "index.d.ts";
 
+/// Returns whether a line should be copied to the output.
+///
+/// A line should be copied to the output if it is not empty and isn't an `import` statement.
 fn should_include(line: &str) -> bool {
 	!line.is_empty() && !line.starts_with("import")
 }
@@ -38,6 +41,7 @@ fn should_consider_entry(dir_entry: &DirEntry) -> bool {
 	}
 }
 
+/// Returns an iterator over the relevant entries of `dir`.
 fn find_relevant_sources(
 	dir: &str,
 ) -> Result<impl Iterator<Item = PathBuf>, Box<dyn std::error::Error>> {
@@ -50,6 +54,7 @@ fn find_relevant_sources(
 	)
 }
 
+/// Runs `npx prettier --write` on `path` and returns the `ExitStatus` of the underlying command.
 fn run_prettier(path: &Path) -> ExitStatus {
 	Command::new("npx")
 		.arg("prettier")
@@ -67,6 +72,7 @@ const TSCODE_PREAMBLE: [&str; 5] = [
 	"",
 ];
 
+/// Generates unprettified output from the set of input files.
 fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> {
 	let mut output = String::new();
 
@@ -76,7 +82,7 @@ fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> 
 		output.push('\n');
 	}
 
-	// For each path, open and read the file.
+	// For each path, open and read the file, appending lines to be included to `output`.
 	for path in paths {
 		let file = File::open(&path)?;
 		let reader = BufReader::new(file);
@@ -94,6 +100,7 @@ fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> 
 	Ok(output)
 }
 
+/// Generate an output filename by combining `dirname` and `filename`.
 fn output_file(dirname: &str, filename: &str) -> PathBuf {
 	let mut output_file = PathBuf::from(dirname);
 	output_file.push(filename);
