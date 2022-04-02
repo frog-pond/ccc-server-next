@@ -4,7 +4,7 @@ use std::fs::{read_dir, remove_file, DirEntry, File};
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const OUTPUT_DIR: &str = "./bindings";
 const OUTPUT_FILE: &str = "index.d.ts";
@@ -37,6 +37,18 @@ fn should_consider_entry(dir_entry: &DirEntry) -> bool {
 	}
 }
 
+fn find_relevant_sources(
+	dir: &str,
+) -> Result<impl Iterator<Item = PathBuf>, Box<dyn std::error::Error>> {
+	Ok(
+		read_dir(dir)?
+			.into_iter()
+			.filter_map(Result::ok)
+			.filter(should_consider_entry)
+			.map(|dir_entry| dir_entry.path()),
+	)
+}
+
 #[test]
 fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 	let mut tsfile = File::create(format!("{}/{}", OUTPUT_DIR, OUTPUT_FILE))?;
@@ -48,12 +60,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
         /* DO NOT CHANGE IT MANUALLY */\n\n",
 	);
 
-	let paths: BTreeSet<_> = read_dir(OUTPUT_DIR)?
-		.into_iter()
-		.filter_map(std::result::Result::ok)
-		.filter(should_consider_entry)
-		.map(|dir_entry| dir_entry.path())
-		.collect();
+	let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
 
 	for entry in paths {
 		for line in BufReader::new(File::open(&entry)?).lines().flatten() {
