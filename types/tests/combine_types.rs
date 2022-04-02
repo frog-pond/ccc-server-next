@@ -5,6 +5,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::{Command, ExitStatus};
 
 const OUTPUT_DIR: &str = "./bindings";
 const OUTPUT_FILE: &str = "index.d.ts";
@@ -47,6 +48,15 @@ fn find_relevant_sources(
 			.filter(should_consider_entry)
 			.map(|dir_entry| dir_entry.path()),
 	)
+}
+
+fn run_prettier(path: &Path) -> ExitStatus {
+	Command::new("npx")
+		.arg("prettier")
+		.arg("--write")
+		.arg(path.as_os_str())
+		.status()
+		.expect("failed to determine exit status")
 }
 
 #[test]
