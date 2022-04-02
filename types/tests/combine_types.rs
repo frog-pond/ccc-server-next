@@ -24,8 +24,8 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	let mut paths: Vec<_> = read_dir(OUTPUT_DIR)?
 		.into_iter()
-		.filter(std::result::Result::is_ok)
-		.map(|r| r.unwrap().path())
+		.filter_map(std::result::Result::ok)
+		.map(|r| r.path())
 		.filter(|r| r.extension() == Some(ts_ext))
 		.filter(|r| r.file_name() != Some(output_file))
 		.collect();
