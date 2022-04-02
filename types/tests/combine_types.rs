@@ -94,10 +94,15 @@ fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> 
 	Ok(output)
 }
 
+fn output_file(dirname: &str, filename: &str) -> PathBuf {
+	let mut output_file = PathBuf::from(dirname);
+	output_file.push(filename);
+	output_file
+}
+
 #[test]
 fn create_index() -> Result<(), Box<dyn std::error::Error>> {
-	let mut output_file = PathBuf::from(OUTPUT_DIR);
-	output_file.push(OUTPUT_FILE);
+	let output_file = output_file(OUTPUT_DIR, OUTPUT_FILE);
 
 	let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
 
