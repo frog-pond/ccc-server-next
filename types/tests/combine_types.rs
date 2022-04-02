@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
-use std::fs::{read_dir, remove_file, File};
+use std::fs::{read_dir, remove_file, DirEntry, File};
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
@@ -11,6 +11,30 @@ const OUTPUT_FILE: &str = "index.d.ts";
 
 fn line_should_be_included_in_output(line: &&str) -> bool {
 	!line.is_empty() && !line.starts_with("import")
+}
+
+/// Examines `dir_entry` and returns `true` if its contents should be included in the combined
+/// output file. Returns `false` otherwise.
+fn should_consider_entry(dir_entry: &DirEntry) -> bool {
+	let metadata = dir_entry.metadata().ok();
+
+	// If we have metadata, we can consider it.
+	if let Some(metadata) = metadata {
+		if metadata.is_symlink() || metadata.is_dir() {
+			// If the metadata indicates this file is a symlink or a directory, ignore it.
+			false
+		} else {
+			// Otherwise, consider the file's pathname.
+			let path = dir_entry.path();
+
+			// Verify that the file is a .ts file _other_ than the output file.
+			path.extension() == Some(OsStr::new("ts"))
+				&& path.file_name() != Some(OsStr::new(&OUTPUT_FILE))
+		}
+	} else {
+		// If we don't have metadata, ignore the file.
+		false
+	}
 }
 
 #[test]
@@ -24,15 +48,11 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
         /* DO NOT CHANGE IT MANUALLY */\n\n",
 	);
 
-	let ts_ext = OsStr::new("ts");
-	let output_file = OsStr::new(&OUTPUT_FILE);
-
 	let paths: BTreeSet<_> = read_dir(OUTPUT_DIR)?
 		.into_iter()
 		.filter_map(std::result::Result::ok)
-		.map(|r| r.path())
-		.filter(|r| r.extension() == Some(ts_ext))
-		.filter(|r| r.file_name() != Some(output_file))
+		.filter(should_consider_entry)
+		.map(|dir_entry| dir_entry.path())
 		.collect();
 
 	for entry in paths {
