@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs::{read_dir, remove_file, File};
 use std::io::BufRead;
@@ -26,15 +27,13 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 	let ts_ext = OsStr::new("ts");
 	let output_file = OsStr::new(&OUTPUT_FILE);
 
-	let mut paths: Vec<_> = read_dir(OUTPUT_DIR)?
+	let paths: BTreeSet<_> = read_dir(OUTPUT_DIR)?
 		.into_iter()
 		.filter_map(std::result::Result::ok)
 		.map(|r| r.path())
 		.filter(|r| r.extension() == Some(ts_ext))
 		.filter(|r| r.file_name() != Some(output_file))
 		.collect();
-
-	paths.sort();
 
 	for entry in paths {
 		for line in BufReader::new(File::open(&entry)?).lines().flatten() {
