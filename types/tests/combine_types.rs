@@ -67,6 +67,33 @@ const TSCODE_PREAMBLE: [&str; 5] = [
 	"",
 ];
 
+fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> {
+	let mut output = String::new();
+
+	// First, set the preamble.
+	for line in TSCODE_PREAMBLE {
+		output.push_str(line);
+		output.push('\n');
+	}
+
+	// For each path, open and read the file.
+	for path in paths {
+		let file = File::open(&path)?;
+		let reader = BufReader::new(file);
+
+		for line in reader
+			.lines()
+			.flatten()
+			.filter(|line| should_include(line.as_str()))
+		{
+			output.push_str(&line);
+			output.push('\n');
+		}
+	}
+
+	Ok(output)
+}
+
 #[test]
 fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 	let mut output_file = PathBuf::from(OUTPUT_DIR);
@@ -74,28 +101,12 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 
 	{
 		let mut tsfile = File::create(output_file.as_path())?;
-		let mut tscode = "".to_owned();
-
-		for line in TSCODE_PREAMBLE {
-			tscode.push_str(line);
-			tscode.push('\n');
-		}
 
 		let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
 
+		let tscode = generate_tscode(&paths)?;
+
 		for path in paths {
-			let file = File::open(&path)?;
-			let reader = BufReader::new(file);
-
-			for line in reader
-				.lines()
-				.flatten()
-				.filter(|line| should_include(line.as_str()))
-			{
-				tscode.push_str(&line);
-				tscode.push('\n');
-			}
-
 			remove_file(path)?;
 		}
 
