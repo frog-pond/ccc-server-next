@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 const OUTPUT_DIR: &str = "./bindings";
 const OUTPUT_FILE: &str = "index.d.ts";
 
-fn line_should_be_included_in_output(line: &&str) -> bool {
+fn should_include(line: &&str) -> bool {
 	!line.is_empty() && !line.starts_with("import")
 }
 
@@ -69,7 +69,7 @@ fn create_index() -> Result<(), Box<dyn std::error::Error>> {
 		for line in reader
 			.lines()
 			.flatten()
-			.filter(|line| line_should_be_included_in_output(&line.as_str()))
+			.filter(|line| should_include(&line.as_str()))
 		{
 			tscode.push_str(&line);
 			tscode.push('\n');
