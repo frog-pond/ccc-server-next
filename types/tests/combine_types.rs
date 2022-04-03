@@ -42,9 +42,7 @@ fn should_consider_entry(dir_entry: &DirEntry) -> bool {
 }
 
 /// Returns an iterator over the relevant entries of `dir`.
-fn find_relevant_sources(
-	dir: &str,
-) -> Result<impl Iterator<Item = PathBuf>, Box<dyn std::error::Error>> {
+fn find_relevant_sources(dir: &str) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
 	Ok(
 		read_dir(dir)?
 			.into_iter()
@@ -108,7 +106,7 @@ fn output_file(dirname: &str, filename: &str) -> PathBuf {
 }
 
 #[test]
-fn create_index() -> Result<(), Box<dyn std::error::Error>> {
+fn create_index() -> Result<(), std::io::Error> {
 	let output_file = output_file(OUTPUT_DIR, OUTPUT_FILE);
 
 	let paths: BTreeSet<_> = find_relevant_sources(OUTPUT_DIR)?.collect();
