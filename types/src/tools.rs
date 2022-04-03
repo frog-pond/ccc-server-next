@@ -14,10 +14,15 @@ pub struct HelpButton {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct HelpParams {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	url: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	number: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	to: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	subject: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	body: Option<String>,
 }
 
