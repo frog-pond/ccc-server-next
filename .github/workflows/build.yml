@@ -43,3 +43,6 @@ jobs:
     - name: Run cargo test
       run: |
         cargo test --workspace --all-features --all-targets --no-fail-fast
+    - name: Ensure index.d.ts is up-to-date after tests were run
+      run: |
+        git diff --exit-code -- types/bindings/index.d.ts
