@@ -5,5 +5,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.4.5"
+axum = "0.5.0"
 handlers = { path = "../handlers" }
