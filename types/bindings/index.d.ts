@@ -80,11 +80,11 @@ export interface HelpButton {
 }
 
 export interface HelpParams {
-  url: string | null;
-  number: string | null;
-  to: string | null;
-  subject: string | null;
-  body: string | null;
+  url?: string;
+  number?: string;
+  to?: string;
+  subject?: string;
+  body?: string;
 }
 
 export interface HelpResponse {
