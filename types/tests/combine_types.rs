@@ -14,7 +14,7 @@ const OUTPUT_FILE: &str = "index.d.ts";
 ///
 /// A line should be copied to the output if it is not empty and isn't an `import` statement.
 fn should_include(line: &str) -> bool {
-	!line.is_empty() && !line.starts_with("import")
+	!line.is_empty() && !line.starts_with("import") && !line.starts_with("//")
 }
 
 /// Examines `dir_entry` and returns `true` if its contents should be included in the combined
