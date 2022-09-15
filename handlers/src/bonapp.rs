@@ -129,6 +129,21 @@ const fn query_base_url(query_type: &QueryType) -> &str {
 	}
 }
 
+fn query_url(
+	query_type: &QueryType,
+	base_url: &str,
+	id: String,
+) -> Result<String, BonAppProxyError> {
+	use {ProxyRequestQueryParameters::*, QueryType::*};
+	let params = match query_type {
+		Cafe => CafeQuery { cafe: id },
+		Menu => MenuQuery { cafe: id },
+		ItemNutrition => ItemNutritionQuery { item: id },
+	};
+	let url = format!("{}?{}", base_url, serde_urlencoded::to_string(params)?);
+	Ok(url)
+}
+
 #[instrument]
 async fn proxied_query<T>(
 	query_type: QueryType,
@@ -141,23 +156,7 @@ where
 
 	let url = query_base_url(&query_type);
 
-	let url: Result<String, BonAppProxyError> = {
-		let params = match query_type {
-			QueryType::Cafe => ProxyRequestQueryParameters::CafeQuery {
-				cafe: entity_id.to_string(),
-			},
-			QueryType::Menu => ProxyRequestQueryParameters::MenuQuery {
-				cafe: entity_id.to_string(),
-			},
-			QueryType::ItemNutrition => ProxyRequestQueryParameters::ItemNutritionQuery {
-				item: entity_id.to_string(),
-			},
-		};
-		let url = format!("{}?{}", url, serde_urlencoded::to_string(params)?);
-		Ok(url)
-	};
-
-	let url = url?;
+	let url: String = query_url(&query_type, url, entity_id.to_string())?;
 	tracing::debug!(url);
 
 	let response = {
