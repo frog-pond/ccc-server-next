@@ -109,6 +109,18 @@ enum QueryType {
 }
 
 #[instrument]
+async fn parse_response<T>(response: reqwest::Response) -> Result<Json<T>, BonAppProxyError>
+where
+	T: serde::de::DeserializeOwned,
+{
+	response
+		.json()
+		.await
+		.map(Json)
+		.map_err(BonAppProxyError::Response)
+}
+
+#[instrument]
 async fn proxied_query<T>(
 	query_type: QueryType,
 	entity_id: &str,
@@ -153,11 +165,7 @@ where
 		let span = tracing::trace_span!("proxy response");
 		let _entered = span.enter();
 
-		response
-			.json()
-			.await
-			.map(Json)
-			.map_err(BonAppProxyError::Response)
+		parse_response::<T>(response).await
 	};
 
 	result
