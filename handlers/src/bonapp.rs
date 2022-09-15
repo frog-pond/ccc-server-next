@@ -85,10 +85,34 @@ fn query_parameters_serialize() {
 	);
 }
 
+#[axum_macros::debug_handler]
+#[instrument(skip_all)]
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppCafesResponse>, BonAppProxyError> {
-	todo!()
+	if let Some(named_cafe) = NamedBonAppCafe::from_name(&cafe_name) {
+		cafe(&named_cafe.get_bonapp_cafe_id().to_string()).await
+	} else {
+		tracing::warn!(?cafe_name, "unknown named cafe");
+		Err(BonAppProxyError::UnknownCafe)
+	}
+}
+
+#[instrument]
+async fn proxied_query<T>(
+	query_type: QueryType,
+	entity_id: &str,
+) -> Result<Json<T>, BonAppProxyError>
+where
+	T: serde::de::DeserializeOwned,
+{
+	tracing::debug!(entity_id, ?query_type, "handling proxied BonApp request");
+ todo!()
+}
+
+#[instrument]
+async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafesResponse>, BonAppProxyError> {
+	proxied_query(QueryType::Cafe, cafe_id).await
 }
 
 impl IntoResponse for BonAppProxyError {
