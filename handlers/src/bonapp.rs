@@ -1,7 +1,10 @@
 use axum::{
 	extract::Path,
 	response::{IntoResponse, Response},
+	Json,
 };
+use http::StatusCode;
+use tracing::instrument;
 
 const BONAPP_CAFE_KEY_STAV: &str = "stav-hall";
 const BONAPP_CAFE_KEY_CAGE: &str = "the-cage";
@@ -98,6 +101,13 @@ pub async fn named_cafe_handler(
 	}
 }
 
+#[derive(Debug)]
+enum QueryType {
+	Cafe,
+	Menu,
+	ItemNutrition,
+}
+
 #[instrument]
 async fn proxied_query<T>(
 	query_type: QueryType,
@@ -107,7 +117,50 @@ where
 	T: serde::de::DeserializeOwned,
 {
 	tracing::debug!(entity_id, ?query_type, "handling proxied BonApp request");
- todo!()
+
+	let url = match query_type {
+		QueryType::Cafe => "https://legacy.cafebonappetit.com/api/2/cafes",
+		QueryType::Menu => "https://legacy.cafebonappetit.com/api/2/menus",
+		QueryType::ItemNutrition => "https://legacy.cafebonappetit.com/api/2/items",
+	};
+
+	let url: Result<String, BonAppProxyError> = {
+		let params = match query_type {
+			QueryType::Cafe => ProxyRequestQueryParameters::CafeQuery {
+				cafe: entity_id.to_string(),
+			},
+			QueryType::Menu => ProxyRequestQueryParameters::MenuQuery {
+				cafe: entity_id.to_string(),
+			},
+			QueryType::ItemNutrition => ProxyRequestQueryParameters::ItemNutritionQuery {
+				item: entity_id.to_string(),
+			},
+		};
+		let url = format!("{}?{}", url, serde_urlencoded::to_string(params)?);
+		Ok(url)
+	};
+
+	let url = url?;
+	tracing::debug!(url);
+
+	let response = {
+		let span = tracing::trace_span!("proxy request");
+		let _entered = span.enter();
+		reqwest::get(url).await.map_err(BonAppProxyError::Request)
+	}?;
+
+	let result = {
+		let span = tracing::trace_span!("proxy response");
+		let _entered = span.enter();
+
+		response
+			.json()
+			.await
+			.map(Json)
+			.map_err(BonAppProxyError::Response)
+	};
+
+	result
 }
 
 #[instrument]
