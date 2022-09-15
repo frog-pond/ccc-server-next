@@ -120,6 +120,15 @@ where
 		.map_err(BonAppProxyError::Response)
 }
 
+const fn query_base_url(query_type: &QueryType) -> &str {
+	use QueryType::*;
+	match query_type {
+		Cafe => "https://legacy.cafebonappetit.com/api/2/cafes",
+		Menu => "https://legacy.cafebonappetit.com/api/2/menus",
+		ItemNutrition => "https://legacy.cafebonappetit.com/api/2/items",
+	}
+}
+
 #[instrument]
 async fn proxied_query<T>(
 	query_type: QueryType,
@@ -130,11 +139,7 @@ where
 {
 	tracing::debug!(entity_id, ?query_type, "handling proxied BonApp request");
 
-	let url = match query_type {
-		QueryType::Cafe => "https://legacy.cafebonappetit.com/api/2/cafes",
-		QueryType::Menu => "https://legacy.cafebonappetit.com/api/2/menus",
-		QueryType::ItemNutrition => "https://legacy.cafebonappetit.com/api/2/items",
-	};
+	let url = query_base_url(&query_type);
 
 	let url: Result<String, BonAppProxyError> = {
 		let params = match query_type {
