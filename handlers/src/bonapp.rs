@@ -1,3 +1,8 @@
+use axum::{
+	extract::Path,
+	response::{IntoResponse, Response},
+};
+
 const BONAPP_CAFE_KEY_STAV: &str = "stav-hall";
 const BONAPP_CAFE_KEY_CAGE: &str = "the-cage";
 const BONAPP_CAFE_KEY_KINGS_ROOM: &str = "kings-room";
@@ -46,6 +51,21 @@ impl NamedBonAppCafe {
 	}
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum BonAppProxyError {
+	#[error("error while encoding query string")]
+	QueryStringEncoding(#[from] serde_urlencoded::ser::Error),
+
+	#[error("error while sending proxied request to bonapp")]
+	Request(reqwest::Error),
+
+	#[error("error while processing proxied response from bonapp ({0})")]
+	Response(reqwest::Error),
+
+	#[error("unknown cafe")]
+	UnknownCafe,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 enum ProxyRequestQueryParameters {
@@ -63,4 +83,23 @@ fn query_parameters_serialize() {
 		serde_urlencoded::to_string(query).ok(),
 		Some("cafe=foo".to_string())
 	);
+}
+
+pub async fn named_cafe_handler(
+	Path((cafe_name,)): Path<(String,)>,
+) -> Result<Json<types::food::BonAppCafesResponse>, BonAppProxyError> {
+	todo!()
+}
+
+impl IntoResponse for BonAppProxyError {
+	fn into_response(self) -> axum::response::Response {
+		let text = self.to_string();
+
+		let body = axum::body::boxed(axum::body::Full::from(text));
+
+		Response::builder()
+			.status(StatusCode::INTERNAL_SERVER_ERROR)
+			.body(body)
+			.unwrap()
+	}
 }

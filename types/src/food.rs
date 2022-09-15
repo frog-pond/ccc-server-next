@@ -39,3 +39,8 @@ pub struct PauseMenuItemResponse {
 pub struct PauseMenuResponse {
 	data: PauseMenuItemResponse,
 }
+
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub struct BonAppCafesResponse {}
