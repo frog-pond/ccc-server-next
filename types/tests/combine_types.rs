@@ -55,8 +55,10 @@ fn find_relevant_sources(dir: &str) -> Result<impl Iterator<Item = PathBuf>, std
 /// Runs `npx prettier --write` on `path` and returns the `ExitStatus` of the underlying command.
 fn run_prettier(path: &Path) -> ExitStatus {
 	Command::new("npx")
+		.arg("--prefer-offline")
 		.arg("prettier")
 		.arg("--write")
+		.arg("--")
 		.arg(path.as_os_str())
 		.status()
 		.expect("failed to determine exit status")
