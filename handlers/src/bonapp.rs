@@ -129,8 +129,8 @@ where
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
-	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe_handler(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
+	if let Some(id) = CAFE_NAME_MAP.get(&cafe_name) {
+		cafe_handler(Path(id.to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -141,8 +141,8 @@ pub async fn named_cafe_handler(
 pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
-	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe_menu_handler(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
+	if let Some(id) = CAFE_NAME_MAP.get(&cafe_name) {
+		cafe_menu_handler(Path(id.to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
