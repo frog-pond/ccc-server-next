@@ -58,7 +58,7 @@ pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
 	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe(&CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string()).await
+		cafe(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -71,7 +71,7 @@ pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
 	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe_menu(&CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string()).await
+		cafe_menu(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -153,8 +153,10 @@ where
 }
 
 #[instrument]
-async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
-	proxied_query::<types::food::BonAppCafesResponse>(QueryType::Cafe, cafe_id)
+pub async fn cafe(
+	Path(cafe_id): Path<String>,
+) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
+	proxied_query::<types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
 		.await
 		.map(|mut result| {
 			let cafes = result.deref_mut().cafes_mut();
@@ -165,17 +167,17 @@ async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafeResponse>, Bo
 			// unknown; rather it is known, we got a response back, but it didn't
 			// look like it was supposed to.
 			cafes
-				.remove(cafe_id)
+				.remove(&cafe_id)
 				.map(Json)
 				.expect("cafe did not appear in the response")
 		})
 }
 
 #[instrument]
-async fn cafe_menu(
-	cafe_id: &str,
+pub async fn cafe_menu(
+	Path(cafe_id): Path<String>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
-	proxied_query(QueryType::Menu, cafe_id).await
+	proxied_query(QueryType::Menu, &cafe_id).await
 }
 
 impl IntoResponse for BonAppProxyError {
