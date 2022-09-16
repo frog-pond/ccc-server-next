@@ -273,6 +273,7 @@ dependencies = [
  "axum",
  "axum-macros",
  "http",
+ "once_cell",
  "phf",
  "reqwest",
  "serde",
