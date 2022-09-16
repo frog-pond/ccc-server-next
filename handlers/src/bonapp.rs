@@ -103,6 +103,19 @@ pub async fn named_cafe_handler(
 	}
 }
 
+#[axum_macros::debug_handler]
+#[instrument(skip_all)]
+pub async fn named_cafe_menu_handler(
+	Path((cafe_name,)): Path<(String,)>,
+) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
+	if let Some(named_cafe) = NamedBonAppCafe::from_name(&cafe_name) {
+		cafe_menu(&named_cafe.get_bonapp_cafe_id().to_string()).await
+	} else {
+		tracing::warn!(?cafe_name, "unknown named cafe");
+		Err(BonAppProxyError::UnknownCafe)
+	}
+}
+
 #[derive(Debug)]
 enum QueryType {
 	Cafe,
@@ -194,6 +207,13 @@ async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafeResponse>, Bo
 				.map(Json)
 				.expect("cafe did not appear in the response")
 		})
+}
+
+#[instrument]
+async fn cafe_menu(
+	cafe_id: &str,
+) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
+	proxied_query(QueryType::Menu, cafe_id).await
 }
 
 impl IntoResponse for BonAppProxyError {
