@@ -50,6 +50,8 @@ fn init_router() -> Router {
 async fn main() {
 	tracing_subscriber::fmt::init();
 
+	handlers::client::initialize();
+
 	let app = init_router();
 
 	Server::bind(&"0.0.0.0:3000".parse().unwrap())
