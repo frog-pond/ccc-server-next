@@ -8,53 +8,15 @@ use axum::{
 use http::StatusCode;
 use tracing::instrument;
 
-const BONAPP_CAFE_KEY_STAV: &str = "stav-hall";
-const BONAPP_CAFE_KEY_CAGE: &str = "the-cage";
-const BONAPP_CAFE_KEY_KINGS_ROOM: &str = "kings-room";
-const BONAPP_CAFE_KEY_BURTON: &str = "burton";
-const BONAPP_CAFE_KEY_LDC: &str = "ldc";
-const BONAPP_CAFE_KEY_SAYLES: &str = "sayles";
-const BONAPP_CAFE_KEY_WEITZ: &str = "weitz";
-
-#[derive(Debug)]
-enum NamedBonAppCafe {
-	Stav,
-	Cage,
-	KingsRoom,
-	Burton,
-	Ldc,
-	Sayles,
-	Weitz,
-}
-
-impl NamedBonAppCafe {
-	fn from_name(name: &str) -> Option<Self> {
-		use NamedBonAppCafe::*;
-		match name {
-			BONAPP_CAFE_KEY_STAV => Some(Stav),
-			BONAPP_CAFE_KEY_CAGE => Some(Cage),
-			BONAPP_CAFE_KEY_KINGS_ROOM => Some(KingsRoom),
-			BONAPP_CAFE_KEY_BURTON => Some(Burton),
-			BONAPP_CAFE_KEY_LDC => Some(Ldc),
-			BONAPP_CAFE_KEY_SAYLES => Some(Sayles),
-			BONAPP_CAFE_KEY_WEITZ => Some(Weitz),
-			_ => None,
-		}
-	}
-
-	const fn get_bonapp_cafe_id(&self) -> u32 {
-		use NamedBonAppCafe::*;
-		match self {
-			Stav => 261,
-			Cage => 262,
-			KingsRoom => 263,
-			Burton => 35,
-			Ldc => 36,
-			Sayles => 24,
-			Weitz => 458,
-		}
-	}
-}
+const CAFE_NAME_MAP: phf::Map<&str, u32> = phf::phf_map! {
+	"stav-hall" => 261,
+	"the-cage" => 262,
+	"kings-room" => 263,
+	"burton" => 35,
+	"ldc" => 36,
+	"sayles" => 24,
+	"weitz" => 458,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BonAppProxyError {
@@ -95,8 +57,8 @@ fn query_parameters_serialize() {
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
-	if let Some(named_cafe) = NamedBonAppCafe::from_name(&cafe_name) {
-		cafe(&named_cafe.get_bonapp_cafe_id().to_string()).await
+	if CAFE_NAME_MAP.contains_key(&cafe_name) {
+		cafe(&CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string()).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -108,8 +70,8 @@ pub async fn named_cafe_handler(
 pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
-	if let Some(named_cafe) = NamedBonAppCafe::from_name(&cafe_name) {
-		cafe_menu(&named_cafe.get_bonapp_cafe_id().to_string()).await
+	if CAFE_NAME_MAP.contains_key(&cafe_name) {
+		cafe_menu(&CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string()).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)

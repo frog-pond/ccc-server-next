@@ -14,3 +14,4 @@ serde = { version = "1.0.139", features = ["derive"] }
 thiserror = { version = "1.0.31" }
 tracing = "0.1.35"
 serde_urlencoded = "0.7.1"
+phf = { version = "0.11.1", features = ["macros"] }
