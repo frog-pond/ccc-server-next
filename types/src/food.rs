@@ -171,17 +171,11 @@ pub struct CorIconValue {
 #[derive(Serialize, Deserialize)]
 pub struct Day {
 	date: String,
-	cafes: Cafes,
+	cafes: HashMap<String, CafeDayMenu>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Cafes {
-	#[serde(rename = "261")]
-	the_261: The261,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct The261 {
+pub struct CafeDayMenu {
 	name: String,
 	comma_operator: String,
 	pipe_operator: String,
