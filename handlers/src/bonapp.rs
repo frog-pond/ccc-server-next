@@ -58,7 +58,7 @@ pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
 	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
+		cafe_handler(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -71,7 +71,7 @@ pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
 	if CAFE_NAME_MAP.contains_key(&cafe_name) {
-		cafe_menu(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
+		cafe_menu_handler(Path(CAFE_NAME_MAP.get(&cafe_name).unwrap().to_string())).await
 	} else {
 		tracing::warn!(?cafe_name, "unknown named cafe");
 		Err(BonAppProxyError::UnknownCafe)
@@ -153,7 +153,7 @@ where
 }
 
 #[instrument]
-pub async fn cafe(
+pub async fn cafe_handler(
 	Path(cafe_id): Path<String>,
 ) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
 	proxied_query::<types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
@@ -173,8 +173,9 @@ pub async fn cafe(
 		})
 }
 
-#[instrument]
-pub async fn cafe_menu(
+#[axum_macros::debug_handler]
+#[instrument(skip_all)]
+pub async fn cafe_menu_handler(
 	Path(cafe_id): Path<String>,
 ) -> Result<Json<types::food::BonAppMenuResponse>, BonAppProxyError> {
 	proxied_query(QueryType::Menu, &cafe_id).await
