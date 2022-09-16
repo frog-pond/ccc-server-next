@@ -145,8 +145,18 @@ pub enum IsFilter {
 //
 
 #[derive(Serialize, Deserialize)]
-pub struct BonAppMenuResponse {
-	days: Vec<Day>,
+pub struct BonAppMenuMultipleCafesResponse {
+	days: Vec<BonAppMenuDayMultipleCafes>,
+	items: HashMap<String, Item>,
+	superplates: Vec<Option<serde_json::Value>>,
+	goitems: HashMap<String, Goitem>,
+	cor_icons: HashMap<String, CorIconValue>,
+	version: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BonAppMenuSingleCafeResponse {
+	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, Item>,
 	superplates: Vec<Option<serde_json::Value>>,
 	goitems: HashMap<String, Goitem>,
@@ -169,9 +179,25 @@ pub struct CorIconValue {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Day {
+pub struct BonAppMenuDayMultipleCafes {
 	date: String,
 	cafes: HashMap<String, CafeDayMenu>,
+}
+
+impl BonAppMenuDayMultipleCafes {
+	fn as_single_day(mut self, cafe: &str) -> Option<BonAppMenuDaySingleCafe> {
+		let date = self.date;
+		self
+			.cafes
+			.remove(cafe)
+			.map(|cafe| BonAppMenuDaySingleCafe { date, cafe })
+	}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BonAppMenuDaySingleCafe {
+	date: String,
+	cafe: CafeDayMenu,
 }
 
 #[derive(Serialize, Deserialize)]
