@@ -112,7 +112,11 @@ where
 	let response = {
 		let span = tracing::trace_span!("proxy request");
 		let _entered = span.enter();
-		reqwest::get(url).await.map_err(BonAppProxyError::Request)
+		crate::client::get_shared_client()
+			.get(url)
+			.send()
+			.await
+			.map_err(BonAppProxyError::Request)
 	}?;
 
 	let result = {

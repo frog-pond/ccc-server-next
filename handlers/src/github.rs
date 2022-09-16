@@ -85,7 +85,11 @@ async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
 where
 	T: DeserializeOwned,
 {
-	let response = reqwest::get(path).await.map_err(JsonProxyError::Request)?;
+	let response = crate::client::get_shared_client()
+		.get(path)
+		.send()
+		.await
+		.map_err(JsonProxyError::Request)?;
 
 	response
 		.json()
