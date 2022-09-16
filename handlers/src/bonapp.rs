@@ -36,14 +36,14 @@ pub enum BonAppProxyError {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 enum ProxyRequestQueryParameters {
-	CafeQuery { cafe: String },
-	MenuQuery { cafe: String },
-	ItemNutritionQuery { item: String },
+	Cafe { cafe: String },
+	Menu { cafe: String },
+	ItemNutrition { item: String },
 }
 
 #[test]
 fn query_parameters_serialize() {
-	let query = ProxyRequestQueryParameters::CafeQuery {
+	let query = ProxyRequestQueryParameters::Cafe {
 		cafe: "foo".to_string(),
 	};
 	assert_eq!(
@@ -85,11 +85,10 @@ fn query_url(
 	base_url: &str,
 	id: String,
 ) -> Result<String, BonAppProxyError> {
-	use {ProxyRequestQueryParameters::*, QueryType::*};
 	let params = match query_type {
-		Cafe => CafeQuery { cafe: id },
-		Menu => MenuQuery { cafe: id },
-		ItemNutrition => ItemNutritionQuery { item: id },
+		QueryType::Cafe => ProxyRequestQueryParameters::Cafe { cafe: id },
+		QueryType::Menu => ProxyRequestQueryParameters::Menu { cafe: id },
+		QueryType::ItemNutrition => ProxyRequestQueryParameters::ItemNutrition { item: id },
 	};
 	let url = format!("{}?{}", base_url, serde_urlencoded::to_string(params)?);
 	Ok(url)
@@ -126,7 +125,6 @@ where
 	result
 }
 
-#[axum_macros::debug_handler]
 #[instrument(skip_all)]
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
@@ -139,7 +137,6 @@ pub async fn named_cafe_handler(
 	}
 }
 
-#[axum_macros::debug_handler]
 #[instrument(skip_all)]
 pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
@@ -173,7 +170,6 @@ pub async fn cafe_handler(
 		})
 }
 
-#[axum_macros::debug_handler]
 #[instrument(skip_all)]
 pub async fn cafe_menu_handler(
 	Path(cafe_id): Path<String>,
