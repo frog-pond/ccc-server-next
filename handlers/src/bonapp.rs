@@ -1,3 +1,5 @@
+use core::ops::DerefMut;
+
 use axum::{
 	extract::Path,
 	response::{IntoResponse, Response},
@@ -92,7 +94,7 @@ fn query_parameters_serialize() {
 #[instrument(skip_all)]
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
-) -> Result<Json<types::food::BonAppCafesResponse>, BonAppProxyError> {
+) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
 	if let Some(named_cafe) = NamedBonAppCafe::from_name(&cafe_name) {
 		cafe(&named_cafe.get_bonapp_cafe_id().to_string()).await
 	} else {
@@ -176,8 +178,22 @@ where
 }
 
 #[instrument]
-async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafesResponse>, BonAppProxyError> {
-	proxied_query(QueryType::Cafe, cafe_id).await
+async fn cafe(cafe_id: &str) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
+	proxied_query::<types::food::BonAppCafesResponse>(QueryType::Cafe, cafe_id)
+		.await
+		.map(|mut result| {
+			let cafes = result.deref_mut().cafes_mut();
+
+			// TODO: This might be a bit less descriptive than it should be.
+			// What _really_ happened is we got back a response that didn't have
+			// a top level key corresponding to the cafe id.  Not that the cafe is
+			// unknown; rather it is known, we got a response back, but it didn't
+			// look like it was supposed to.
+			cafes
+				.remove(cafe_id)
+				.map(Json)
+				.expect("cafe did not appear in the response")
+		})
 }
 
 impl IntoResponse for BonAppProxyError {
