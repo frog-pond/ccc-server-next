@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
+
 use axum::{
 	body::Body,
 	error_handling::HandleErrorLayer,
