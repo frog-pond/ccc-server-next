@@ -165,7 +165,7 @@ impl BonAppMenuMultipleCafesResponse {
 		let days = self
 			.days
 			.into_iter()
-			.filter_map(|day| day.as_single_day(cafe))
+			.filter_map(|day| day.into_single_day_response(cafe))
 			.collect();
 
 		BonAppMenuSingleCafeResponse {
@@ -210,7 +210,7 @@ pub struct BonAppMenuDayMultipleCafes {
 }
 
 impl BonAppMenuDayMultipleCafes {
-	fn as_single_day(mut self, cafe: &str) -> Option<BonAppMenuDaySingleCafe> {
+	fn into_single_day_response(mut self, cafe: &str) -> Option<BonAppMenuDaySingleCafe> {
 		let date = self.date;
 		self
 			.cafes
