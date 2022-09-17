@@ -87,7 +87,7 @@ pub struct BonAppCorIcon {
 	label: String,
 	description: String,
 	image: String,
-	is_filter: IsFilter,
+	is_filter: YesNo,
 	allergen: i64,
 }
 
@@ -113,7 +113,7 @@ pub struct BonAppDaypart {
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
-pub enum IsFilter {
+pub enum YesNo {
 	N,
 	Y,
 }
