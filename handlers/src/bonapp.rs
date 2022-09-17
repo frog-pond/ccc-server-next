@@ -177,6 +177,13 @@ pub async fn cafe_menu_handler(
 	proxied_query(QueryType::Menu, &cafe_id).await
 }
 
+#[instrument(skip_all)]
+pub async fn nutrition_handler(
+	Path(item_id): Path<String>,
+) -> Result<Json<types::food::ItemNutritionResponse>, BonAppProxyError> {
+	proxied_query(QueryType::ItemNutrition, &item_id).await
+}
+
 impl IntoResponse for BonAppProxyError {
 	fn into_response(self) -> axum::response::Response {
 		let text = self.to_string();

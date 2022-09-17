@@ -270,7 +270,7 @@ pub struct Goitem {
 
 #[derive(Serialize, Deserialize)]
 pub struct Nutrition {
-	kcal: String,
+	kcal: Option<KCalEnum>,
 	well_being: Option<String>,
 	well_being_image: String,
 }
@@ -366,7 +366,36 @@ pub struct Item {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ItemNutrition {
+	id: String,
+	label: String,
+	description: String,
+	zero_entree: String,
+	raw_cooked: String,
+	is_rotating: String,
+	cor_icon: CorIconUnion,
+	price: String, // should change other Price to be String and not enum
+	sizes: Vec<Size>,
+	nutrition_summary: Nutrition,
+	nutrition_details: ItemNutritionDetails,
+	ingredients: String,
+	ingredient_details: String,
+	nutrition_info: String,
+	special: i64,
+	rating: String,
+	connector: String,
+	options: OptionsUnion,
+	vendors: Vec<Option<serde_json::Value>>, // should change this to somewhat match OptionsUnion
+	monotony: Monotony,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Monotony {}
+
+#[derive(Serialize, Deserialize)]
+pub struct ItemNutritionResponse {
+	items: HashMap<String, ItemNutrition>,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct ItemNutritionDetails {
@@ -536,4 +565,11 @@ pub enum StationEnum {
 	StrongToasterStrong,
 	#[serde(rename = "<strong>@tortilla</strong>")]
 	StrongTortillaStrong,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum KCalEnum {
+	String(String),
+	Integer(i64),
 }
