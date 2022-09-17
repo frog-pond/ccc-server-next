@@ -154,6 +154,31 @@ pub struct BonAppMenuMultipleCafesResponse {
 	version: i64,
 }
 
+impl BonAppMenuMultipleCafesResponse {
+	pub fn as_single_day_response(self, cafe: &str) -> BonAppMenuSingleCafeResponse {
+		let items = self.items;
+		let superplates = self.superplates;
+		let goitems = self.goitems;
+		let cor_icons = self.cor_icons;
+		let version = self.version;
+
+		let days = self
+			.days
+			.into_iter()
+			.filter_map(|day| day.as_single_day(cafe))
+			.collect();
+
+		BonAppMenuSingleCafeResponse {
+			days,
+			items,
+			superplates,
+			goitems,
+			cor_icons,
+			version,
+		}
+	}
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,

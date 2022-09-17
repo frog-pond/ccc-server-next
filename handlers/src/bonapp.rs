@@ -140,7 +140,7 @@ pub async fn named_cafe_handler(
 #[instrument(skip_all)]
 pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
-) -> Result<Json<types::food::BonAppMenuMultipleCafesResponse>, BonAppProxyError> {
+) -> Result<Json<types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
 	if let Some(id) = CAFE_NAME_MAP.get(&cafe_name) {
 		cafe_menu_handler(Path(id.to_string())).await
 	} else {
@@ -173,8 +173,10 @@ pub async fn cafe_handler(
 #[instrument(skip_all)]
 pub async fn cafe_menu_handler(
 	Path(cafe_id): Path<String>,
-) -> Result<Json<types::food::BonAppMenuMultipleCafesResponse>, BonAppProxyError> {
-	proxied_query(QueryType::Menu, &cafe_id).await
+) -> Result<Json<types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
+	proxied_query::<types::food::BonAppMenuMultipleCafesResponse>(QueryType::Menu, &cafe_id)
+		.await
+		.map(|Json(result)| Json(result.as_single_day_response(&cafe_id)))
 }
 
 #[instrument(skip_all)]
