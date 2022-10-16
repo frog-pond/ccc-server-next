@@ -32,7 +32,7 @@ export interface BonAppCorIcon {
   label: string;
   description: string;
   image: string;
-  is_filter: IsFilter;
+  is_filter: YesNo;
   allergen: bigint;
 }
 
@@ -168,8 +168,6 @@ export interface HoursResponse {
   data: Array<HoursItem>;
 }
 
-export type IsFilter = "N" | "Y";
-
 export interface ModesItem {
   name: string;
   category: string;
@@ -226,3 +224,5 @@ export interface WebcamsResponseItem {
   accentColor: Array<bigint>;
   textColor: string;
 }
+
+export type YesNo = "N" | "Y";
