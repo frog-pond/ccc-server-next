@@ -301,27 +301,18 @@ pub struct Nutrition {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GoitemNutritionDetails {
 	calories: Calories,
-	#[serde(rename = "servingSize")]
 	serving_size: Calories,
-	#[serde(rename = "fatContent")]
 	fat_content: Calories,
-	#[serde(rename = "saturatedFatContent")]
 	saturated_fat_content: Calories,
-	#[serde(rename = "transFatContent")]
 	trans_fat_content: Calories,
-	#[serde(rename = "cholesterolContent")]
 	cholesterol_content: Calories,
-	#[serde(rename = "sodiumContent")]
 	sodium_content: Calories,
-	#[serde(rename = "carbohydrateContent")]
 	carbohydrate_content: Calories,
-	#[serde(rename = "fiberContent")]
 	fiber_content: Calories,
-	#[serde(rename = "sugarContent")]
 	sugar_content: Calories,
-	#[serde(rename = "proteinContent")]
 	protein_content: Calories,
 }
 
@@ -428,27 +419,18 @@ pub struct ItemNutritionResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ItemNutritionDetails {
 	calories: Option<Calories>,
-	#[serde(rename = "servingSize")]
 	serving_size: Option<Calories>,
-	#[serde(rename = "fatContent")]
 	fat_content: Option<Calories>,
-	#[serde(rename = "saturatedFatContent")]
 	saturated_fat_content: Option<Calories>,
-	#[serde(rename = "transFatContent")]
 	trans_fat_content: Option<Calories>,
-	#[serde(rename = "cholesterolContent")]
 	cholesterol_content: Option<Calories>,
-	#[serde(rename = "sodiumContent")]
 	sodium_content: Option<Calories>,
-	#[serde(rename = "carbohydrateContent")]
 	carbohydrate_content: Option<Calories>,
-	#[serde(rename = "fiberContent")]
 	fiber_content: Option<Calories>,
-	#[serde(rename = "sugarContent")]
 	sugar_content: Option<Calories>,
-	#[serde(rename = "proteinContent")]
 	protein_content: Option<Calories>,
 }
 
