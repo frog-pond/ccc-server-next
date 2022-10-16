@@ -415,7 +415,12 @@ pub struct ItemNutrition {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Monotony {}
+pub struct Monotony {
+	id: String,
+	name: String,
+	short_name: Option<String>,
+	image: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct ItemNutritionResponse {
