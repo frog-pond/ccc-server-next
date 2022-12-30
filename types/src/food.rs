@@ -60,7 +60,7 @@ pub struct BonAppCafeResponse {
 	location_detail: String,
 	weekly_schedule: String, // html
 	days: Vec<BonAppDay>,
-	cor_icons: HashMap<String, BonAppCorIcon>,
+	cor_icons: CorIcons,
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -106,7 +106,7 @@ pub enum YesNo {
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
 	items: HashMap<String, BonAppMenuItem>,
-	cor_icons: HashMap<String, BonAppCorIcon>,
+	cor_icons: CorIcons,
 	version: i64,
 }
 
@@ -114,7 +114,7 @@ pub struct BonAppMenuMultipleCafesResponse {
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, BonAppMenuItem>,
-	cor_icons: HashMap<String, BonAppCorIcon>,
+	cor_icons: CorIcons,
 	version: i64,
 }
 
@@ -265,7 +265,7 @@ pub enum CorIcons {
 #[derive(Serialize, Deserialize)]
 pub struct BonAppMenuDayMultipleCafes {
 	date: String,
-	cafes: HashMap<String, CafeDayMenu>,
+	cafes: HashMap<String, BonAppMenuSingleCafe>,
 }
 
 impl BonAppMenuDayMultipleCafes {
