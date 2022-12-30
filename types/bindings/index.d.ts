@@ -81,6 +81,8 @@ export interface ColorPrintersResponseItem {
   colorPrinters: Array<string>;
 }
 
+export type Connector = string;
+
 export interface ContactResponse {
   data: Array<ContactResponseItem>;
 }
@@ -94,6 +96,8 @@ export interface ContactResponseItem {
   synopsis: string;
   text: string;
 }
+
+export type CurrencyString = string;
 
 export type DayOfWeek = "Mo" | "Tu" | "We" | "Th" | "Fr" | "Sa" | "Su";
 
@@ -168,6 +172,8 @@ export interface HoursResponse {
   data: Array<HoursItem>;
 }
 
+export type HtmlString = string;
+
 export interface ModesItem {
   name: string;
   category: string;
@@ -179,6 +185,15 @@ export interface ModesItem {
 export interface ModesResponse {
   data: Array<ModesItem>;
 }
+
+export interface Monotony {
+  id: string;
+  name: string;
+  short_name?: string;
+  image: string;
+}
+
+export type NumericString = string;
 
 export interface PauseMenuItemResponse {
   stationMenus: Array<FoodStationMenu>;

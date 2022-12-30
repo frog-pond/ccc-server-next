@@ -117,37 +117,18 @@ pub enum YesNo {
 	Y,
 }
 
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
-	items: HashMap<String, Item>,
+	items: HashMap<String, BonAppMenuItem>,
+	cor_icons: HashMap<String, CorIconValue>,
+	version: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BonAppMenuSingleCafeResponse {
+	days: Vec<BonAppMenuDaySingleCafe>,
+	items: HashMap<String, BonAppMenuItem>,
 	cor_icons: HashMap<String, CorIconValue>,
 	version: i64,
 }
@@ -173,14 +154,49 @@ impl BonAppMenuMultipleCafesResponse {
 	}
 }
 
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct Connector(String);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct NumericString(String);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct HtmlString(String);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct CurrencyString(String);
+
+////////////////////////////////////////////////////////////
+
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct BonAppMenuSingleCafeResponse {
-	days: Vec<BonAppMenuDaySingleCafe>,
-	items: HashMap<String, Item>,
-	cor_icons: HashMap<String, CorIconValue>,
-	version: i64,
+pub struct BonAppMenuItem {
+	connector: Connector,
+	cor_icon: CorIconUnion,
+	description: String,
+	id: String,
+	label: String,
+	monotony: Monotony,
+	nutrition: Nutrition,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	nutrition_details: Option<ItemNutritionDetails>,
+	nutrition_link: String,
+	options: Vec<serde_json::Value>,
+	price: CurrencyString,
+	rating: NumericString,
+	special: bool,
+	station: HtmlString,
+	sub_station: String,
+	sub_station_id: NumericString,
+	sub_station_order: NumericString,
+	tier3: bool,
+	zero_entree: NumericString,
 }
+
+////////////////////////////////////////////////////////////
 
 #[derive(Serialize, Deserialize)]
 #[deprecated = "still need to check"]
@@ -303,44 +319,6 @@ pub struct Size {
 
 #[derive(Serialize, Deserialize)]
 #[deprecated = "still need to check"]
-pub struct Item {
-	id: String,
-	label: String,
-	recipes: Option<Recipes>,
-	description: String,
-	short_name: String,
-	raw_cooked: String,
-	is_rotating: String,
-	zero_entree: String,
-	cor_icon: CorIconUnion,
-	ordered_cor_icon: OrderedCorIconUnion,
-	nextepid: Option<String>,
-	price: Price,
-	sizes: Vec<Size>,
-	nutrition: Nutrition,
-	special: i64,
-	tier3: i64,
-	tier: Tier,
-	rating: String,
-	connector: Connector,
-	options: OptionsUnion,
-	station_id: String,
-	station: HtmlString,
-	nutrition_details: ItemNutritionDetails,
-	ingredients: String,
-	nutrition_link: NutritionLink,
-	sub_station_id: String,
-	sub_station: String,
-	sub_station_order: String,
-	monotony: Monotony,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct HtmlString(String);
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
 pub struct ItemNutrition {
 	id: String,
 	label: String,
@@ -364,11 +342,12 @@ pub struct ItemNutrition {
 	monotony: Monotony,
 }
 
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Monotony {
 	id: String,
 	name: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
 	short_name: Option<String>,
 	image: String,
 }
@@ -478,15 +457,6 @@ pub enum Unit {
 	Mg,
 	#[serde(rename = "oz")]
 	Oz,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub enum Connector {
-	#[serde(rename = "and")]
-	And,
-	#[serde(rename = "")]
-	Empty,
 }
 
 #[derive(Serialize, Deserialize)]
