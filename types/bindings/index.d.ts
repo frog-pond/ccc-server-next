@@ -20,7 +20,7 @@ export interface BonAppCafeResponse {
   location_detail: string;
   weekly_schedule: string;
   days: Array<BonAppDay>;
-  cor_icons: Record<string, BonAppCorIcon>;
+  cor_icons: CorIcons;
 }
 
 export interface BonAppCafesResponse {
