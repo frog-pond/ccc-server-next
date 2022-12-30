@@ -148,7 +148,6 @@ pub enum YesNo {
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
 	items: HashMap<String, Item>,
-	goitems: HashMap<String, Goitem>,
 	cor_icons: HashMap<String, CorIconValue>,
 	version: i64,
 }
@@ -156,7 +155,6 @@ pub struct BonAppMenuMultipleCafesResponse {
 impl BonAppMenuMultipleCafesResponse {
 	pub fn as_single_day_response(self, cafe: &str) -> BonAppMenuSingleCafeResponse {
 		let items = self.items;
-		let goitems = self.goitems;
 		let cor_icons = self.cor_icons;
 		let version = self.version;
 
@@ -169,7 +167,6 @@ impl BonAppMenuMultipleCafesResponse {
 		BonAppMenuSingleCafeResponse {
 			days,
 			items,
-			goitems,
 			cor_icons,
 			version,
 		}
@@ -180,7 +177,6 @@ impl BonAppMenuMultipleCafesResponse {
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, Item>,
-	goitems: HashMap<String, Goitem>,
 	cor_icons: HashMap<String, CorIconValue>,
 	version: i64,
 }
@@ -254,62 +250,10 @@ pub struct StationElement {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Goitem {
-	id: String,
-	label: String,
-	description: String,
-	short_name: String,
-	recipes: Recipes,
-	barcode: String,
-	raw_cooked: String,
-	is_rotating: String,
-	zero_entree: String,
-	cor_icon: CorIconUnion,
-	ordered_cor_icon: OrderedCorIconUnion,
-	contains_statement: String,
-	nextepid: String,
-	price: String,
-	sizes: Vec<Size>,
-	nutrition: Nutrition,
-	special: i64,
-	tier3: i64,
-	tier: i64,
-	rating: String,
-	connector: String,
-	options: Vec<Option<serde_json::Value>>,
-	station_id: String,
-	station: String,
-	nutrition_details: GoitemNutritionDetails,
-	ingredients: String,
-	nutrition_link: String,
-	sub_station_id: String,
-	sub_station: String,
-	sub_station_order: String,
-	monotony: Vec<Option<serde_json::Value>>,
-	is_orderable: i64,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct Nutrition {
 	kcal: Option<KCalEnum>,
 	well_being: Option<String>,
 	well_being_image: String,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GoitemNutritionDetails {
-	calories: Calories,
-	serving_size: Calories,
-	fat_content: Calories,
-	saturated_fat_content: Calories,
-	trans_fat_content: Calories,
-	cholesterol_content: Calories,
-	sodium_content: Calories,
-	carbohydrate_content: Calories,
-	fiber_content: Calories,
-	sugar_content: Calories,
-	protein_content: Calories,
 }
 
 #[derive(Serialize, Deserialize)]
