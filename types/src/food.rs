@@ -148,7 +148,6 @@ pub enum YesNo {
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
 	items: HashMap<String, Item>,
-	superplates: Vec<Option<serde_json::Value>>,
 	goitems: HashMap<String, Goitem>,
 	cor_icons: HashMap<String, CorIconValue>,
 	version: i64,
@@ -157,7 +156,6 @@ pub struct BonAppMenuMultipleCafesResponse {
 impl BonAppMenuMultipleCafesResponse {
 	pub fn as_single_day_response(self, cafe: &str) -> BonAppMenuSingleCafeResponse {
 		let items = self.items;
-		let superplates = self.superplates;
 		let goitems = self.goitems;
 		let cor_icons = self.cor_icons;
 		let version = self.version;
@@ -171,7 +169,6 @@ impl BonAppMenuMultipleCafesResponse {
 		BonAppMenuSingleCafeResponse {
 			days,
 			items,
-			superplates,
 			goitems,
 			cor_icons,
 			version,
@@ -183,7 +180,6 @@ impl BonAppMenuMultipleCafesResponse {
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, Item>,
-	superplates: Vec<Option<serde_json::Value>>,
 	goitems: HashMap<String, Goitem>,
 	cor_icons: HashMap<String, CorIconValue>,
 	version: i64,
