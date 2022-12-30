@@ -15,7 +15,7 @@ async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, JsonProxyError>
 where
 	T: DeserializeOwned,
 {
-	let url = format!("https://stodevx.github.io/AAO-React-Native/{}", filename).to_string();
+	let url = format!("https://stodevx.github.io/AAO-React-Native/{filename}").to_string();
 	let resp = request_handler(&url).await?;
 	Ok(resp)
 }
