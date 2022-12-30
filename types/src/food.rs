@@ -144,6 +144,7 @@ pub enum YesNo {
 //
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
 	items: HashMap<String, Item>,
@@ -173,6 +174,7 @@ impl BonAppMenuMultipleCafesResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, Item>,
@@ -181,6 +183,7 @@ pub struct BonAppMenuSingleCafeResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct CorIconValue {
 	sort: String,
 	label: String,
@@ -195,6 +198,7 @@ pub struct CorIconValue {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct BonAppMenuDayMultipleCafes {
 	date: String,
 	cafes: HashMap<String, CafeDayMenu>,
@@ -211,12 +215,14 @@ impl BonAppMenuDayMultipleCafes {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct BonAppMenuDaySingleCafe {
 	date: String,
 	cafe: CafeDayMenu,
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct CafeDayMenu {
 	name: String,
 	comma_operator: String,
@@ -226,6 +232,7 @@ pub struct CafeDayMenu {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Daypart {
 	starttime: String,
 	endtime: String,
@@ -237,6 +244,7 @@ pub struct Daypart {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct StationElement {
 	order_id: String,
 	id: String,
@@ -249,6 +257,7 @@ pub struct StationElement {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Nutrition {
 	kcal: Option<KCalEnum>,
 	well_being: Option<String>,
@@ -256,6 +265,7 @@ pub struct Nutrition {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Calories {
 	label: CaloriesLabel,
 	value: String,
@@ -263,23 +273,27 @@ pub struct Calories {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct OrderedCorIconValue {
 	id: String,
 	label: String,
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Recipes {
 	entrees: Vec<Entree>,
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Entree {
 	recipe_id: String,
 	recipe_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Size {
 	size: String,
 	portion: String,
@@ -288,6 +302,7 @@ pub struct Size {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Item {
 	id: String,
 	label: String,
@@ -321,9 +336,11 @@ pub struct Item {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct HtmlString(String);
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct ItemNutrition {
 	id: String,
 	label: String,
@@ -348,6 +365,7 @@ pub struct ItemNutrition {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct Monotony {
 	id: String,
 	name: String,
@@ -356,12 +374,14 @@ pub struct Monotony {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct ItemNutritionResponse {
 	items: HashMap<String, ItemNutrition>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[deprecated = "still need to check"]
 pub struct ItemNutritionDetails {
 	calories: Option<Calories>,
 	serving_size: Option<Calories>,
@@ -377,6 +397,7 @@ pub struct ItemNutritionDetails {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct OptionsClass {
 	label: String,
 	#[serde(rename = "type")]
@@ -385,6 +406,7 @@ pub struct OptionsClass {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub struct OptionValue {
 	label: String,
 	description: String,
@@ -393,6 +415,7 @@ pub struct OptionValue {
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
+#[deprecated = "still need to check"]
 pub enum CorIconUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	EnumMap(HashMap<String, String>),
@@ -400,6 +423,7 @@ pub enum CorIconUnion {
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
+#[deprecated = "still need to check"]
 pub enum OrderedCorIconUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	OrderedCorIconValueMap(HashMap<String, OrderedCorIconValue>),
@@ -407,6 +431,7 @@ pub enum OrderedCorIconUnion {
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
+#[deprecated = "still need to check"]
 pub enum OptionsUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	OptionsClass(OptionsClass),
@@ -414,12 +439,14 @@ pub enum OptionsUnion {
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
+#[deprecated = "still need to check"]
 pub enum Tier {
 	Integer(i64),
 	String(String),
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub enum CaloriesLabel {
 	Calories,
 	Cholesterol,
@@ -441,6 +468,7 @@ pub enum CaloriesLabel {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub enum Unit {
 	#[serde(rename = "")]
 	Empty,
@@ -453,6 +481,7 @@ pub enum Unit {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub enum Connector {
 	#[serde(rename = "and")]
 	And,
@@ -461,6 +490,7 @@ pub enum Connector {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub enum NutritionLink {
 	#[serde(rename = "")]
 	Empty,
@@ -469,6 +499,7 @@ pub enum NutritionLink {
 }
 
 #[derive(Serialize, Deserialize)]
+#[deprecated = "still need to check"]
 pub enum Price {
 	#[serde(rename = "")]
 	Empty,
@@ -478,6 +509,7 @@ pub enum Price {
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
+#[deprecated = "still need to check"]
 pub enum KCalEnum {
 	String(String),
 	Integer(i64),
