@@ -174,6 +174,20 @@ export interface HoursResponse {
 
 export type HtmlString = string;
 
+export interface ItemNutritionDetails {
+  calories?: NutritionDetail;
+  servingSize?: NutritionDetail;
+  fatContent?: NutritionDetail;
+  saturatedFatContent?: NutritionDetail;
+  transFatContent?: NutritionDetail;
+  cholesterolContent?: NutritionDetail;
+  sodiumContent?: NutritionDetail;
+  carbohydrateContent?: NutritionDetail;
+  fiberContent?: NutritionDetail;
+  sugarContent?: NutritionDetail;
+  proteinContent?: NutritionDetail;
+}
+
 export interface ModesItem {
   name: string;
   category: string;
@@ -193,7 +207,27 @@ export interface Monotony {
   image: string;
 }
 
+export type MonotonyContainer = Monotony;
+
 export type NumericString = string;
+
+export interface Nutrition {
+  kcal: NumericString;
+  well_being: string;
+  well_being_image: string;
+}
+
+export type NutritionContainer = Nutrition;
+
+export interface NutritionDetail {
+  label: string;
+  value: number;
+  unit: string;
+}
+
+export type NutritionDetailContainer = ItemNutritionDetails;
+
+export type NutritionDetailType = NutritionDetail;
 
 export interface PauseMenuItemResponse {
   stationMenus: Array<FoodStationMenu>;

@@ -170,6 +170,76 @@ pub struct HtmlString(String);
 #[ts(export)]
 pub struct CurrencyString(String);
 
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct MonotonyContainer(Monotony);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct Monotony {
+	id: String,
+	name: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	short_name: Option<String>,
+	image: String,
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct NutritionContainer(Nutrition);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct Nutrition {
+	kcal: NumericString,
+	well_being: String,
+	well_being_image: String,
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct NutritionDetailContainer(ItemNutritionDetails);
+
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ItemNutritionDetails {
+	#[serde(skip_serializing_if = "Option::is_none")]
+	calories: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	serving_size: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	fat_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	saturated_fat_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	trans_fat_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	cholesterol_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	sodium_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	carbohydrate_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	fiber_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	sugar_content: Option<NutritionDetail>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	protein_content: Option<NutritionDetail>,
+}
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct NutritionDetailType(NutritionDetail);
+
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct NutritionDetail {
+	label: String,
+	value: f32,
+	unit: String,
+}
+
 ////////////////////////////////////////////////////////////
 
 #[derive(Serialize, Deserialize)]
@@ -274,22 +344,6 @@ pub struct StationElement {
 
 #[derive(Serialize, Deserialize)]
 #[deprecated = "still need to check"]
-pub struct Nutrition {
-	kcal: Option<KCalEnum>,
-	well_being: Option<String>,
-	well_being_image: String,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct Calories {
-	label: CaloriesLabel,
-	value: String,
-	unit: Unit,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
 pub struct OrderedCorIconValue {
 	id: String,
 	label: String,
@@ -342,37 +396,10 @@ pub struct ItemNutrition {
 	monotony: Monotony,
 }
 
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct Monotony {
-	id: String,
-	name: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	short_name: Option<String>,
-	image: String,
-}
-
 #[derive(Serialize, Deserialize)]
 #[deprecated = "still need to check"]
 pub struct ItemNutritionResponse {
 	items: HashMap<String, ItemNutrition>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[deprecated = "still need to check"]
-pub struct ItemNutritionDetails {
-	calories: Option<Calories>,
-	serving_size: Option<Calories>,
-	fat_content: Option<Calories>,
-	saturated_fat_content: Option<Calories>,
-	trans_fat_content: Option<Calories>,
-	cholesterol_content: Option<Calories>,
-	sodium_content: Option<Calories>,
-	carbohydrate_content: Option<Calories>,
-	fiber_content: Option<Calories>,
-	sugar_content: Option<Calories>,
-	protein_content: Option<Calories>,
 }
 
 #[derive(Serialize, Deserialize)]
