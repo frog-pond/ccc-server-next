@@ -192,7 +192,7 @@ pub struct BonAppMenuSingleCafeResponse {
 #[derive(Serialize, Deserialize)]
 pub struct CorIconValue {
 	sort: String,
-	label: LabelValue,
+	label: String,
 	description: String,
 	image: String,
 	is_filter: String,
@@ -326,7 +326,7 @@ pub struct Calories {
 #[derive(Serialize, Deserialize)]
 pub struct OrderedCorIconValue {
 	id: String,
-	label: LabelValue,
+	label: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -456,7 +456,7 @@ pub struct OptionValue {
 #[serde(untagged)]
 pub enum CorIconUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
-	EnumMap(HashMap<String, LabelValue>),
+	EnumMap(HashMap<String, String>),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -478,21 +478,6 @@ pub enum OptionsUnion {
 pub enum Tier {
 	Integer(i64),
 	String(String),
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum LabelValue {
-	#[serde(rename = "Farm to Fork")]
-	FarmToFork,
-	Halal,
-	Humane,
-	#[serde(rename = "Made without Gluten-Containing Ingredients")]
-	MadeWithoutGlutenContainingIngredients,
-	Organic,
-	#[serde(rename = "Supplier Diversity")]
-	SupplierDiversity,
-	Vegan,
-	Vegetarian,
 }
 
 #[derive(Serialize, Deserialize)]
