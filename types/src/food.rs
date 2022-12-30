@@ -371,7 +371,7 @@ pub struct Item {
 	connector: Connector,
 	options: OptionsUnion,
 	station_id: String,
-	station: StationEnum,
+	station: HtmlString,
 	nutrition_details: ItemNutritionDetails,
 	ingredients: String,
 	nutrition_link: NutritionLink,
@@ -380,6 +380,9 @@ pub struct Item {
 	sub_station_order: String,
 	monotony: Monotony,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct HtmlString(String);
 
 #[derive(Serialize, Deserialize)]
 pub struct ItemNutrition {
@@ -547,36 +550,6 @@ pub enum Price {
 	Empty,
 	#[serde(rename = "&nbsp;")]
 	Nbsp,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum StationEnum {
-	#[serde(rename = "<strong>@bowls</strong>")]
-	StrongBowlsStrong,
-	#[serde(rename = "<strong>@cereal</strong>")]
-	StrongCerealStrong,
-	#[serde(rename = "<strong>@deli</strong>")]
-	StrongDeliStrong,
-	#[serde(rename = "<strong>@grains</strong>")]
-	StrongGrainsStrong,
-	#[serde(rename = "<strong>@grill</strong>")]
-	StrongGrillStrong,
-	#[serde(rename = "<strong>@home</strong>")]
-	StrongHomeStrong,
-	#[serde(rename = "<strong>@market salads</strong>")]
-	StrongMarketSaladsStrong,
-	#[serde(rename = "<strong>@pasta</strong>")]
-	StrongPastaStrong,
-	#[serde(rename = "<strong>@pizza</strong>")]
-	StrongPizzaStrong,
-	#[serde(rename = "<strong>@soup</strong>")]
-	StrongSoupStrong,
-	#[serde(rename = "<strong>@sweet treats</strong>")]
-	StrongSweetTreatsStrong,
-	#[serde(rename = "<strong>@Toaster</strong>")]
-	StrongToasterStrong,
-	#[serde(rename = "<strong>@tortilla</strong>")]
-	StrongTortillaStrong,
 }
 
 #[derive(Serialize, Deserialize)]
