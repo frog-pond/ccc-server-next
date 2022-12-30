@@ -18,7 +18,7 @@ fn init_router() -> Router {
 		.layer(HandleErrorLayer::new(|error| async move {
 			(
 				StatusCode::INTERNAL_SERVER_ERROR,
-				format!("Unhandled Internal Error: {}", error),
+				format!("Unhandled Internal Error: {error}"),
 			)
 		}))
 		.layer(AsyncFilterLayer::new(map_request))
