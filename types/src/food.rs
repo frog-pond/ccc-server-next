@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+mod pause;
+pub use pause::*;
+
 #[derive(Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, rename = "FoodStationMenu")]
@@ -23,24 +26,6 @@ pub struct ItemResponse {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	special: Option<bool>,
 }
-
-#[derive(Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct PauseMenuItemResponse {
-	station_menus: Vec<StationMenu>,
-	food_items: Vec<ItemResponse>,
-	// #[ts(type = "Array<any>")]
-	cor_icons: HashMap<String, BonAppCorIcon>,
-}
-
-#[derive(Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct PauseMenuResponse {
-	data: PauseMenuItemResponse,
-}
-
 #[derive(Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 #[ts(export)]
@@ -121,7 +106,7 @@ pub enum YesNo {
 pub struct BonAppMenuMultipleCafesResponse {
 	days: Vec<BonAppMenuDayMultipleCafes>,
 	items: HashMap<String, BonAppMenuItem>,
-	cor_icons: HashMap<String, CorIconValue>,
+	cor_icons: HashMap<String, BonAppCorIcon>,
 	version: i64,
 }
 
@@ -129,7 +114,7 @@ pub struct BonAppMenuMultipleCafesResponse {
 pub struct BonAppMenuSingleCafeResponse {
 	days: Vec<BonAppMenuDaySingleCafe>,
 	items: HashMap<String, BonAppMenuItem>,
-	cor_icons: HashMap<String, CorIconValue>,
+	cor_icons: HashMap<String, BonAppCorIcon>,
 	version: i64,
 }
 
@@ -245,7 +230,7 @@ pub struct NutritionDetail {
 #[derive(Serialize, Deserialize)]
 pub struct BonAppMenuItem {
 	connector: Connector,
-	cor_icon: CorIconUnion,
+	cor_icon: CorIcons,
 	description: String,
 	id: String,
 	label: String,
@@ -269,18 +254,10 @@ pub struct BonAppMenuItem {
 ////////////////////////////////////////////////////////////
 
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct CorIconValue {
-	sort: String,
-	label: String,
-	description: String,
-	image: String,
-	is_filter: String,
-	allergen: i64,
-	#[serde(rename = "type")]
-	cor_icon_type: String,
-	position: String,
-	show_name_ds: String,
+#[serde(untagged)]
+pub enum CorIcons {
+	AnythingArray(Vec<Option<serde_json::Value>>),
+	EnumMap(HashMap<String, BonAppCorIcon>),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -380,7 +357,7 @@ pub struct ItemNutrition {
 	zero_entree: String,
 	raw_cooked: String,
 	is_rotating: String,
-	cor_icon: CorIconUnion,
+	cor_icon: CorIcons,
 	price: String, // should change other Price to be String and not enum
 	sizes: Vec<Size>,
 	nutrition_summary: Nutrition,
@@ -422,14 +399,6 @@ pub struct OptionValue {
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
 #[deprecated = "still need to check"]
-pub enum CorIconUnion {
-	AnythingArray(Vec<Option<serde_json::Value>>),
-	EnumMap(HashMap<String, String>),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-#[deprecated = "still need to check"]
 pub enum OrderedCorIconUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	OrderedCorIconValueMap(HashMap<String, OrderedCorIconValue>),
@@ -441,73 +410,4 @@ pub enum OrderedCorIconUnion {
 pub enum OptionsUnion {
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	OptionsClass(OptionsClass),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-#[deprecated = "still need to check"]
-pub enum Tier {
-	Integer(i64),
-	String(String),
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub enum CaloriesLabel {
-	Calories,
-	Cholesterol,
-	#[serde(rename = "Dietary Fiber")]
-	DietaryFiber,
-	Protein,
-	#[serde(rename = "Saturated Fat")]
-	SaturatedFat,
-	#[serde(rename = "Serving Size")]
-	ServingSize,
-	Sodium,
-	Sugars,
-	#[serde(rename = "Total Carbohydrate")]
-	TotalCarbohydrate,
-	#[serde(rename = "Total Fat")]
-	TotalFat,
-	#[serde(rename = "Trans Fat")]
-	TransFat,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub enum Unit {
-	#[serde(rename = "")]
-	Empty,
-	#[serde(rename = "g")]
-	G,
-	#[serde(rename = "mg")]
-	Mg,
-	#[serde(rename = "oz")]
-	Oz,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub enum NutritionLink {
-	#[serde(rename = "")]
-	Empty,
-	#[serde(rename = "nutrition information")]
-	NutritionInformation,
-}
-
-#[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub enum Price {
-	#[serde(rename = "")]
-	Empty,
-	#[serde(rename = "&nbsp;")]
-	Nbsp,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-#[deprecated = "still need to check"]
-pub enum KCalEnum {
-	String(String),
-	Integer(i64),
 }
