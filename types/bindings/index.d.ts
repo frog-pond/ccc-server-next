@@ -97,6 +97,8 @@ export interface ContactResponseItem {
   text: string;
 }
 
+export type CorIcons = Record<string, BonAppCorIcon>;
+
 export type CurrencyString = string;
 
 export type DayOfWeek = "Mo" | "Tu" | "We" | "Th" | "Fr" | "Sa" | "Su";

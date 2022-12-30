@@ -253,15 +253,16 @@ pub struct BonAppMenuItem {
 
 ////////////////////////////////////////////////////////////
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
 #[serde(untagged)]
+#[ts(export)]
 pub enum CorIcons {
+	#[ts(skip)]
 	AnythingArray(Vec<Option<serde_json::Value>>),
 	EnumMap(HashMap<String, BonAppCorIcon>),
 }
 
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
 pub struct BonAppMenuDayMultipleCafes {
 	date: String,
 	cafes: HashMap<String, CafeDayMenu>,
@@ -278,25 +279,22 @@ impl BonAppMenuDayMultipleCafes {
 }
 
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
 pub struct BonAppMenuDaySingleCafe {
 	date: String,
-	cafe: CafeDayMenu,
+	cafe: BonAppMenuSingleCafe,
 }
 
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct CafeDayMenu {
+pub struct BonAppMenuSingleCafe {
 	name: String,
 	comma_operator: String,
 	pipe_operator: String,
 	menu_id: String,
-	dayparts: Vec<Vec<Daypart>>,
+	dayparts: Vec<Vec<BonAppMenuDaypart>>,
 }
 
 #[derive(Serialize, Deserialize)]
-#[deprecated = "still need to check"]
-pub struct Daypart {
+pub struct BonAppMenuDaypart {
 	starttime: String,
 	endtime: String,
 	id: String,
