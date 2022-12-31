@@ -5,8 +5,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.5.13"
-axum-macros = "0.2.3"
+axum = "0.6.1"
+axum-macros = "0.3.0"
 http = "0.2.8"
 types = { path = "../types" }
 reqwest = { version = "0.11.11", features = ["json"] }
