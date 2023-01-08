@@ -118,19 +118,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a20104e2335ce8a659d6dd92a51a767a0c062599c73b343fd152cb401e828c3d"
 
 [[package]]
-name = "ccc_server_next"
-version = "0.0.1"
+name = "ccc-handlers"
+version = "0.1.0"
 dependencies = [
  "axum",
+ "axum-macros",
+ "ccc-types",
+ "http",
+ "phf",
  "reqwest",
- "routes",
+ "serde",
+ "serde_urlencoded",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "ccc-routes"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "ccc-handlers",
+]
+
+[[package]]
+name = "ccc-server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "ccc-routes",
+ "ccc-types",
+ "reqwest",
  "serde",
  "tokio",
  "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "types",
+]
+
+[[package]]
+name = "ccc-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ts-rs",
 ]
 
 [[package]]
@@ -259,22 +292,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
-]
-
-[[package]]
-name = "handlers"
-version = "0.0.1"
-dependencies = [
- "axum",
- "axum-macros",
- "http",
- "phf",
- "reqwest",
- "serde",
- "serde_urlencoded",
- "thiserror",
- "tracing",
- "types",
 ]
 
 [[package]]
@@ -746,14 +763,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "routes"
-version = "0.0.1"
-dependencies = [
- "axum",
- "handlers",
-]
-
-[[package]]
 name = "rustversion"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1161,15 +1170,6 @@ dependencies = [
  "quote",
  "syn",
  "termcolor",
-]
-
-[[package]]
-name = "types"
-version = "0.0.1"
-dependencies = [
- "serde",
- "serde_json",
- "ts-rs",
 ]
 
 [[package]]

@@ -1,0 +1,9 @@
+[package]
+name = "ccc-routes"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+axum = "0.6.1"
+ccc-handlers = { path = "../ccc-handlers" }

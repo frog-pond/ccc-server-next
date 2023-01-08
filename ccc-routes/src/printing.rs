@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use handlers::github::color_printers_handler;
+use ccc_handlers::github::color_printers_handler;
 
 #[must_use]
 pub fn router() -> Router {
