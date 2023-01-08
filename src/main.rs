@@ -8,12 +8,7 @@ use axum::{
 use tower::ServiceBuilder;
 
 fn init_router() -> Router {
-	let middleware_stack = ServiceBuilder::new().layer(HandleErrorLayer::new(|error| async move {
-		(
-			StatusCode::INTERNAL_SERVER_ERROR,
-			format!("Unhandled Internal Error: {error}"),
-		)
-	}));
+	let middleware_stack = ServiceBuilder::new().layer(HandleErrorLayer::new(error_handler));
 
 	let meta_routes = Router::new()
 		.route("/", get(root_handler))
@@ -47,6 +42,14 @@ async fn main() {
 		.serve(app.into_make_service())
 		.await
 		.expect("server failed to exit successfully");
+}
+
+#[allow(clippy::unused_async)]
+async fn error_handler<E: std::error::Error>(error: E) -> impl IntoResponse {
+	(
+		StatusCode::INTERNAL_SERVER_ERROR,
+		format!("Unhandled Internal Error: {error}"),
+	)
 }
 
 #[allow(clippy::unused_async)]
