@@ -118,8 +118,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a20104e2335ce8a659d6dd92a51a767a0c062599c73b343fd152cb401e828c3d"
 
 [[package]]
-name = "ccc_server_next"
-version = "0.0.1"
+name = "ccc-server"
+version = "0.1.0"
 dependencies = [
  "axum",
  "reqwest",
