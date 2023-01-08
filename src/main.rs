@@ -2,13 +2,16 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get, Router,
-	Server,
+	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
+	BoxError, Router, Server,
 };
-use tower::ServiceBuilder;
+use tower::{timeout::TimeoutLayer, ServiceBuilder};
 
 fn init_router() -> Router {
-	let middleware_stack = ServiceBuilder::new().layer(HandleErrorLayer::new(error_handler));
+	let middleware_stack = ServiceBuilder::new()
+		.layer(tower_http::trace::TraceLayer::new_for_http())
+		.layer(HandleErrorLayer::new(error_handler))
+		.layer(TimeoutLayer::new(core::time::Duration::from_secs(10)));
 
 	let meta_routes = Router::new()
 		.route("/", get(root_handler))
@@ -45,11 +48,18 @@ async fn main() {
 }
 
 #[allow(clippy::unused_async)]
-async fn error_handler<E: std::error::Error>(error: E) -> impl IntoResponse {
-	(
-		StatusCode::INTERNAL_SERVER_ERROR,
-		format!("Unhandled Internal Error: {error}"),
-	)
+async fn error_handler(error: BoxError) -> impl IntoResponse {
+	if error.is::<tower::timeout::error::Elapsed>() {
+		(
+			StatusCode::REQUEST_TIMEOUT,
+			"Request took too long".to_string(),
+		)
+	} else {
+		(
+			StatusCode::INTERNAL_SERVER_ERROR,
+			format!("Unhandled Internal Error: {error}"),
+		)
+	}
 }
 
 #[allow(clippy::unused_async)]
