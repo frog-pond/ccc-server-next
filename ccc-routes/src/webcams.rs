@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use handlers::github::webcams_handler;
+use ccc_handlers::github::webcams_handler;
 
 #[must_use]
 pub fn router() -> Router {

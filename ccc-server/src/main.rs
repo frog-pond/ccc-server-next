@@ -18,15 +18,15 @@ fn init_router() -> Router {
 		.route("/ping", get(heartbeat_handler));
 
 	let api_routes = Router::new()
-		.nest("/contacts", routes::contacts::router())
-		.nest("/dictionary", routes::dictionary::router())
-		.nest("/faqs", routes::faqs::router())
-		.nest("/food", routes::food::router())
-		.nest("/printing", routes::printing::router())
-		.nest("/spaces", routes::spaces::router())
-		.nest("/tools", routes::tools::router())
-		.nest("/transit", routes::transit::router())
-		.nest("/webcams", routes::webcams::router());
+		.nest("/contacts", ccc_routes::contacts::router())
+		.nest("/dictionary", ccc_routes::dictionary::router())
+		.nest("/faqs", ccc_routes::faqs::router())
+		.nest("/food", ccc_routes::food::router())
+		.nest("/printing", ccc_routes::printing::router())
+		.nest("/spaces", ccc_routes::spaces::router())
+		.nest("/tools", ccc_routes::tools::router())
+		.nest("/transit", ccc_routes::transit::router())
+		.nest("/webcams", ccc_routes::webcams::router());
 
 	Router::new()
 		.nest("/", meta_routes)

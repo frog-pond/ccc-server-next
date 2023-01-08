@@ -128,7 +128,7 @@ where
 #[instrument(skip_all)]
 pub async fn named_cafe_handler(
 	Path((cafe_name,)): Path<(String,)>,
-) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
+) -> Result<Json<ccc_types::food::BonAppCafeResponse>, BonAppProxyError> {
 	if let Some(id) = CAFE_NAME_MAP.get(&cafe_name) {
 		cafe_handler(Path(id.to_string())).await
 	} else {
@@ -140,7 +140,7 @@ pub async fn named_cafe_handler(
 #[instrument(skip_all)]
 pub async fn named_cafe_menu_handler(
 	Path((cafe_name,)): Path<(String,)>,
-) -> Result<Json<types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
+) -> Result<Json<ccc_types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
 	if let Some(id) = CAFE_NAME_MAP.get(&cafe_name) {
 		cafe_menu_handler(Path(id.to_string())).await
 	} else {
@@ -152,8 +152,8 @@ pub async fn named_cafe_menu_handler(
 #[instrument]
 pub async fn cafe_handler(
 	Path(cafe_id): Path<String>,
-) -> Result<Json<types::food::BonAppCafeResponse>, BonAppProxyError> {
-	proxied_query::<types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
+) -> Result<Json<ccc_types::food::BonAppCafeResponse>, BonAppProxyError> {
+	proxied_query::<ccc_types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
 		.await
 		.map(|mut result| {
 			let cafes = result.deref_mut().cafes_mut();
@@ -173,8 +173,8 @@ pub async fn cafe_handler(
 #[instrument(skip_all)]
 pub async fn cafe_menu_handler(
 	Path(cafe_id): Path<String>,
-) -> Result<Json<types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
-	proxied_query::<types::food::BonAppMenuMultipleCafesResponse>(QueryType::Menu, &cafe_id)
+) -> Result<Json<ccc_types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
+	proxied_query::<ccc_types::food::BonAppMenuMultipleCafesResponse>(QueryType::Menu, &cafe_id)
 		.await
 		.map(|Json(result)| Json(result.as_single_day_response(&cafe_id)))
 }
@@ -182,7 +182,7 @@ pub async fn cafe_menu_handler(
 #[instrument(skip_all)]
 pub async fn nutrition_handler(
 	Path(item_id): Path<String>,
-) -> Result<Json<types::food::ItemNutritionResponse>, BonAppProxyError> {
+) -> Result<Json<ccc_types::food::ItemNutritionResponse>, BonAppProxyError> {
 	proxied_query(QueryType::ItemNutrition, &item_id).await
 }
 
