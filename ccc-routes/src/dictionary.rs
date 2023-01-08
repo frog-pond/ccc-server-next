@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use handlers::github::dictionary_handler;
+use ccc_handlers::github::dictionary_handler;
 
 #[must_use]
 pub fn router() -> Router {

@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use handlers::github::faqs_handler;
+use ccc_handlers::github::faqs_handler;
 
 #[must_use]
 pub fn router() -> Router {
