@@ -2,27 +2,16 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	body::Body,
-	error_handling::HandleErrorLayer,
-	handler::Handler,
-	http::{uri, Request, StatusCode},
-	response::{IntoResponse, Response},
-	routing::get,
+	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router, Server,
 };
-use std::convert::Infallible;
-use tower::{filter::AsyncFilterLayer, util::AndThenLayer, ServiceBuilder};
+use tower::{timeout::TimeoutLayer, ServiceBuilder};
 
 fn init_router() -> Router {
 	let middleware_stack = ServiceBuilder::new()
-		.layer(HandleErrorLayer::new(|error| async move {
-			(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				format!("Unhandled Internal Error: {error}"),
-			)
-		}))
-		.layer(AsyncFilterLayer::new(map_request))
-		.layer(AndThenLayer::new(map_response));
+		.layer(tower_http::trace::TraceLayer::new_for_http())
+		.layer(HandleErrorLayer::new(error_handler))
+		.layer(TimeoutLayer::new(core::time::Duration::from_secs(10)));
 
 	let meta_routes = Router::new()
 		.route("/", get(root_handler))
@@ -43,7 +32,7 @@ fn init_router() -> Router {
 		.nest("/", meta_routes)
 		.nest("/api", api_routes)
 		.layer(middleware_stack)
-		.fallback(fallback.into_service())
+		.fallback(fallback)
 }
 
 #[tokio::main]
@@ -59,20 +48,18 @@ async fn main() {
 }
 
 #[allow(clippy::unused_async)]
-async fn map_request(req: Request<Body>) -> Result<Request<Body>, BoxError> {
-	let (mut parts, body) = req.into_parts();
-
-	let new_path = parts.uri.path().replace("/v1", "");
-	let uri = uri::Builder::new().path_and_query(new_path).build()?;
-
-	parts.uri = uri;
-
-	Ok(Request::from_parts(parts, body))
-}
-
-#[allow(clippy::unused_async)]
-async fn map_response(res: Response) -> Result<Response, Infallible> {
-	Ok(res)
+async fn error_handler(error: BoxError) -> impl IntoResponse {
+	if error.is::<tower::timeout::error::Elapsed>() {
+		(
+			StatusCode::REQUEST_TIMEOUT,
+			"Request took too long".to_string(),
+		)
+	} else {
+		(
+			StatusCode::INTERNAL_SERVER_ERROR,
+			format!("Unhandled Internal Error: {error}"),
+		)
+	}
 }
 
 #[allow(clippy::unused_async)]
