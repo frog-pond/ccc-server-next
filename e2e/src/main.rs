@@ -1,3 +1,5 @@
+use reqwest::{Client, ClientBuilder, Method, Request, Url};
+
 fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<String> {
 	let mut vec = Vec::default();
 
@@ -19,135 +21,75 @@ enum Mode {
 
 fn get_substitutions(mode: &Mode, token: &str) -> Option<Vec<String>> {
 	match token {
-		// ":itemId" =>
+		// ":itemId" =>d
 		_ => None,
 	}
 }
 
-fn routes(modes: Vec<Mode>) -> impl Iterator<Item = &'static str> {
-	let mut vec = Vec::default();
-
-	let stolaf_vec = vec![
-		"/food/item/:itemId",
-		"/food/menu/:cafeId",
-		"/food/cafe/:cafeId",
-		"/food/named/menu/the-pause",
-		"/food/named/cafe/stav-hall",
-		"/food/named/menu/stav-hall",
-		"/food/named/cafe/the-cage",
-		"/food/named/menu/the-cage",
-		"/food/named/cafe/kings-room",
-		"/food/named/menu/kings-room",
-		"/food/named/cafe/burton",
-		"/food/named/menu/burton",
-		"/food/named/cafe/ldc",
-		"/food/named/menu/ldc",
-		"/food/named/cafe/sayles",
-		"/food/named/menu/sayles",
-		"/food/named/cafe/weitz",
-		"/food/named/menu/weitz",
-		"/calendar/google",
-		"/calendar/reason",
-		"/calendar/ics",
-		"/calendar/named/stolaf",
-		"/calendar/named/oleville",
-		"/calendar/named/northfield",
-		"/calendar/named/krlx-schedule",
-		"/calendar/named/ksto-schedule",
-		"/a-to-z",
-		"/dictionary",
-		"/directory/departments",
-		"/directory/majors",
-		"/contacts",
-		"/tools/help",
-		"/faqs",
-		"/webcams",
-		"/jobs",
-		"/orgs",
-		"/news/rss",
-		"/news/wpjson",
-		"/news/named/stolaf",
-		"/news/named/oleville",
-		"/news/named/politicole",
-		"/news/named/mess",
-		"/news/named/ksto",
-		"/news/named/krlx",
-		"/spaces/hours",
-		"/transit/bus",
-		"/transit/modes",
-		"/streams/archived",
-		"/streams/upcoming",
-		"/printing/color-printers",
-		"/util/html-to-md",
-	];
-
-	let carleton_vec = vec![
-		"/food/item/:itemId",
-		"/food/menu/:cafeId",
-		"/food/cafe/:cafeId",
-		"/food/named/menu/the-pause",
-		"/food/named/cafe/stav-hall",
-		"/food/named/menu/stav-hall",
-		"/food/named/cafe/the-cage",
-		"/food/named/menu/the-cage",
-		"/food/named/cafe/kings-room",
-		"/food/named/menu/kings-room",
-		"/food/named/cafe/burton",
-		"/food/named/menu/burton",
-		"/food/named/cafe/ldc",
-		"/food/named/menu/ldc",
-		"/food/named/cafe/sayles",
-		"/food/named/menu/sayles",
-		"/food/named/cafe/weitz",
-		"/food/named/menu/weitz",
-		"/calendar/google",
-		"/calendar/reason",
-		"/calendar/ics",
-		"/calendar/named/carleton",
-		"/calendar/named/ems",
-		"/calendar/named/the-cave",
-		"/calendar/named/stolaf",
-		"/calendar/named/northfield",
-		"/calendar/named/krlx-schedule",
-		"/calendar/named/ksto-schedule",
-		"/calendar/named/upcoming-convos",
-		"/calendar/named/sumo-schedule",
-		"/dictionary",
-		"/convos/upcoming",
-		"/convos/upcoming/:id",
-		"/convos/archived",
-		"/contacts",
-		"/tools/help",
-		"/faqs",
-		"/webcams",
-		"/jobs",
-		"/map",
-		"/map/geojson",
-		"/orgs",
-		"/news/rss",
-		"/news/wpjson",
-		"/news/named/nnb",
-		"/news/named/carleton-now",
-		"/news/named/carletonian",
-		"/news/named/krlx",
-		"/news/named/covid",
-		"/spaces/hours",
-		"/transit/bus",
-		"/transit/modes",
-		"/util/html-to-md",
-	];
-
-	for mode in modes {
-		match mode {
-			Mode::StOlaf => vec.extend(&stolaf_vec),
-			Mode::Carleton => vec.extend(&carleton_vec),
-		}
-	}
+fn routes(mode: &Mode) -> impl Iterator<Item = String> {
+	let vec: Vec<String> = match mode {
+		Mode::StOlaf => include_str!("../STOLAF_ROUTES")
+			.lines()
+			.map(ToOwned::to_owned)
+			.collect(),
+		Mode::Carleton => include_str!("../CARLETON_ROUTES")
+			.lines()
+			.map(ToOwned::to_owned)
+			.collect(),
+	};
 
 	vec.into_iter()
 }
 
+fn make_request(
+	client: &Client,
+	mode: &Mode,
+	source: &str,
+	route: &str,
+) -> Result<Request, Box<dyn std::error::Error + Send + Sync>> {
+	let joined = Url::parse(source)?.join(route)?;
+	Ok(client.request(Method::GET, joined).build()?)
+}
+
 #[tokio::main]
-async fn main() {
-	println!("Hello, world!");
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+	let client: Client = ClientBuilder::new()
+		.user_agent(concat!(
+			env!("CARGO_PKG_NAME"),
+			"/",
+			env!("CARGO_PKG_VERSION")
+		))
+		.build()?;
+
+	for (source, modes) in vec![
+		(
+			"http://localhost:3000/api",
+			vec![Mode::Carleton, Mode::StOlaf],
+		),
+		("https://stolaf.api.frogpond.tech/v1", vec![Mode::StOlaf]),
+		(
+			"https://carleton.api.frogpond.tech/v1",
+			vec![Mode::Carleton],
+		),
+	] {
+		for mode in modes {
+			for route in routes(&mode) {
+				if let Ok(request) = make_request(&client, &mode, &source, &route) {
+					let req_copy = request.try_clone();
+
+					let response = client.execute(request).await;
+
+					if let Some(rfr) = req_copy {
+						println!("{} => {:?}", rfr.url(), response);
+
+						for (header, value) in rfr.headers().iter() {
+							println!("{}: {:?}", header, value);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	Ok(())
 }
