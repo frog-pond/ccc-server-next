@@ -63,12 +63,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 	for (source, modes) in vec![
 		(
-			"http://localhost:3000/api",
+			"http://localhost:3000/api/",
 			vec![Mode::Carleton, Mode::StOlaf],
 		),
-		("https://stolaf.api.frogpond.tech/v1", vec![Mode::StOlaf]),
+		("https://stolaf.api.frogpond.tech/v1/", vec![Mode::StOlaf]),
 		(
-			"https://carleton.api.frogpond.tech/v1",
+			"https://carleton.api.frogpond.tech/v1/",
 			vec![Mode::Carleton],
 		),
 	] {
