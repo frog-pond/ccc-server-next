@@ -8,7 +8,7 @@ publish = false
 axum = "0.6.4"
 ccc-types = { path = "../ccc-types" }
 ccc-routes = { path = "../ccc-routes" }
-reqwest = { version = "0.11.11", features = ["json"] }
+reqwest = { version = "0.11.14", features = ["json"] }
 serde = { version = "1.0.139", features = ["derive"] }
 tokio = { version = "1.23.1", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.4.13", features = ["filter", "timeout"] }
