@@ -3,6 +3,8 @@
   "extends": [
     "config:base",
     // Semantic commits add useless noise; turn them off explicitly.
-    ":semanticCommitsDisabled"
+    ":semanticCommitsDisabled",
+    // Update lockfile versions weekly
+    ":maintainLockFilesWeekly"
   ]
 }
