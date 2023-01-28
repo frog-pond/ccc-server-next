@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.6.1"
+axum = "0.6.4"
 ccc-types = { path = "../ccc-types" }
 ccc-routes = { path = "../ccc-routes" }
 reqwest = { version = "0.11.11", features = ["json"] }
