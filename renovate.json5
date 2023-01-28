@@ -1,0 +1,8 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    // Semantic commits add useless noise; turn them off explicitly.
+    ":semanticCommitsDisabled"
+  ]
+}
