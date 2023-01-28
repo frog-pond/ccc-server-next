@@ -5,6 +5,8 @@
     // Semantic commits add useless noise; turn them off explicitly.
     ":semanticCommitsDisabled",
     // Update lockfile versions weekly
-    ":maintainLockFilesWeekly"
+    ":maintainLockFilesWeekly",
+    // Pin github-actions with a digest to avoid surprises when they update
+    "helpers:pinGitHubActionDigests"
   ]
 }
