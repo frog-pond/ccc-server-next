@@ -6,5 +6,5 @@ publish = false
 
 [dependencies]
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.92"
+serde_json = "1.0.93"
 ts-rs = {version = "6.2.1" }
