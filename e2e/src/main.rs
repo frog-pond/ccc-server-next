@@ -87,29 +87,48 @@ fn routes(mode: &RouteGroup) -> impl Iterator<Item = String> {
 	vec.into_iter()
 }
 
-fn test_targets() -> Result<Vec<(url::Url, Vec<RouteGroup>)>, url::ParseError> {
+fn test_targets() -> Result<Vec<ServerTarget>, url::ParseError> {
 	use RouteGroup::{CarletonOnly, CccShared, StOlafOnly};
 
 	Ok(vec![
-		(
+		ServerTarget::new(
 			Url::parse("http://localhost:3000/api/")?,
 			vec![CccShared, CarletonOnly, StOlafOnly],
 		),
-		(
+		ServerTarget::new(
 			Url::parse("https://stolaf.api.frogpond.tech/v1/")?,
 			vec![CccShared, StOlafOnly],
 		),
-		(
+		ServerTarget::new(
 			Url::parse("https://carleton.api.frogpond.tech/v1/")?,
 			vec![CccShared, CarletonOnly],
 		),
 	])
 }
 
+#[derive(Clone)]
+struct ServerTarget {
+	base_url: Url,
+	supported_route_groups: Vec<RouteGroup>,
+}
+
+impl ServerTarget {
+	fn new(base_url: Url, supported_route_groups: Vec<RouteGroup>) -> Self {
+		Self {
+			base_url,
+			supported_route_groups,
+		}
+	}
+
+	fn supported_route_groups(&self) -> &[RouteGroup] {
+		&self.supported_route_groups
+	}
+}
+
 struct TestPlan();
 
 impl TestPlan {
-	fn generate(targets: Vec<(Url, Vec<RouteGroup>)>) -> Self {
+	fn generate(targets: Vec<ServerTarget>) -> Self {
 		// "targets" in this case is still structured in terms of (base_url, supported_modes).
 		// to turn this into a "plan", we need to normalize in terms of (mode_route, servers_to_test).
 
@@ -118,11 +137,16 @@ impl TestPlan {
 		// First, convert targets into {Mode: Set<Url>}:
 		let targets: BTreeMap<RouteGroup, BTreeSet<Url>> = targets
 			.into_iter()
-			.flat_map(|(base_url, supported_modes)| {
-				supported_modes
-					.into_iter()
-					.map(move |supported_mode| (supported_mode, base_url.clone()))
-			})
+			.flat_map(
+				|ServerTarget {
+				   base_url,
+				   supported_route_groups,
+				 }| {
+					supported_route_groups
+						.into_iter()
+						.map(move |supported_mode| (supported_mode, base_url.clone()))
+				},
+			)
 			.fold(
 				BTreeMap::default(),
 				|mut map, (supported_mode, base_url)| {
