@@ -10,7 +10,7 @@ enum RouteGroup {
 }
 
 fn get_substitutions(mode: &RouteGroup, route: &str, token: &str) -> Vec<&'static str> {
-	use RouteGroup::{CarletonOnly, StOlafOnly};
+	use RouteGroup::CarletonOnly;
 
 	match (mode, route, token) {
 		(_, "food/item/:itemId", ":itemId") => vec!["36221", "13207271", "22061885"],
@@ -116,6 +116,8 @@ impl TestPlan {
 		// "targets" in this case is still structured in terms of (base_url, supported_modes).
 		// to turn this into a "plan", we need to normalize in terms of (mode_route, servers_to_test).
 
+		// TODO: "Intern" the servers into a property of the test plan and avoid cloning base urls so repetitively.
+
 		// First, convert targets into {Mode: Set<Url>}:
 		let targets: BTreeMap<RouteGroup, BTreeSet<Url>> = targets
 			.into_iter()
@@ -163,7 +165,7 @@ impl TestPlan {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-	let client: Client = ClientBuilder::new()
+	let _client: Client = ClientBuilder::new()
 		.user_agent(concat!(
 			env!("CARGO_PKG_NAME"),
 			"/",
@@ -173,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 	let targets = test_targets()?;
 
-	let test_plan = TestPlan::generate(targets);
+	let _test_plan = TestPlan::generate(targets);
 
 	Ok(())
 }
