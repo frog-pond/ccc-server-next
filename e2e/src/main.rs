@@ -1,20 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use reqwest::{Client, ClientBuilder, Method, Request, Url};
-
-fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<String> {
-	let mut vec = Vec::default();
-
-	if let Some(local_server) = local_server {
-		vec.push(local_server.to_string());
-	}
-
-	if let Some(deployed_js_server) = deployed_js_server {
-		vec.push(deployed_js_server.to_string());
-	}
-
-	vec
-}
+use reqwest::{Client, ClientBuilder, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum RouteGroup {
@@ -102,16 +88,6 @@ fn routes(mode: &RouteGroup) -> impl Iterator<Item = String> {
 	.collect();
 
 	vec.into_iter()
-}
-
-fn create_request(
-	client: &Client,
-	mode: &Mode,
-	source: &str,
-	route: &str,
-) -> Result<Request, Box<dyn std::error::Error + Send + Sync>> {
-	let joined = Url::parse(source)?.join(route)?;
-	Ok(client.request(Method::GET, joined).build()?)
 }
 
 fn test_targets() -> Result<Vec<(url::Url, Vec<RouteGroup>)>, url::ParseError> {
