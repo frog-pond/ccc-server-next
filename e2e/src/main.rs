@@ -18,32 +18,28 @@ fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum RouteGroup {
-	StOlaf,
-	Carleton,
+	CccShared,
+	StOlafOnly,
+	CarletonOnly,
 }
 
 fn get_substitutions(mode: &RouteGroup, route: &str, token: &str) -> Vec<&'static str> {
-	use RouteGroup::{Carleton, StOlaf};
+	use RouteGroup::{CarletonOnly, StOlafOnly};
 
 	match (mode, route, token) {
 		(_, "food/item/:itemId", ":itemId") => vec!["36221", "13207271", "22061885"],
 		(_, "food/menu/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
 		(_, "food/cafe/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
 
-		(Carleton, "convos/upcoming/:id", ":id") => vec![],
+		(CarletonOnly, "convos/upcoming/:id", ":id") => vec![],
 
 		// A panic in this case prompts us to fill out the substitution grid.
 		//
 		// To do so, add a new match arm for the mode, route, and specific path segment you want to add to.
 		_ => {
 			panic!(
-				"unknown substitution {} for route {} in mode {}",
-				token,
-				route,
-				match mode {
-					StOlaf => "stolaf",
-					Carleton => "carleton",
-				}
+				"unknown substitution {} for route {} in group {:?}",
+				token, route, mode,
 			);
 		}
 	}
@@ -94,10 +90,11 @@ fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
 
 fn routes(mode: &RouteGroup) -> impl Iterator<Item = String> {
 	let vec: Vec<String> = match mode {
-		RouteGroup::StOlaf => include_str!("../STOLAF_ROUTES")
+		RouteGroup::CccShared => include_str!("../CCC_ROUTES").lines().map(ToOwned::to_owned),
+		RouteGroup::StOlafOnly => include_str!("../STOLAF_ROUTES")
 			.lines()
 			.map(ToOwned::to_owned),
-		RouteGroup::Carleton => include_str!("../CARLETON_ROUTES")
+		RouteGroup::CarletonOnly => include_str!("../CARLETON_ROUTES")
 			.lines()
 			.map(ToOwned::to_owned),
 	}
@@ -118,20 +115,20 @@ fn create_request(
 }
 
 fn test_targets() -> Result<Vec<(url::Url, Vec<RouteGroup>)>, url::ParseError> {
-	use RouteGroup::{Carleton, StOlaf};
+	use RouteGroup::{CarletonOnly, CccShared, StOlafOnly};
 
 	Ok(vec![
 		(
 			Url::parse("http://localhost:3000/api/")?,
-			vec![Carleton, StOlaf],
+			vec![CccShared, CarletonOnly, StOlafOnly],
 		),
 		(
 			Url::parse("https://stolaf.api.frogpond.tech/v1/")?,
-			vec![StOlaf],
+			vec![CccShared, StOlafOnly],
 		),
 		(
 			Url::parse("https://carleton.api.frogpond.tech/v1/")?,
-			vec![Carleton],
+			vec![CccShared, CarletonOnly],
 		),
 	])
 }
