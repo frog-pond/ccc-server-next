@@ -50,7 +50,13 @@ fn get_substitutions(mode: &Mode, route: &str, token: &str) -> Vec<&'static str>
 }
 
 fn substitute(mode: &Mode, route: String) -> Vec<String> {
-	todo!()
+	let parts: Vec<&str> = route.split('/').collect();
+
+	if parts.iter().any(|part| part.starts_with(':')) {
+		todo!()
+	} else {
+		vec![parts.join("/")]
+	}
 }
 
 fn routes(mode: &Mode) -> impl Iterator<Item = String> {
