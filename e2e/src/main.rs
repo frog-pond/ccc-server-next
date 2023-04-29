@@ -76,13 +76,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	for (source, modes) in test_targets {
 		for mode in modes {
 			for route in routes(&mode) {
+				use std::io::{stdout, Write};
+
 				if let Ok(request) = make_request(&client, &mode, &source, &route) {
 					let req_copy = request.try_clone();
+
+					print!("{} => ", request.url());
+					stdout().lock().flush()?;
 
 					let response = client.execute(request).await;
 
 					if let Some(rfr) = req_copy {
-						println!("{} => {:?}", rfr.url(), response);
+						println!("{:?}", response);
 
 						for (header, value) in rfr.headers().iter() {
 							println!("{}: {:?}", header, value);
