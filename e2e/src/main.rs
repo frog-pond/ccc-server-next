@@ -16,14 +16,14 @@ fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<
 	vec
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum Mode {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum RouteGroup {
 	StOlaf,
 	Carleton,
 }
 
-fn get_substitutions(mode: &Mode, route: &str, token: &str) -> Vec<&'static str> {
-	use Mode::{Carleton, StOlaf};
+fn get_substitutions(mode: &RouteGroup, route: &str, token: &str) -> Vec<&'static str> {
+	use RouteGroup::{Carleton, StOlaf};
 
 	match (mode, route, token) {
 		(_, "food/item/:itemId", ":itemId") => vec!["36221", "13207271", "22061885"],
@@ -49,7 +49,7 @@ fn get_substitutions(mode: &Mode, route: &str, token: &str) -> Vec<&'static str>
 	}
 }
 
-fn substitute(mode: &Mode, route: String) -> Vec<String> {
+fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
 	let parts: Vec<&str> = route.split('/').collect();
 
 	// NOTE: We could probably do this with less moving parts if I flagged parts to substitute and then just performed the substitutions based off that math.
@@ -92,12 +92,12 @@ fn substitute(mode: &Mode, route: String) -> Vec<String> {
 	}
 }
 
-fn routes(mode: &Mode) -> impl Iterator<Item = String> {
+fn routes(mode: &RouteGroup) -> impl Iterator<Item = String> {
 	let vec: Vec<String> = match mode {
-		Mode::StOlaf => include_str!("../STOLAF_ROUTES")
+		RouteGroup::StOlaf => include_str!("../STOLAF_ROUTES")
 			.lines()
 			.map(ToOwned::to_owned),
-		Mode::Carleton => include_str!("../CARLETON_ROUTES")
+		RouteGroup::Carleton => include_str!("../CARLETON_ROUTES")
 			.lines()
 			.map(ToOwned::to_owned),
 	}
@@ -117,8 +117,8 @@ fn create_request(
 	Ok(client.request(Method::GET, joined).build()?)
 }
 
-fn test_targets() -> Result<Vec<(url::Url, Vec<Mode>)>, url::ParseError> {
-	use Mode::{Carleton, StOlaf};
+fn test_targets() -> Result<Vec<(url::Url, Vec<RouteGroup>)>, url::ParseError> {
+	use RouteGroup::{Carleton, StOlaf};
 
 	Ok(vec![
 		(
@@ -139,12 +139,12 @@ fn test_targets() -> Result<Vec<(url::Url, Vec<Mode>)>, url::ParseError> {
 struct TestPlan();
 
 impl TestPlan {
-	fn generate(targets: Vec<(Url, Vec<Mode>)>) -> Self {
+	fn generate(targets: Vec<(Url, Vec<RouteGroup>)>) -> Self {
 		// "targets" in this case is still structured in terms of (base_url, supported_modes).
 		// to turn this into a "plan", we need to normalize in terms of (mode_route, servers_to_test).
 
 		// First, convert targets into {Mode: Set<Url>}:
-		let targets: BTreeMap<Mode, BTreeSet<Url>> = targets
+		let targets: BTreeMap<RouteGroup, BTreeSet<Url>> = targets
 			.into_iter()
 			.flat_map(|(base_url, supported_modes)| {
 				supported_modes
@@ -165,12 +165,24 @@ impl TestPlan {
 		// "Mode" comes with a Set<Route> -- ultimately, we want {(Mode, Route): Set<Url>}.
 		// Some routes (e.g. ping) will be identical between Carleton/StOlaf, but some (/spaces/hours) will not.
 
-		let unrolled_plan: BTreeMap<(Mode, String), BTreeSet<Url>> = targets
+		let unrolled_plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>> = targets
 			.into_iter()
 			.flat_map(|(mode, base_urls)| {
 				routes(&mode).map(move |route| ((mode.clone(), route), base_urls.clone()))
 			})
 			.collect();
+
+		for ((mode, route), servers) in unrolled_plan {
+			println!(
+				"{:?}, {} -> {:?}",
+				mode,
+				route,
+				servers
+					.iter()
+					.map(|server| server.as_str())
+					.collect::<Vec<_>>()
+			);
+		}
 
 		Self()
 	}
