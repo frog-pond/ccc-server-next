@@ -23,10 +23,7 @@ fn get_substitutions(mode: &RouteGroup, route: &str, token: &str) -> Vec<&'stati
 		//
 		// To do so, add a new match arm for the mode, route, and specific path segment you want to add to.
 		_ => {
-			panic!(
-				"unknown substitution {} for route {} in group {:?}",
-				token, route, mode,
-			);
+			panic!("unknown substitution {token} for route {route} in group {mode:?}");
 		}
 	}
 }
@@ -70,7 +67,7 @@ fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
 
 		good
 	} else {
-		vec![parts.join("/")]
+		vec![route]
 	}
 }
 
@@ -152,10 +149,7 @@ impl TestPlan {
 				"{:?}, {} -> {:?}",
 				mode,
 				route,
-				servers
-					.iter()
-					.map(|server| server.as_str())
-					.collect::<Vec<_>>()
+				servers.iter().map(Url::as_str).collect::<Vec<_>>()
 			);
 		}
 
