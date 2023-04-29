@@ -22,10 +22,30 @@ enum Mode {
 	Carleton,
 }
 
-fn get_substitutions(mode: &Mode, token: &str) -> Option<Vec<String>> {
-	match token {
-		// ":itemId" =>d
-		_ => None,
+fn get_substitutions(mode: &Mode, route: &str, token: &str) -> Vec<&'static str> {
+	use Mode::{Carleton, StOlaf};
+
+	match (mode, route, token) {
+		(_, "food/item/:itemId", ":itemId") => vec!["36221", "13207271", "22061885"],
+		(_, "food/menu/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
+		(_, "food/cafe/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
+
+		(Carleton, "convos/upcoming/:id", ":id") => vec![],
+
+		// A panic in this case prompts us to fill out the substitution grid.
+		//
+		// To do so, add a new match arm for the mode, route, and specific path segment you want to add to.
+		_ => {
+			panic!(
+				"unknown substitution {} for route {} in mode {}",
+				token,
+				route,
+				match mode {
+					StOlaf => "stolaf",
+					Carleton => "carleton",
+				}
+			);
+		}
 	}
 }
 
