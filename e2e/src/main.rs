@@ -94,29 +94,44 @@ fn test_targets() -> Result<Vec<ServerTarget>, url::ParseError> {
 		ServerTarget::new(
 			Url::parse("http://localhost:3000/api/")?,
 			vec![CccShared, CarletonOnly, StOlafOnly],
+			TestingTargetType::Candidate,
 		),
 		ServerTarget::new(
 			Url::parse("https://stolaf.api.frogpond.tech/v1/")?,
 			vec![CccShared, StOlafOnly],
+			TestingTargetType::Reference,
 		),
 		ServerTarget::new(
 			Url::parse("https://carleton.api.frogpond.tech/v1/")?,
 			vec![CccShared, CarletonOnly],
+			TestingTargetType::Reference,
 		),
 	])
+}
+
+#[derive(Clone)]
+enum TestingTargetType {
+	Reference,
+	Candidate,
 }
 
 #[derive(Clone)]
 struct ServerTarget {
 	base_url: Url,
 	supported_route_groups: Vec<RouteGroup>,
+	testing_type: TestingTargetType,
 }
 
 impl ServerTarget {
-	fn new(base_url: Url, supported_route_groups: Vec<RouteGroup>) -> Self {
+	fn new(
+		base_url: Url,
+		supported_route_groups: Vec<RouteGroup>,
+		testing_type: TestingTargetType,
+	) -> Self {
 		Self {
 			base_url,
 			supported_route_groups,
+			testing_type,
 		}
 	}
 
@@ -125,7 +140,7 @@ impl ServerTarget {
 	}
 }
 
-struct TestPlan();
+struct TestPlan(BTreeMap<(RouteGroup, String), BTreeSet<Url>>);
 
 impl TestPlan {
 	fn generate(targets: Vec<ServerTarget>) -> Self {
@@ -141,6 +156,7 @@ impl TestPlan {
 				|ServerTarget {
 				   base_url,
 				   supported_route_groups,
+				   ..
 				 }| {
 					supported_route_groups
 						.into_iter()
@@ -168,16 +184,7 @@ impl TestPlan {
 			})
 			.collect();
 
-		for ((mode, route), servers) in unrolled_plan {
-			println!(
-				"{:?}, {} -> {:?}",
-				mode,
-				route,
-				servers.iter().map(Url::as_str).collect::<Vec<_>>()
-			);
-		}
-
-		Self()
+		Self(unrolled_plan)
 	}
 }
 
@@ -193,7 +200,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 	let targets = test_targets()?;
 
-	let _test_plan = TestPlan::generate(targets);
+	let test_plan = TestPlan::generate(targets);
+
+	for ((mode, route), servers) in test_plan.0 {
+		println!(
+			"testing route \"{route}\" against {} {mode:?} servers",
+			servers.len()
+		);
+	}
 
 	Ok(())
 }
