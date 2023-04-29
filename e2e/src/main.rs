@@ -16,7 +16,7 @@ fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<
 	vec
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Mode {
 	StOlaf,
 	Carleton,
@@ -98,6 +98,16 @@ impl TestPlan {
 					map
 				},
 			);
+
+		// "Mode" comes with a Set<Route> -- ultimately, we want {(Mode, Route): Set<Url>}.
+		// Some routes (e.g. ping) will be identical between Carleton/StOlaf, but some (/spaces/hours) will not.
+
+		let unrolled_plan: BTreeMap<(Mode, String), BTreeSet<Url>> = targets
+			.into_iter()
+			.flat_map(|(mode, base_urls)| {
+				routes(&mode).map(move |route| ((mode.clone(), route), base_urls.clone()))
+			})
+			.collect();
 
 		Self()
 	}
