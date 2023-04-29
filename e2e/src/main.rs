@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use reqwest::{Client, ClientBuilder, Method, Request, Url};
 
 fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<String> {
@@ -14,6 +16,7 @@ fn sources(local_server: Option<&str>, deployed_js_server: Option<&str>) -> Vec<
 	vec
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum Mode {
 	StOlaf,
 	Carleton,
@@ -70,6 +73,36 @@ fn test_targets() -> Result<Vec<(url::Url, Vec<Mode>)>, url::ParseError> {
 	])
 }
 
+struct TestPlan();
+
+impl TestPlan {
+	fn generate(targets: Vec<(Url, Vec<Mode>)>) -> Self {
+		// "targets" in this case is still structured in terms of (base_url, supported_modes).
+		// to turn this into a "plan", we need to normalize in terms of (mode_route, servers_to_test).
+
+		// First, convert targets into {Mode: Set<Url>}:
+		let targets: BTreeMap<Mode, BTreeSet<Url>> = targets
+			.into_iter()
+			.flat_map(|(base_url, supported_modes)| {
+				supported_modes
+					.into_iter()
+					.map(move |supported_mode| (supported_mode, base_url.clone()))
+			})
+			.fold(
+				BTreeMap::default(),
+				|mut map, (supported_mode, base_url)| {
+					map
+						.entry(supported_mode)
+						.or_insert(BTreeSet::default())
+						.insert(base_url);
+					map
+				},
+			);
+
+		Self()
+	}
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	let client: Client = ClientBuilder::new()
@@ -80,42 +113,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 		))
 		.build()?;
 
-	let test_targets = vec![
-		(
-			"http://localhost:3000/api/",
-			vec![Mode::Carleton, Mode::StOlaf],
-		),
-		("https://stolaf.api.frogpond.tech/v1/", vec![Mode::StOlaf]),
-		(
-			"https://carleton.api.frogpond.tech/v1/",
-			vec![Mode::Carleton],
-		),
-	];
+	let targets = test_targets()?;
 
-	for (source, modes) in test_targets {
-		for mode in modes {
-			for route in routes(&mode) {
-				use std::io::{stdout, Write};
-
-				if let Ok(request) = create_request(&client, &mode, &source, &route) {
-					let req_copy = request.try_clone();
-
-					print!("{} => ", request.url());
-					stdout().lock().flush()?;
-
-					let response = client.execute(request).await;
-
-					if let Some(rfr) = req_copy {
-						println!("{:?}", response);
-
-						for (header, value) in rfr.headers().iter() {
-							println!("{}: {:?}", header, value);
-						}
-					}
-				}
-			}
-		}
-	}
+	let test_plan = TestPlan::generate(targets);
 
 	Ok(())
 }
