@@ -64,11 +64,11 @@ fn test_targets() -> Result<Vec<(url::Url, Vec<Mode>)>, url::ParseError> {
 		),
 		(
 			Url::parse("https://stolaf.api.frogpond.tech/v1/")?,
-			vec![Mode::StOlaf],
+			vec![StOlaf],
 		),
 		(
 			Url::parse("https://carleton.api.frogpond.tech/v1/")?,
-			vec![Mode::Carleton],
+			vec![Carleton],
 		),
 	])
 }
