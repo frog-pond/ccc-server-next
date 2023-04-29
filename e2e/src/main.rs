@@ -41,7 +41,7 @@ fn routes(mode: &Mode) -> impl Iterator<Item = String> {
 	vec.into_iter()
 }
 
-fn make_request(
+fn create_request(
 	client: &Client,
 	mode: &Mode,
 	source: &str,
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			for route in routes(&mode) {
 				use std::io::{stdout, Write};
 
-				if let Ok(request) = make_request(&client, &mode, &source, &route) {
+				if let Ok(request) = create_request(&client, &mode, &source, &route) {
 					let req_copy = request.try_clone();
 
 					print!("{} => ", request.url());
