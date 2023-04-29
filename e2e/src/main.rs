@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 		))
 		.build()?;
 
-	for (source, modes) in vec![
+	let test_targets = vec![
 		(
 			"http://localhost:3000/api/",
 			vec![Mode::Carleton, Mode::StOlaf],
@@ -71,7 +71,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			"https://carleton.api.frogpond.tech/v1/",
 			vec![Mode::Carleton],
 		),
-	] {
+	];
+
+	for (source, modes) in test_targets {
 		for mode in modes {
 			for route in routes(&mode) {
 				if let Ok(request) = make_request(&client, &mode, &source, &route) {
