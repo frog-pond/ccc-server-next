@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use reqwest::{Client, ClientBuilder, Method, Request, Url};
 
@@ -52,8 +52,41 @@ fn get_substitutions(mode: &Mode, route: &str, token: &str) -> Vec<&'static str>
 fn substitute(mode: &Mode, route: String) -> Vec<String> {
 	let parts: Vec<&str> = route.split('/').collect();
 
+	// NOTE: We could probably do this with less moving parts if I flagged parts to substitute and then just performed the substitutions based off that math.
+	// This approach does decouple the "substitute x with y" from indices pretty well though.
 	if parts.iter().any(|part| part.starts_with(':')) {
-		todo!()
+		let mut good: Vec<String> = Vec::default();
+
+		let mut to_substitute_fully: VecDeque<String> = VecDeque::default();
+		to_substitute_fully.push_back(parts.join("/"));
+
+		while let Some(partially_substituted_route) = to_substitute_fully.pop_front() {
+			let parts: Vec<&str> = partially_substituted_route.split('/').collect();
+
+			for (idx, part) in parts.iter().enumerate() {
+				if !part.starts_with(':') {
+					continue;
+				}
+
+				let mut this_route: Vec<&str> = parts.clone();
+
+				let substitutions = get_substitutions(mode, &route, part);
+
+				for substitution in substitutions {
+					this_route[idx] = substitution;
+
+					let new_string = this_route.join("/");
+
+					if new_string.contains("/:") {
+						to_substitute_fully.push_back(new_string);
+					} else {
+						good.push(new_string);
+					}
+				}
+			}
+		}
+
+		good
 	} else {
 		vec![parts.join("/")]
 	}
