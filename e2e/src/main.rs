@@ -51,6 +51,25 @@ fn create_request(
 	Ok(client.request(Method::GET, joined).build()?)
 }
 
+fn test_targets() -> Result<Vec<(url::Url, Vec<Mode>)>, url::ParseError> {
+	use Mode::{Carleton, StOlaf};
+
+	Ok(vec![
+		(
+			Url::parse("http://localhost:3000/api/")?,
+			vec![Carleton, StOlaf],
+		),
+		(
+			Url::parse("https://stolaf.api.frogpond.tech/v1/")?,
+			vec![Mode::StOlaf],
+		),
+		(
+			Url::parse("https://carleton.api.frogpond.tech/v1/")?,
+			vec![Mode::Carleton],
+		),
+	])
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	let client: Client = ClientBuilder::new()
