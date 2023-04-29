@@ -1,3 +1,5 @@
+
+ping
 food/item/:itemId
 food/menu/:cafeId
 food/cafe/:cafeId
