@@ -29,17 +29,21 @@ fn get_substitutions(mode: &Mode, token: &str) -> Option<Vec<String>> {
 	}
 }
 
+fn substitute(mode: &Mode, route: String) -> Vec<String> {
+	todo!()
+}
+
 fn routes(mode: &Mode) -> impl Iterator<Item = String> {
 	let vec: Vec<String> = match mode {
 		Mode::StOlaf => include_str!("../STOLAF_ROUTES")
 			.lines()
-			.map(ToOwned::to_owned)
-			.collect(),
+			.map(ToOwned::to_owned),
 		Mode::Carleton => include_str!("../CARLETON_ROUTES")
 			.lines()
-			.map(ToOwned::to_owned)
-			.collect(),
-	};
+			.map(ToOwned::to_owned),
+	}
+	.flat_map(|configured_route| substitute(mode, configured_route))
+	.collect();
 
 	vec.into_iter()
 }
