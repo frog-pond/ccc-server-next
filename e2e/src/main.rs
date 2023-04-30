@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use reqwest::{Client, ClientBuilder, Url};
+use url::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum RouteGroup {
@@ -138,6 +139,14 @@ impl ServerTarget {
 	fn supported_route_groups(&self) -> &[RouteGroup] {
 		&self.supported_route_groups
 	}
+
+	fn testing_type(&self) -> &TestingTargetType {
+		&self.testing_type
+	}
+
+	fn route_url(&self, route: &str) -> Result<Url, ParseError> {
+		self.base_url.join(route)
+	}
 }
 
 struct TestPlan(BTreeMap<(RouteGroup, String), BTreeSet<Url>>);
@@ -207,6 +216,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			"testing route \"{route}\" against {} {mode:?} servers",
 			servers.len()
 		);
+
+		for server in servers {
+			let url = server.join(&route)?;
+
+			println!("  {url}");
+
+			// TODO: Fetch all Reference targets
+			// TODO: Fetch all Candidate targets
+
+			// TODO: Assertion: Reference targets are identical to each other
+			// TODO: Assertion: Candidate matches Reference targets
+		}
 	}
 
 	Ok(())
