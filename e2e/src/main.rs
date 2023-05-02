@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use reqwest::{Client, ClientBuilder, Url};
+use reqwest::{header::HeaderMap, Client, ClientBuilder, Method, Request, Response, Url};
 use url::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -206,9 +206,16 @@ impl TestPlan {
 	}
 }
 
+fn make_request(
+	client: &Client,
+	url: Url,
+) -> Result<Request, Box<dyn std::error::Error + Send + Sync>> {
+	Ok(client.request(Method::GET, url).build()?)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-	let _client: Client = ClientBuilder::new()
+	let client: Client = ClientBuilder::new()
 		.user_agent(concat!(
 			env!("CARGO_PKG_NAME"),
 			"/",
@@ -232,12 +239,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		println!("  references:");
 
+		let mut reference_results: BTreeMap<
+			Url,
+			(Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>),
+		> = BTreeMap::default();
+
 		for reference in references {
 			let url = reference.join(&route)?;
 
 			println!("    {url}");
 
-			// TODO: Fetch all Reference targets
+			if let Ok(request) = make_request(&client, url.clone()) {
+				let request_dup = request.try_clone().expect("failed to check request");
+				let response = client.execute(request).await;
+
+				match response {
+					Ok(response) => {
+						let headers = response.headers().to_owned();
+						let body = response.bytes().await?;
+
+						reference_results.insert(url.clone(), (request_dup, Ok((headers, body))));
+					}
+					Err(e) => {
+						reference_results.insert(url.clone(), (request_dup, Err(e)));
+					}
+				}
+			}
 
 			// TODO: Assertion: Reference targets are identical to each other
 		}
