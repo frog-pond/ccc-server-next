@@ -110,7 +110,7 @@ fn test_targets() -> Result<Vec<ServerTarget>, url::ParseError> {
 	])
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum TestingTargetType {
 	Reference,
 	Candidate,
@@ -226,15 +226,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			servers.len()
 		);
 
-		for server in servers {
-			let url = server.join(&route)?;
+		let (candidates, references): (Vec<_>, Vec<_>) = servers
+			.into_iter()
+			.partition(|s| test_plan.target_types.get(s) == Some(&TestingTargetType::Candidate));
 
-			println!("  {url}");
+		println!("  references:");
+
+		for reference in references {
+			let url = reference.join(&route)?;
+
+			println!("    {url}");
 
 			// TODO: Fetch all Reference targets
-			// TODO: Fetch all Candidate targets
 
 			// TODO: Assertion: Reference targets are identical to each other
+		}
+
+		println!("  candidates:");
+
+		for candidate in candidates {
+			let url = candidate.join(&route)?;
+
+			println!("    {url}");
+
+			// TODO: Fetch all Candidate targets
+
 			// TODO: Assertion: Candidate matches Reference targets
 		}
 	}
