@@ -110,7 +110,7 @@ fn test_targets() -> Result<Vec<ServerTarget>, url::ParseError> {
 	])
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 enum TestingTargetType {
 	Reference,
 	Candidate,
@@ -151,8 +151,7 @@ impl ServerTarget {
 
 struct TestPlan {
 	plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>>,
-	targets_interned: Vec<ServerTarget>,
-	targets: BTreeMap<TestingTargetType, BTreeSet<usize>>,
+	target_types: BTreeMap<Url, TestingTargetType>,
 }
 
 impl TestPlan {
@@ -163,45 +162,47 @@ impl TestPlan {
 		// TODO: "Intern" the servers into a property of the test plan and avoid cloning base urls so repetitively.
 
 		// First, convert targets into {Mode: Set<Url>}:
-		let targets: BTreeMap<RouteGroup, BTreeSet<Url>> = targets
+		let (targets, target_types): (
+			BTreeMap<RouteGroup, BTreeSet<Url>>,
+			BTreeMap<Url, TestingTargetType>,
+		) = targets
 			.into_iter()
 			.flat_map(
 				|ServerTarget {
 				   base_url,
 				   supported_route_groups,
-				   ..
+				   testing_type,
 				 }| {
 					supported_route_groups
 						.into_iter()
-						.map(move |supported_mode| (supported_mode, base_url.clone()))
+						.map(move |supported_mode| (testing_type, supported_mode, base_url.clone()))
 				},
 			)
 			.fold(
-				BTreeMap::default(),
-				|mut map, (supported_mode, base_url)| {
-					map
+				(BTreeMap::default(), BTreeMap::default()),
+				|(mut target_map, mut target_type_map), (testing_type, supported_mode, base_url)| {
+					target_map
 						.entry(supported_mode)
 						.or_insert(BTreeSet::default())
-						.insert(base_url);
-					map
+						.insert(base_url.clone());
+
+					target_type_map.insert(base_url, testing_type);
+
+					(target_map, target_type_map)
 				},
 			);
 
 		// "Mode" comes with a Set<Route> -- ultimately, we want {(Mode, Route): Set<Url>}.
 		// Some routes (e.g. ping) will be identical between Carleton/StOlaf, but some (/spaces/hours) will not.
 
-		let unrolled_plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>> = targets
+		let plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>> = targets
 			.into_iter()
 			.flat_map(|(mode, base_urls)| {
 				routes(&mode).map(move |route| ((mode.clone(), route), base_urls.clone()))
 			})
 			.collect();
 
-		Self {
-			plan: unrolled_plan,
-			targets: BTreeMap::default(),
-			targets_interned: Vec::default(),
-		}
+		Self { plan, target_types }
 	}
 }
 
