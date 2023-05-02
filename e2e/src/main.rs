@@ -149,7 +149,9 @@ impl ServerTarget {
 	}
 }
 
-struct TestPlan(BTreeMap<(RouteGroup, String), BTreeSet<Url>>);
+struct TestPlan {
+	plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>>,
+}
 
 impl TestPlan {
 	fn generate(targets: Vec<ServerTarget>) -> Self {
@@ -193,7 +195,9 @@ impl TestPlan {
 			})
 			.collect();
 
-		Self(unrolled_plan)
+		Self {
+			plan: unrolled_plan,
+		}
 	}
 }
 
@@ -211,7 +215,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 	let test_plan = TestPlan::generate(targets);
 
-	for ((mode, route), servers) in test_plan.0 {
+	for ((mode, route), servers) in test_plan.plan {
 		println!(
 			"testing route \"{route}\" against {} {mode:?} servers",
 			servers.len()
