@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use reqwest::{header::HeaderMap, Client, ClientBuilder, Method, Request, Response, Url};
+use reqwest::{
+	header::{HeaderMap, ToStrError},
+	Client, ClientBuilder, Method, Request, Response, Url,
+};
 use url::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -213,6 +216,19 @@ fn make_request(
 	Ok(client.request(Method::GET, url).build()?)
 }
 
+fn header_map_as_string(
+	header_map: &HeaderMap,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+	use std::fmt::Write;
+	let mut string = String::default();
+
+	for (header, value) in header_map {
+		writeln!(&mut string, "{}: {}", header, value.to_str()?)?;
+	}
+
+	Ok(string)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	let client: Client = ClientBuilder::new()
@@ -240,8 +256,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 		println!("  references:");
 
 		let mut reference_results: BTreeMap<
-			Url,
-			(Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>),
+			String,
+			BTreeMap<Url, (Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>)>,
 		> = BTreeMap::default();
 
 		for reference in references {
@@ -258,27 +274,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 						let headers = response.headers().to_owned();
 						let body = response.bytes().await?;
 
-						reference_results.insert(url.clone(), (request_dup, Ok((headers, body))));
+						reference_results
+							.entry(route.clone())
+							.or_insert(BTreeMap::default())
+							.insert(url.clone(), (request_dup, Ok((headers, body))));
 					}
 					Err(e) => {
-						reference_results.insert(url.clone(), (request_dup, Err(e)));
+						reference_results
+							.entry(route.clone())
+							.or_insert(BTreeMap::default())
+							.insert(url.clone(), (request_dup, Err(e)));
 					}
 				}
 			}
-
-			// TODO: Assertion: Reference targets are identical to each other
 		}
 
+		// TODO: Assertion: Reference targets are identical to each other
+
+		// dbg!(reference_results);
+
 		println!("  candidates:");
+
+		let mut candidate_results: BTreeMap<
+			String,
+			BTreeMap<Url, (Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>)>,
+		> = BTreeMap::default();
 
 		for candidate in candidates {
 			let url = candidate.join(&route)?;
 
 			println!("    {url}");
 
-			// TODO: Fetch all Candidate targets
+			if let Ok(request) = make_request(&client, url.clone()) {
+				let request_dup = request.try_clone().expect("failed to check request");
+				let response = client.execute(request).await;
+
+				match response {
+					Ok(response) => {
+						let headers = response.headers().to_owned();
+						let body = response.bytes().await?;
+
+						candidate_results
+							.entry(route.clone())
+							.or_insert(BTreeMap::default())
+							.insert(url.clone(), (request_dup, Ok((headers, body))));
+					}
+					Err(e) => {
+						candidate_results
+							.entry(route.clone())
+							.or_insert(BTreeMap::default())
+							.insert(url.clone(), (request_dup, Err(e)));
+					}
+				}
+			}
 
 			// TODO: Assertion: Candidate matches Reference targets
+
+			for (url, stats) in reference_results
+				.get(&route)
+				.expect("no reference results for route")
+				.iter()
+			{
+				//
+			}
 		}
 	}
 
