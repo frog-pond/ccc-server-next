@@ -151,6 +151,8 @@ impl ServerTarget {
 
 struct TestPlan {
 	plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>>,
+	targets_interned: Vec<ServerTarget>,
+	targets: BTreeMap<TestingTargetType, BTreeSet<usize>>,
 }
 
 impl TestPlan {
@@ -197,6 +199,8 @@ impl TestPlan {
 
 		Self {
 			plan: unrolled_plan,
+			targets: BTreeMap::default(),
+			targets_interned: Vec::default(),
 		}
 	}
 }
