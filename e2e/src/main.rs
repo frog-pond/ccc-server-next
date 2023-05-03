@@ -1,9 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use reqwest::{
-	header::{HeaderMap, ToStrError},
-	Client, ClientBuilder, Method, Request, Response, Url,
-};
+use bytes::Bytes;
+use reqwest::{header::HeaderMap, Client, ClientBuilder, Method, Request, Url};
+use similar::TextDiff;
 use url::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -330,12 +329,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 			// TODO: Assertion: Candidate matches Reference targets
 
-			for (url, stats) in reference_results
+			for (candidate_url, candidate_result) in candidate_results
 				.get(&route)
 				.expect("no reference results for route")
 				.iter()
 			{
-				//
+				for (reference_url, reference_result) in reference_results
+					.get(&route)
+					.expect("no reference results for route")
+					.iter()
+				{
+					let candidate_request = &candidate_result.0;
+					let candidate_result = &candidate_result.1;
+
+					let reference_request = &reference_result.0;
+					let reference_result = &reference_result.1;
+
+					match (candidate_result, reference_result) {
+						(
+							Ok((candidate_headers, candidate_bytes)),
+							Ok((reference_headers, reference_bytes)),
+						) => {
+							let reference_headers_string = header_map_as_string(reference_headers)?;
+							let candidate_headers_string = header_map_as_string(candidate_headers)?;
+
+							let diff = TextDiff::from_lines(&reference_headers_string, &candidate_headers_string);
+
+							for change in diff.iter_all_changes() {
+								let sign = match change.tag() {
+									similar::ChangeTag::Delete => "-",
+									similar::ChangeTag::Insert => "+",
+									similar::ChangeTag::Equal => " ",
+								};
+								print!("{}{}", sign, change);
+							}
+						}
+						(_, _) => {
+							panic!("reference result for url {url} was an error");
+						}
+					}
+				}
 			}
 		}
 	}
