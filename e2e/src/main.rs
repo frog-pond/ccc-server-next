@@ -228,6 +228,17 @@ fn header_map_as_string(
 	Ok(string)
 }
 
+fn bytes_to_json_as_string(
+	bytes: &Bytes,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+	let result = match serde_json::from_slice::<serde_json::Value>(bytes) {
+		Ok(value) => serde_json::to_string_pretty(&value)?,
+		Err(_) => String::from_utf8(bytes.to_vec())?,
+	};
+
+	Ok(result)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	let client: Client = ClientBuilder::new()
@@ -353,7 +364,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 							let reference_headers_string = header_map_as_string(reference_headers)?;
 							let candidate_headers_string = header_map_as_string(candidate_headers)?;
 
-							let diff = TextDiff::from_lines(&reference_headers_string, &candidate_headers_string);
+							let reference_body_string = bytes_to_json_as_string(reference_bytes)?;
+							let candidate_body_string = bytes_to_json_as_string(candidate_bytes)?;
+
+							let reference_string = format!("{reference_headers_string}\n\n{reference_body_string}");
+							let candidate_string = format!("{candidate_headers_string}\n\n{candidate_body_string}");
+
+							let diff = TextDiff::from_lines(&reference_string, &candidate_string);
 
 							for change in diff.iter_all_changes() {
 								let sign = match change.tag() {
