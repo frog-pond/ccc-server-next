@@ -119,18 +119,9 @@ where
 	let url: String = query_url(&query_type, url, entity_id.to_string())?;
 	tracing::debug!(url);
 
-	let response = {
-		let span = tracing::trace_span!("proxy request");
-		let _entered = span.enter();
-		reqwest::get(url).await.map_err(BonAppProxyError::Request)
-	}?;
+	let response = reqwest::get(url).await.map_err(BonAppProxyError::Request)?;
 
-	let result = {
-		let span = tracing::trace_span!("proxy response");
-		let _entered = span.enter();
-
-		parse_response::<T>(response).await
-	};
+	let result = parse_response::<T>(response).await;
 
 	result
 }
