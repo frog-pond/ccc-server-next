@@ -121,9 +121,8 @@ where
 
 	let response = reqwest::get(url).await.map_err(BonAppProxyError::Request)?;
 
-	let result = parse_response::<T>(response).await;
 
-	result
+	parse_response::<T>(response).await
 }
 
 #[instrument(skip_all)]
