@@ -221,8 +221,13 @@ fn header_map_as_string(
 	use std::fmt::Write;
 	let mut string = String::default();
 
-	for (header, value) in header_map {
-		writeln!(&mut string, "{}: {}", header, value.to_str()?)?;
+	let sorted: BTreeMap<String, String> = header_map
+		.iter()
+		.map(|(header, value)| Ok((header.to_string(), value.to_str()?.to_string())))
+		.collect::<Result<_, reqwest::header::ToStrError>>()?;
+
+	for (header, value) in sorted {
+		writeln!(&mut string, "{}: {}", header, value)?;
 	}
 
 	Ok(string)
