@@ -235,12 +235,10 @@ fn header_map_as_string(
 	Ok(string)
 }
 
-fn bytes_to_json_as_string(
-	bytes: &Bytes,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-	let result = match serde_json::from_slice::<serde_json::Value>(bytes) {
+fn bytes_to_json_as_string(body: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+	let result = match serde_json::from_str::<serde_json::Value>(body) {
 		Ok(value) => serde_json::to_string_pretty(&value)?,
-		Err(_) => String::from_utf8(bytes.to_vec())?,
+		Err(_) => body.to_string(),
 	};
 
 	Ok(result)
@@ -278,7 +276,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 				Url,
 				(
 					Request,
-					Result<(Version, StatusCode, HeaderMap, bytes::Bytes), reqwest::Error>,
+					Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>,
 				),
 			>,
 		> = BTreeMap::default();
@@ -297,7 +295,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 						let version = response.version();
 						let status = response.status();
 						let headers = response.headers().to_owned();
-						let body = response.bytes().await?;
+						let body = response.text().await?;
 
 						reference_results
 							.entry(route.clone())
@@ -329,7 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 				Url,
 				(
 					Request,
-					Result<(Version, StatusCode, HeaderMap, bytes::Bytes), reqwest::Error>,
+					Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>,
 				),
 			>,
 		> = BTreeMap::default();
@@ -348,7 +346,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 						let version = response.version();
 						let status = response.status();
 						let headers = response.headers().to_owned();
-						let body = response.bytes().await?;
+						let body = response.text().await?;
 
 						candidate_results
 							.entry(route.clone())
@@ -402,15 +400,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 							let candidate_string =
 								format!("{candidate_version:?} {candidate_status}\n{candidate_headers_string}\n\n{candidate_body_string}");
 
-							let diff = TextDiff::from_lines(&reference_string, &candidate_string);
+							if reference_string == candidate_string {
+								println!("identical");
+							} else {
+								let diff = TextDiff::from_lines(&reference_string, &candidate_string);
 
-							for change in diff.iter_all_changes() {
-								let sign = match change.tag() {
-									similar::ChangeTag::Delete => "-",
-									similar::ChangeTag::Insert => "+",
-									similar::ChangeTag::Equal => " ",
-								};
-								print!("{}{}", sign, change);
+								for change in diff.iter_all_changes() {
+									let sign = match change.tag() {
+										similar::ChangeTag::Delete => "-",
+										similar::ChangeTag::Insert => "+",
+										similar::ChangeTag::Equal => " ",
+									};
+									print!("{}{}", sign, change);
+								}
 							}
 						}
 						(_, _) => {
