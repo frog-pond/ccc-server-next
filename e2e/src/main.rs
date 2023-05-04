@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use bytes::Bytes;
-use reqwest::{header::HeaderMap, Client, ClientBuilder, Method, Request, Url};
+use reqwest::{
+	header::HeaderMap, Client, ClientBuilder, Method, Request, StatusCode, Url, Version,
+};
 use similar::TextDiff;
 use url::ParseError;
 
@@ -272,7 +274,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		let mut reference_results: BTreeMap<
 			String,
-			BTreeMap<Url, (Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>)>,
+			BTreeMap<
+				Url,
+				(
+					Request,
+					Result<(Version, StatusCode, HeaderMap, bytes::Bytes), reqwest::Error>,
+				),
+			>,
 		> = BTreeMap::default();
 
 		for reference in references {
@@ -286,13 +294,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 				match response {
 					Ok(response) => {
+						let version = response.version();
+						let status = response.status();
 						let headers = response.headers().to_owned();
 						let body = response.bytes().await?;
 
 						reference_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(url.clone(), (request_dup, Ok((headers, body))));
+							.insert(
+								url.clone(),
+								(request_dup, Ok((version, status, headers, body))),
+							);
 					}
 					Err(e) => {
 						reference_results
@@ -312,7 +325,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		let mut candidate_results: BTreeMap<
 			String,
-			BTreeMap<Url, (Request, Result<(HeaderMap, bytes::Bytes), reqwest::Error>)>,
+			BTreeMap<
+				Url,
+				(
+					Request,
+					Result<(Version, StatusCode, HeaderMap, bytes::Bytes), reqwest::Error>,
+				),
+			>,
 		> = BTreeMap::default();
 
 		for candidate in candidates {
@@ -326,13 +345,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 				match response {
 					Ok(response) => {
+						let version = response.version();
+						let status = response.status();
 						let headers = response.headers().to_owned();
 						let body = response.bytes().await?;
 
 						candidate_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(url.clone(), (request_dup, Ok((headers, body))));
+							.insert(
+								url.clone(),
+								(request_dup, Ok((version, status, headers, body))),
+							);
 					}
 					Err(e) => {
 						candidate_results
@@ -363,8 +387,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 					match (candidate_result, reference_result) {
 						(
-							Ok((candidate_headers, candidate_bytes)),
-							Ok((reference_headers, reference_bytes)),
+							Ok((candidate_version, candidate_status, candidate_headers, candidate_bytes)),
+							Ok((reference_version, reference_status, reference_headers, reference_bytes)),
 						) => {
 							let reference_headers_string = header_map_as_string(reference_headers)?;
 							let candidate_headers_string = header_map_as_string(candidate_headers)?;
@@ -372,8 +396,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 							let reference_body_string = bytes_to_json_as_string(reference_bytes)?;
 							let candidate_body_string = bytes_to_json_as_string(candidate_bytes)?;
 
-							let reference_string = format!("{reference_headers_string}\n\n{reference_body_string}");
-							let candidate_string = format!("{candidate_headers_string}\n\n{candidate_body_string}");
+							let reference_string = format!(
+								"{reference_version:?} {reference_status}\n{reference_headers_string}\n\n{reference_body_string}",
+							);
+							let candidate_string =
+								format!("{candidate_version:?} {candidate_status}\n{candidate_headers_string}\n\n{candidate_body_string}");
 
 							let diff = TextDiff::from_lines(&reference_string, &candidate_string);
 
