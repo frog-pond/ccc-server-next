@@ -272,13 +272,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		let mut reference_results: BTreeMap<
 			String,
-			BTreeMap<
-				Url,
-				(
-					Request,
-					Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>,
-				),
-			>,
+			BTreeMap<Url, Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>>,
 		> = BTreeMap::default();
 
 		for reference in references {
@@ -287,7 +281,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			println!("    {url}");
 
 			if let Ok(request) = make_request(&client, url.clone()) {
-				let request_dup = request.try_clone().expect("failed to check request");
 				let response = client.execute(request).await;
 
 				match response {
@@ -300,16 +293,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 						reference_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(
-								url.clone(),
-								(request_dup, Ok((version, status, headers, body))),
-							);
+							.insert(url.clone(), Ok((version, status, headers, body)));
 					}
 					Err(e) => {
 						reference_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(url.clone(), (request_dup, Err(e)));
+							.insert(url.clone(), Err(e));
 					}
 				}
 			}
@@ -323,13 +313,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		let mut candidate_results: BTreeMap<
 			String,
-			BTreeMap<
-				Url,
-				(
-					Request,
-					Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>,
-				),
-			>,
+			BTreeMap<Url, Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>>,
 		> = BTreeMap::default();
 
 		for candidate in candidates {
@@ -338,7 +322,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 			println!("    {url}");
 
 			if let Ok(request) = make_request(&client, url.clone()) {
-				let request_dup = request.try_clone().expect("failed to check request");
 				let response = client.execute(request).await;
 
 				match response {
@@ -351,16 +334,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 						candidate_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(
-								url.clone(),
-								(request_dup, Ok((version, status, headers, body))),
-							);
+							.insert(url.clone(), Ok((version, status, headers, body)));
 					}
 					Err(e) => {
 						candidate_results
 							.entry(route.clone())
 							.or_insert(BTreeMap::default())
-							.insert(url.clone(), (request_dup, Err(e)));
+							.insert(url.clone(), Err(e));
 					}
 				}
 			}
@@ -377,11 +357,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 					.expect("no reference results for route")
 					.iter()
 				{
-					let candidate_request = &candidate_result.0;
-					let candidate_result = &candidate_result.1;
+					let candidate_result = candidate_result;
 
-					let reference_request = &reference_result.0;
-					let reference_result = &reference_result.1;
+					let reference_result = &reference_result;
 
 					match (candidate_result, reference_result) {
 						(
