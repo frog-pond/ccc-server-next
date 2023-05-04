@@ -4,4 +4,5 @@ members = [
 	"ccc-handlers",
 	"ccc-routes",
 	"ccc-types",
+	"e2e",
 ]
