@@ -1,6 +1,7 @@
 use core::ops::DerefMut;
 
 use axum::{
+	body::Bytes,
 	extract::Path,
 	response::{IntoResponse, Response},
 	Json,
@@ -26,8 +27,11 @@ pub enum BonAppProxyError {
 	#[error("error while sending proxied request to bonapp")]
 	Request(reqwest::Error),
 
-	#[error("error while processing proxied response from bonapp ({0})")]
-	Response(reqwest::Error),
+	#[error("error while receiving proxied response from bonapp ({0})")]
+	ResponseAcquisition(reqwest::Error),
+
+	#[error("error while parsing proxied response from bonapp ({0}):\n{1}")]
+	ResponseParse(serde_json::Error, String),
 
 	#[error("unknown cafe")]
 	UnknownCafe,
@@ -64,11 +68,17 @@ async fn parse_response<T>(response: reqwest::Response) -> Result<Json<T>, BonAp
 where
 	T: serde::de::DeserializeOwned,
 {
-	response
-		.json()
+	let response = response
+		.text()
 		.await
-		.map(Json)
-		.map_err(BonAppProxyError::Response)
+		.map_err(BonAppProxyError::ResponseAcquisition)?;
+
+	let json = serde_json::from_str(&response);
+
+	match json {
+		Ok(value) => Ok(Json(value)),
+		Err(e) => Err(BonAppProxyError::ResponseParse(e, response)),
+	}
 }
 
 const fn query_base_url(query_type: &QueryType) -> &str {
@@ -109,20 +119,9 @@ where
 	let url: String = query_url(&query_type, url, entity_id.to_string())?;
 	tracing::debug!(url);
 
-	let response = {
-		let span = tracing::trace_span!("proxy request");
-		let _entered = span.enter();
-		reqwest::get(url).await.map_err(BonAppProxyError::Request)
-	}?;
+	let response = reqwest::get(url).await.map_err(BonAppProxyError::Request)?;
 
-	let result = {
-		let span = tracing::trace_span!("proxy response");
-		let _entered = span.enter();
-
-		parse_response::<T>(response).await
-	};
-
-	result
+	parse_response::<T>(response).await
 }
 
 #[instrument(skip_all)]

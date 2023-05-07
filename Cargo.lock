@@ -127,6 +127,7 @@ dependencies = [
  "phf",
  "reqwest",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "thiserror",
  "tracing",
@@ -186,6 +187,18 @@ name = "core-foundation-sys"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
+
+[[package]]
+name = "e2e"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "reqwest",
+ "serde_json",
+ "similar",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "encoding_rs"
@@ -913,6 +926,12 @@ checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "similar"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 
 [[package]]
 name = "siphasher"
