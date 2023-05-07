@@ -6,7 +6,6 @@ use ccc_handlers::{
 	github::pause_menu_handler,
 };
 
-#[must_use]
 pub fn router() -> Router {
 	Router::new()
 		.route("/menu/:cafe_id", get(cafe_menu_handler))
