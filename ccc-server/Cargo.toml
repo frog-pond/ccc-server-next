@@ -10,7 +10,7 @@ ccc-types = { path = "../ccc-types" }
 ccc-routes = { path = "../ccc-routes" }
 reqwest = { version = "0.11.17", features = ["json"] }
 serde = { version = "1.0.153", features = ["derive"] }
-tokio = { version = "1.28.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.4.13", features = ["filter", "timeout"] }
 tower-http = { version = "0.4.0", features = ["trace"] }
 tracing = "0.1.38"
