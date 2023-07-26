@@ -10,7 +10,7 @@ axum-macros = "0.3.7"
 http = "0.2.9"
 ccc-types = { path = "../ccc-types" }
 reqwest = { version = "0.11.18", features = ["json"] }
-serde = { version = "1.0.171", features = ["derive"] }
+serde = { version = "1.0.176", features = ["derive"] }
 serde_json = "1.0.102"
 thiserror = { version = "1.0.43" }
 tracing = "0.1.37"
