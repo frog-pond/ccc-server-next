@@ -1257,7 +1257,7 @@ checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
 [[package]]
 name = "ts-rs"
 version = "6.2.0"
-source = "git+https://github.com/frog-pond/ts-rs.git?branch=resolve-clippy-useless_vec#93f786fed3f556e91f6ac368755dd7df60ebc89d"
+source = "git+https://github.com/frog-pond/ts-rs.git?tag=6.2.2#b30dd408b74ea117d8d6cd2f05af9b7dc26f9f2a"
 dependencies = [
  "thiserror",
  "ts-rs-macros",
@@ -1266,7 +1266,7 @@ dependencies = [
 [[package]]
 name = "ts-rs-macros"
 version = "6.2.0"
-source = "git+https://github.com/frog-pond/ts-rs.git?branch=resolve-clippy-useless_vec#93f786fed3f556e91f6ac368755dd7df60ebc89d"
+source = "git+https://github.com/frog-pond/ts-rs.git?tag=6.2.2#b30dd408b74ea117d8d6cd2f05af9b7dc26f9f2a"
 dependencies = [
  "Inflector",
  "proc-macro2",
