@@ -5,13 +5,14 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.6.20"
+axum = { version = "0.6.20", features = ["headers"] }
 ccc-types = { path = "../ccc-types" }
 ccc-routes = { path = "../ccc-routes" }
+http = "0.2.9"
 reqwest = { version = "0.11.18", features = ["json"] }
 serde = { version = "1.0.183", features = ["derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.4.13", features = ["filter", "timeout"] }
-tower-http = { version = "0.4.3", features = ["trace"] }
+tower-http = { version = "0.4.3", features = ["set-header", "trace"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"

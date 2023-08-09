@@ -2,14 +2,16 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
+	error_handling::HandleErrorLayer, http::HeaderValue, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router, Server,
 };
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
+use tower_http::set_header::SetRequestHeaderLayer;
 
 fn init_router() -> Router {
 	let middleware_stack = ServiceBuilder::new()
 		.layer(tower_http::trace::TraceLayer::new_for_http())
+		.layer(user_agent_layer())
 		.layer(HandleErrorLayer::new(error_handler))
 		.layer(TimeoutLayer::new(core::time::Duration::from_secs(10)));
 
@@ -60,6 +62,19 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 			format!("Unhandled Internal Error: {error}"),
 		)
 	}
+}
+
+fn user_agent_layer() -> SetRequestHeaderLayer<HeaderValue> {
+	const USER_AGENT: &str = concat!(
+		env!("CARGO_PKG_NAME"),
+		"/",
+		env!("CARGO_PKG_VERSION")
+	);
+
+	SetRequestHeaderLayer::overriding(
+		http::header::USER_AGENT,
+		HeaderValue::from_static(USER_AGENT),
+	)
 }
 
 #[allow(clippy::unused_async)]
