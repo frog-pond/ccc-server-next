@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.6.18"
+axum = "0.6.20"
 axum-macros = "0.3.8"
 http = "0.2.9"
 ccc-types = { path = "../ccc-types" }
