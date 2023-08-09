@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 axum = "0.6.18"
-axum-macros = "0.3.7"
+axum-macros = "0.3.8"
 http = "0.2.9"
 ccc-types = { path = "../ccc-types" }
 reqwest = { version = "0.11.18", features = ["json"] }
