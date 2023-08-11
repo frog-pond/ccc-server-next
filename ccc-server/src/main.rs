@@ -5,7 +5,17 @@ use axum::{
 	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router, Server,
 };
+use clap::Parser;
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+	/// Verbose debug output
+	#[arg(short, long, default_value_t = false)]
+	verbose: bool,
+}
 
 fn init_router() -> Router {
 	let middleware_stack = ServiceBuilder::new()
@@ -37,7 +47,15 @@ fn init_router() -> Router {
 
 #[tokio::main]
 async fn main() {
-	tracing_subscriber::fmt::init();
+	let args = Args::parse();
+
+	if args.verbose {
+		tracing_subscriber::registry()
+			.with(tracing_subscriber::fmt::layer())
+			.init();
+	} else {
+		tracing_subscriber::fmt::init();
+	}
 
 	let app = init_router();
 
