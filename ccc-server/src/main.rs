@@ -14,8 +14,9 @@ use tracing_subscriber::{
 	Layer,
 };
 
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Clone, Debug, PartialEq, ValueEnum)]
 enum LogStructure {
+	Default,
 	Debug,
 	Json,
 	Pretty,
@@ -25,7 +26,7 @@ enum LogStructure {
 #[command(author, version, about, long_about = None)]
 struct Args {
 	/// Tracing format
-	#[clap(value_enum, short, long, default_value_t=LogStructure::Debug)]
+	#[clap(value_enum, short, long, default_value_t=LogStructure::Default)]
 	tracing: LogStructure,
 }
 
@@ -87,17 +88,22 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 }
 
 fn init_tracing(tracing: LogStructure) {
-	let output: Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> = match tracing {
-		LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
-		LogStructure::Json => layer().json().boxed(),
-		LogStructure::Pretty => layer()
-			.event_format(format::Format::default().with_source_location(false))
-			.fmt_fields(format::PrettyFields::new())
-			.with_target(false)
-			.boxed(),
-	};
+	if tracing == LogStructure::Default {
+		tracing_subscriber::fmt::init();
+	} else {
+		let output: Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> = match tracing {
+			LogStructure::Default => unimplemented!(),
+			LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
+			LogStructure::Json => layer().json().boxed(),
+			LogStructure::Pretty => layer()
+				.event_format(format::Format::default().with_source_location(false))
+				.fmt_fields(format::PrettyFields::new())
+				.with_target(false)
+				.boxed(),
+		};
 
-	tracing_subscriber::registry().with(output).init();
+		tracing_subscriber::registry().with(output).init();
+	}
 }
 
 #[allow(clippy::unused_async)]
