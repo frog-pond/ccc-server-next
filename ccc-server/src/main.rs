@@ -2,8 +2,8 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	error_handling::HandleErrorLayer, http::HeaderValue, http::StatusCode, response::IntoResponse, routing::get,
-	BoxError, Router, Server,
+	error_handling::HandleErrorLayer, http::HeaderValue, http::StatusCode, response::IntoResponse,
+	routing::get, BoxError, Router, Server,
 };
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::set_header::SetRequestHeaderLayer;
@@ -65,11 +65,7 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 }
 
 fn user_agent_layer() -> SetRequestHeaderLayer<HeaderValue> {
-	const USER_AGENT: &str = concat!(
-		env!("CARGO_PKG_NAME"),
-		"/",
-		env!("CARGO_PKG_VERSION")
-	);
+	const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 	SetRequestHeaderLayer::overriding(
 		http::header::USER_AGENT,
