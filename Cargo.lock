@@ -187,7 +187,6 @@ dependencies = [
  "axum",
  "ccc-routes",
  "ccc-types",
- "http",
  "reqwest",
  "serde",
  "tokio",

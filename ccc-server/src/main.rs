@@ -2,7 +2,7 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	error_handling::HandleErrorLayer, http::HeaderValue, http::StatusCode, response::IntoResponse,
+	error_handling::HandleErrorLayer, http::HeaderName, http::HeaderValue, http::StatusCode, response::IntoResponse,
 	routing::get, BoxError, Router, Server,
 };
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
@@ -68,7 +68,7 @@ fn user_agent_layer() -> SetRequestHeaderLayer<HeaderValue> {
 	const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 	SetRequestHeaderLayer::overriding(
-		http::header::USER_AGENT,
+		HeaderName::from_static("user-agent"),
 		HeaderValue::from_static(USER_AGENT),
 	)
 }
