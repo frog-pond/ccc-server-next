@@ -5,16 +5,28 @@ use axum::{
 	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router, Server,
 };
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{
+	fmt::{format, layer},
+	layer::SubscriberExt,
+	util::SubscriberInitExt,
+	Layer,
+};
 
-#[derive(Parser, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
+enum LogStructure {
+	Debug,
+	Json,
+	Pretty,
+}
+
+#[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-	/// Verbose debug output
-	#[arg(short, long, default_value_t = false)]
-	verbose: bool,
+	/// Tracing format
+	#[clap(value_enum, short, long, default_value_t=LogStructure::Debug)]
+	tracing: LogStructure,
 }
 
 fn init_router() -> Router {
@@ -49,13 +61,7 @@ fn init_router() -> Router {
 async fn main() {
 	let args = Args::parse();
 
-	if args.verbose {
-		tracing_subscriber::registry()
-			.with(tracing_subscriber::fmt::layer())
-			.init();
-	} else {
-		tracing_subscriber::fmt::init();
-	}
+	init_tracing(args.tracing);
 
 	let app = init_router();
 
@@ -78,6 +84,20 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 			format!("Unhandled Internal Error: {error}"),
 		)
 	}
+}
+
+fn init_tracing(tracing: LogStructure) {
+	let output: Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> = match tracing {
+		LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
+		LogStructure::Json => layer().json().boxed(),
+		LogStructure::Pretty => layer()
+			.event_format(format::Format::default().with_source_location(false))
+			.fmt_fields(format::PrettyFields::new())
+			.with_target(false)
+			.boxed(),
+	};
+
+	tracing_subscriber::registry().with(output).init();
 }
 
 #[allow(clippy::unused_async)]
