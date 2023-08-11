@@ -2,8 +2,8 @@
 #![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
 
 use axum::{
-	error_handling::HandleErrorLayer, http::HeaderName, http::HeaderValue, http::StatusCode, response::IntoResponse,
-	routing::get, BoxError, Router, Server,
+	error_handling::HandleErrorLayer, http::HeaderName, http::HeaderValue, http::StatusCode,
+	response::IntoResponse, routing::get, BoxError, Router, Server,
 };
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::set_header::SetRequestHeaderLayer;
