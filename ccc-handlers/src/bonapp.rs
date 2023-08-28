@@ -1,13 +1,77 @@
 use core::ops::DerefMut;
+use std::sync::OnceLock;
 
 use axum::{
-	body::Bytes,
 	extract::Path,
 	response::{IntoResponse, Response},
 	Json,
 };
 use http::StatusCode;
 use tracing::instrument;
+
+struct BonAppProxy {
+	client: Option<reqwest::Client>,
+}
+
+static GLOBAL_BONAPP_PROXY: OnceLock<BonAppProxy> = OnceLock::new();
+
+impl BonAppProxy {
+	fn handle() -> &'static BonAppProxy {
+		GLOBAL_BONAPP_PROXY.get_or_init(|| {
+			let client = reqwest::Client::builder()
+				.user_agent("ccc-server-next/0.0.0")
+				.build()
+				.unwrap();
+
+			BonAppProxy {
+				client: Some(client),
+			}
+		})
+	}
+}
+
+impl BonAppProxy {
+	#[instrument(skip(self))]
+	async fn send_proxied_query<T>(
+		&self,
+		query_type: QueryType,
+		entity_id: &str,
+	) -> Result<Json<T>, BonAppProxyError>
+	where
+		T: serde::de::DeserializeOwned,
+	{
+		tracing::debug!(entity_id, ?query_type, "handling proxied BonApp request");
+
+		let base_url = get_query_base_url(&query_type);
+		let id = entity_id.to_string();
+
+		let url: String = build_query_url(&query_type, base_url, id)?;
+
+		tracing::debug!(?url, "sending proxied request");
+
+		let response = match &self.client {
+			Some(client) => {
+				client
+					.execute(client.get(url).build().map_err(BonAppProxyError::Request)?)
+					.await
+			}
+			None => {
+				tracing::warn!(
+					"shared client was not initialized; falling back on inefficient request handler!"
+				);
+				reqwest::get(url).await
+			}
+		};
+
+		// let response = reqwest::get(url).await;
+
+		tracing::debug!(?response, "got response");
+
+		let response = response.map_err(BonAppProxyError::Request)?;
+
+		parse_response::<T>(response).await
+	}
+}
 
 const CAFE_NAME_MAP: phf::Map<&str, u32> = phf::phf_map! {
 	"stav-hall" => 261,
@@ -81,7 +145,8 @@ where
 	}
 }
 
-const fn query_base_url(query_type: &QueryType) -> &str {
+#[inline]
+const fn get_query_base_url(query_type: &QueryType) -> &str {
 	use QueryType::*;
 	match query_type {
 		Cafe => "https://legacy.cafebonappetit.com/api/2/cafes",
@@ -90,7 +155,7 @@ const fn query_base_url(query_type: &QueryType) -> &str {
 	}
 }
 
-fn query_url(
+fn build_query_url(
 	query_type: &QueryType,
 	base_url: &str,
 	id: String,
@@ -102,26 +167,6 @@ fn query_url(
 	};
 	let url = format!("{}?{}", base_url, serde_urlencoded::to_string(params)?);
 	Ok(url)
-}
-
-#[instrument]
-async fn proxied_query<T>(
-	query_type: QueryType,
-	entity_id: &str,
-) -> Result<Json<T>, BonAppProxyError>
-where
-	T: serde::de::DeserializeOwned,
-{
-	tracing::debug!(entity_id, ?query_type, "handling proxied BonApp request");
-
-	let url = query_base_url(&query_type);
-
-	let url: String = query_url(&query_type, url, entity_id.to_string())?;
-	tracing::debug!(url);
-
-	let response = reqwest::get(url).await.map_err(BonAppProxyError::Request)?;
-
-	parse_response::<T>(response).await
 }
 
 #[instrument(skip_all)]
@@ -152,7 +197,8 @@ pub async fn named_cafe_menu_handler(
 pub async fn cafe_handler(
 	Path(cafe_id): Path<String>,
 ) -> Result<Json<ccc_types::food::BonAppCafeResponse>, BonAppProxyError> {
-	proxied_query::<ccc_types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
+	BonAppProxy::handle()
+		.send_proxied_query::<ccc_types::food::BonAppCafesResponse>(QueryType::Cafe, &cafe_id)
 		.await
 		.map(|mut result| {
 			let cafes = result.deref_mut().cafes_mut();
@@ -169,20 +215,26 @@ pub async fn cafe_handler(
 		})
 }
 
-#[instrument(skip_all)]
+#[instrument]
 pub async fn cafe_menu_handler(
 	Path(cafe_id): Path<String>,
 ) -> Result<Json<ccc_types::food::BonAppMenuSingleCafeResponse>, BonAppProxyError> {
-	proxied_query::<ccc_types::food::BonAppMenuMultipleCafesResponse>(QueryType::Menu, &cafe_id)
+	BonAppProxy::handle()
+		.send_proxied_query::<ccc_types::food::BonAppMenuMultipleCafesResponse>(
+			QueryType::Menu,
+			&cafe_id,
+		)
 		.await
 		.map(|Json(result)| Json(result.as_single_day_response(&cafe_id)))
 }
 
-#[instrument(skip_all)]
+#[instrument]
 pub async fn nutrition_handler(
 	Path(item_id): Path<String>,
 ) -> Result<Json<ccc_types::food::ItemNutritionResponse>, BonAppProxyError> {
-	proxied_query(QueryType::ItemNutrition, &item_id).await
+	BonAppProxy::handle()
+		.send_proxied_query(QueryType::ItemNutrition, &item_id)
+		.await
 }
 
 impl IntoResponse for BonAppProxyError {
