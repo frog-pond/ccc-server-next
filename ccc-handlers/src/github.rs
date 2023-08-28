@@ -100,10 +100,7 @@ where
 
 impl IntoResponse for JsonProxyError {
 	fn into_response(self) -> axum::response::Response {
-		// [this is a stub, where `self` is JsonProxyError]
-		let text = match self {
-			Self::Request(e) => e.to_string(),
-		};
+		let text = self.to_string();
 
 		let body = axum::body::boxed(axum::body::Full::from(text));
 
