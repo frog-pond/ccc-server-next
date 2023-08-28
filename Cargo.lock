@@ -161,6 +161,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "axum-macros",
+ "ccc-proxy",
  "ccc-types",
  "http",
  "phf",
@@ -176,6 +177,9 @@ dependencies = [
 name = "ccc-proxy"
 version = "0.1.0"
 dependencies = [
+ "axum",
+ "bytes",
+ "http",
  "reqwest",
  "serde",
  "serde_json",
