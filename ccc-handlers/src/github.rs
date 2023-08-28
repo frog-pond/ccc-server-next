@@ -4,11 +4,18 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
+use tracing::instrument;
 
 #[derive(thiserror::Error, Debug)]
 pub enum JsonProxyError {
-	#[error("error during proxied request")]
-	Request(#[from] reqwest::Error),
+	#[error("error while sending proxied request to github")]
+	Request(reqwest::Error),
+
+	#[error("error while receiving proxied response from github ({0})")]
+	ResponseAcquisition(reqwest::Error),
+
+	#[error("error while parsing proxied response from github ({0}):\n{1}")]
+	ResponseParse(serde_json::Error, String),
 }
 
 async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, JsonProxyError>
@@ -85,17 +92,31 @@ gh_pages_handlers!(
 	],
 );
 
+#[instrument]
+async fn parse_response<T>(response: reqwest::Response) -> Result<Json<T>, JsonProxyError>
+where
+	T: serde::de::DeserializeOwned,
+{
+	let response = response
+		.text()
+		.await
+		.map_err(JsonProxyError::ResponseAcquisition)?;
+
+	let json = serde_json::from_str(&response);
+
+	match json {
+		Ok(value) => Ok(Json(value)),
+		Err(e) => Err(JsonProxyError::ResponseParse(e, response)),
+	}
+}
+
 async fn request_handler<T>(path: &str) -> Result<Json<T>, JsonProxyError>
 where
 	T: DeserializeOwned,
 {
 	let response = reqwest::get(path).await.map_err(JsonProxyError::Request)?;
 
-	response
-		.json()
-		.await
-		.map(Json)
-		.map_err(JsonProxyError::Request)
+	parse_response::<T>(response).await
 }
 
 impl IntoResponse for JsonProxyError {
