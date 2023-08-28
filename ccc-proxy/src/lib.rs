@@ -42,7 +42,7 @@ impl Proxy {
 		&self.client
 	}
 
-	#[instrument(skip(self))]
+	#[instrument(skip_all, fields(http.method = request.method().to_string(), http.uri = request.url().to_string()))]
 	pub async fn send_request(&self, request: Request) -> Result<Bytes, ProxyError> {
 		tracing::trace!(?request, "sending proxied request");
 
@@ -52,19 +52,19 @@ impl Proxy {
 			.await
 			.map_err(ProxyError::ProxiedRequest)?;
 
-		tracing::trace!(?response, "received proxied response");
+		tracing::trace!(http.status_code = %response.status(), "received proxied response");
 
 		let response = response
 			.bytes()
 			.await
 			.map_err(ProxyError::ProxiedResponse)?;
 
-		tracing::trace!(?response, "collected proxied response bytes");
+		tracing::trace!(bytes = %response.len(), "collected proxied response bytes");
 
 		Ok(response)
 	}
 
-	#[instrument(skip(self))]
+	#[instrument(skip_all, fields(http.method = request.method().to_string(), http.uri = request.url().to_string()))]
 	pub async fn send_request_parse_json<T>(&self, request: Request) -> Result<T, ProxyError>
 	where
 		T: DeserializeOwned,
