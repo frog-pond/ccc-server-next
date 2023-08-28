@@ -1,5 +1,6 @@
 pub struct Proxy {
-	client: Option<reqwest::Client>,
+	_client: Option<reqwest::Client>,
 }
 
+#[derive(thiserror::Error, Debug)]
 pub enum ProxyError {}
