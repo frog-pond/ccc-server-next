@@ -23,7 +23,7 @@ fn user_agent() -> HeaderValue {
 		Err(_) => format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
 	};
 
-	HeaderValue::from_str(&user_agent).expect("user-agent should be a valid value")
+	HeaderValue::from_str(&user_agent).expect("user-agent should be a valid HeaderValue")
 }
 
 impl Default for Proxy {
