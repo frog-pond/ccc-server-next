@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
-reqwest = "0.11.18"
+reqwest = "0.11.20"
 url = "2.4.1"
 bytes = "1.4.0"
 similar = "2.2.1"
