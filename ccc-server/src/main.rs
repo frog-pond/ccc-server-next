@@ -88,20 +88,21 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 }
 
 fn init_tracing(tracing: LogStructure) {
-	if tracing == LogStructure::Default {
-		tracing_subscriber::fmt::init();
-	} else {
-		let output: Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> = match tracing {
-			LogStructure::Default => unimplemented!(),
-			LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
-			LogStructure::Json => layer().json().boxed(),
-			LogStructure::Pretty => layer()
-				.event_format(format::Format::default().with_source_location(false))
-				.fmt_fields(format::PrettyFields::new())
-				.with_target(false)
-				.boxed(),
-		};
+	let output = match tracing {
+		LogStructure::Default => layer().boxed(), // ideally unreachable but would otherwise error
+		LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
+		LogStructure::Json => layer().json().boxed(),
+		LogStructure::Pretty => layer()
+			.event_format(format::Format::default().with_source_location(false))
+			.fmt_fields(format::PrettyFields::new())
+			.with_target(false)
+			.boxed(),
+	};
 
+	if tracing == LogStructure::Default {
+		// prefer fmt+init to retain a compact ouput whereas layer+boxed is overly verbose
+		tracing_subscriber::fmt().init();
+	} else {
 		tracing_subscriber::registry().with(output).init();
 	}
 }
