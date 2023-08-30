@@ -3,6 +3,7 @@ resolver = "2"
 members = [
 	"ccc-server",
 	"ccc-handlers",
+	"ccc-proxy",
 	"ccc-routes",
 	"ccc-types",
 	"e2e",

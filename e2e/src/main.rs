@@ -357,7 +357,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 					.expect("no reference results for route")
 					.iter()
 				{
-					let candidate_result = candidate_result;
+					let candidate_result = &candidate_result;
 
 					let reference_result = &reference_result;
 

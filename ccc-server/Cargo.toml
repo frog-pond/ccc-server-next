@@ -9,9 +9,9 @@ axum = { version = "0.6.20", features = ["headers", "tracing"] }
 clap = { version = "4.3.21", features = ["derive"] }
 ccc-types = { path = "../ccc-types" }
 ccc-routes = { path = "../ccc-routes" }
-reqwest = { version = "0.11.18", features = ["json"] }
-serde = { version = "1.0.183", features = ["derive"] }
-tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.11.20", features = ["json"] }
+serde = { version = "1.0.188", features = ["derive"] }
+tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.4.13", features = ["filter", "timeout"] }
 tower-http = { version = "0.4.3", features = ["trace"] }
 tracing = "0.1.37"
