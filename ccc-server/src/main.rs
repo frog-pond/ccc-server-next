@@ -5,7 +5,30 @@ use axum::{
 	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router, Server,
 };
+use clap::{Parser, ValueEnum};
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
+use tracing_subscriber::{
+	fmt::{format, layer},
+	layer::SubscriberExt,
+	util::SubscriberInitExt,
+	Layer,
+};
+
+#[derive(Clone, Debug, PartialEq, ValueEnum)]
+enum LogStructure {
+	Default,
+	Debug,
+	Json,
+	Pretty,
+}
+
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+	/// Tracing format
+	#[clap(value_enum, short, long, default_value_t=LogStructure::Default)]
+	tracing: LogStructure,
+}
 
 fn init_router() -> Router {
 	let middleware_stack = ServiceBuilder::new()
@@ -37,7 +60,9 @@ fn init_router() -> Router {
 
 #[tokio::main]
 async fn main() {
-	tracing_subscriber::fmt::init();
+	let args = Args::parse();
+
+	init_tracing(args.tracing);
 
 	let app = init_router();
 
@@ -59,6 +84,26 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 			StatusCode::INTERNAL_SERVER_ERROR,
 			format!("Unhandled Internal Error: {error}"),
 		)
+	}
+}
+
+fn init_tracing(tracing: LogStructure) {
+	let output = match tracing {
+		LogStructure::Default => layer().boxed(), // ideally unreachable but would otherwise error
+		LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
+		LogStructure::Json => layer().json().boxed(),
+		LogStructure::Pretty => layer()
+			.event_format(format::Format::default().with_source_location(false))
+			.fmt_fields(format::PrettyFields::new())
+			.with_target(false)
+			.boxed(),
+	};
+
+	if tracing == LogStructure::Default {
+		// prefer fmt+init to retain a compact ouput whereas layer+boxed is overly verbose
+		tracing_subscriber::fmt().init();
+	} else {
+		tracing_subscriber::registry().with(output).init();
 	}
 }
 
