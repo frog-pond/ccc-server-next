@@ -12,7 +12,7 @@ axum-macros = "0.3.8"
 http = "0.2.9"
 reqwest = { version = "0.11.20", features = ["json"] }
 serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.105"
+serde_json = "1.0.107"
 thiserror = { version = "1.0.48" }
 tracing = "0.1.37"
 serde_urlencoded = "0.7.1"
