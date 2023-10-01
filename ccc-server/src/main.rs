@@ -99,11 +99,16 @@ fn init_tracing(tracing: LogStructure) {
 			.boxed(),
 	};
 
+	let env_filter = tracing_subscriber::EnvFilter::from_default_env();
+
 	if tracing == LogStructure::Default {
 		// prefer fmt+init to retain a compact ouput whereas layer+boxed is overly verbose
-		tracing_subscriber::fmt().init();
+		tracing_subscriber::fmt().with_env_filter(env_filter).init();
 	} else {
-		tracing_subscriber::registry().with(output).init();
+		tracing_subscriber::registry()
+			.with(env_filter)
+			.with(output)
+			.init();
 	}
 }
 
