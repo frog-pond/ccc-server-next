@@ -2,8 +2,7 @@ use std::sync::OnceLock;
 
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
-use http::StatusCode;
-use reqwest::{header::HeaderValue, Request};
+use reqwest::{header::HeaderValue, Request, StatusCode};
 use serde::de::DeserializeOwned;
 use tracing::instrument;
 
