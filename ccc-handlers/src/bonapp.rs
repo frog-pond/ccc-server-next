@@ -5,9 +5,10 @@ use axum::{
 	response::{IntoResponse, Response},
 	Json,
 };
-use ccc_proxy::ProxyError;
-use http::StatusCode;
+use reqwest::{Method, StatusCode};
 use tracing::instrument;
+
+use ccc_proxy::ProxyError;
 
 #[instrument]
 async fn send_proxied_query<T>(
@@ -23,7 +24,7 @@ where
 
 	let request = ccc_proxy::global_proxy()
 		.client()
-		.request(http::Method::GET, base_url)
+		.request(Method::GET, base_url)
 		.query(&[(entity, entity_id)])
 		.build()
 		.map_err(ProxyError::ProxiedRequest)

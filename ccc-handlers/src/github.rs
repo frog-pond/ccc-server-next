@@ -1,4 +1,5 @@
 use axum::response::Json;
+use reqwest::Method;
 use serde::de::DeserializeOwned;
 
 async fn gh_pages_handler<T>(filename: &str) -> Result<Json<T>, ccc_proxy::ProxyError>
@@ -9,7 +10,7 @@ where
 
 	let request = ccc_proxy::global_proxy()
 		.client()
-		.request(http::Method::GET, url)
+		.request(Method::GET, url)
 		.build()
 		.map_err(ccc_proxy::ProxyError::ProxiedRequest)?;
 

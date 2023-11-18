@@ -9,7 +9,7 @@ ccc-proxy = { path = "../ccc-proxy" }
 ccc-types = { path = "../ccc-types" }
 axum = "0.6.20"
 axum-macros = "0.3.8"
-http = "0.2.11"
+http = "1.0.0"
 reqwest = { version = "0.11.22", features = ["json"] }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
