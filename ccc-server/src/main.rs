@@ -3,7 +3,7 @@
 
 use axum::{
 	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
-	BoxError, Router, Server,
+	BoxError, Router,
 };
 use clap::{Parser, ValueEnum};
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
@@ -66,8 +66,12 @@ async fn main() {
 
 	let app = init_router();
 
-	Server::bind(&"0.0.0.0:3000".parse().unwrap())
-		.serve(app.into_make_service())
+	let tcp_listener =
+		tokio::net::TcpListener::bind("0.0.0.0:3000".parse::<std::net::SocketAddr>().unwrap())
+			.await
+			.expect("failed to bind");
+
+	axum::serve(tcp_listener, app.into_make_service())
 		.await
 		.expect("server failed to exit successfully");
 }
