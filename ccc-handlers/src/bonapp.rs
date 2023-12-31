@@ -5,7 +5,8 @@ use axum::{
 	response::{IntoResponse, Response},
 	Json,
 };
-use reqwest::{Method, StatusCode};
+use http::StatusCode;
+use reqwest::Method;
 use tracing::instrument;
 
 use ccc_proxy::ProxyError;
@@ -140,7 +141,7 @@ impl IntoResponse for BonAppProxyError {
 	fn into_response(self) -> axum::response::Response {
 		let text = self.to_string();
 
-		let body = axum::body::boxed(axum::body::Full::from(text));
+		let body = text.into();
 
 		Response::builder()
 			.status(StatusCode::INTERNAL_SERVER_ERROR)

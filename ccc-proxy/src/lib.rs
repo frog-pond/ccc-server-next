@@ -2,7 +2,8 @@ use std::sync::OnceLock;
 
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
-use reqwest::{header::HeaderValue, Request, StatusCode};
+use http::StatusCode;
+use reqwest::{header::HeaderValue, Request};
 use serde::de::DeserializeOwned;
 use tracing::instrument;
 
@@ -98,11 +99,9 @@ pub enum ProxyError {
 
 impl IntoResponse for ProxyError {
 	fn into_response(self) -> Response {
-		use axum::body;
-
 		let text = self.to_string();
 
-		let body = body::boxed(body::Full::from(text));
+		let body = text.into();
 
 		Response::builder()
 			.status(StatusCode::INTERNAL_SERVER_ERROR)
