@@ -6,5 +6,6 @@ members = [
 	"ccc-proxy",
 	"ccc-routes",
 	"ccc-types",
+	"ccc-worker",
 	"e2e",
 ]
