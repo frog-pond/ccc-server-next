@@ -6,7 +6,7 @@ use ts_rs::TS;
 #[ts(export)]
 pub struct Schedule {
 	title: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	notes: Option<String>,
 	hours: Vec<Hour>,
 	closed_for_chapel_time: Option<bool>,
@@ -52,12 +52,12 @@ pub struct BreakSchedule {
 #[ts(export)]
 pub struct HoursItem {
 	name: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	image: Option<String>,
 	category: String,
 	schedule: Vec<BreakSchedule>,
 	break_schedule: BreakSchedule,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	subtitle: Option<String>,
 }
 

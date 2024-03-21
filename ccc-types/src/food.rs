@@ -11,7 +11,7 @@ pub use pause::*;
 #[ts(export, rename = "FoodStationMenu")]
 pub struct StationMenu {
 	label: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	note: Option<String>,
 }
 
@@ -21,9 +21,9 @@ pub struct StationMenu {
 pub struct ItemResponse {
 	label: String,
 	station: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	description: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	special: Option<bool>,
 }
 #[derive(Serialize, Deserialize, TS)]
@@ -164,7 +164,7 @@ pub struct MonotonyContainer(Monotony);
 pub struct Monotony {
 	id: String,
 	name: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	short_name: Option<String>,
 	image: String,
 }
@@ -189,27 +189,27 @@ pub struct NutritionDetailContainer(ItemNutritionDetails);
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ItemNutritionDetails {
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	calories: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	serving_size: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	fat_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	saturated_fat_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	trans_fat_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	cholesterol_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	sodium_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	carbohydrate_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	fiber_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	sugar_content: Option<NutritionDetail>,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	protein_content: Option<NutritionDetail>,
 }
 
@@ -236,7 +236,6 @@ pub struct BonAppMenuItem {
 	label: String,
 	monotony: Monotony,
 	nutrition: Nutrition,
-	#[serde(skip_serializing_if = "Option::is_none")]
 	nutrition_details: Option<ItemNutritionDetails>,
 	nutrition_link: String,
 	options: Vec<serde_json::Value>,

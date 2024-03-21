@@ -9,7 +9,7 @@ pub struct ResponseItem {
 	phone_number: Option<String>,
 	button_text: Option<String>,
 	category: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	image: Option<String>,
 	synopsis: String,
 	text: String,

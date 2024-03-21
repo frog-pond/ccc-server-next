@@ -9,7 +9,7 @@ pub struct ResponseItem {
 	page_url: String,
 	stream_url: String,
 	thumbnail: String,
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	thumbnail_url: Option<String>,
 	tagline: String,
 	accent_color: [i64; 3],
