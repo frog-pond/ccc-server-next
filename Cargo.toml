@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+	"ccc-bonapp",
 	"ccc-server",
 	"ccc-handlers",
 	"ccc-proxy",
