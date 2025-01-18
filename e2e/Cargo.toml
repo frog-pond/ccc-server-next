@@ -2,11 +2,13 @@
 name = "e2e"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0-only"
+description = "End-to-end tests for the project"
 
 [dependencies]
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
-reqwest = "0.12.0"
-url = "2.5.0"
-bytes = "1.5.0"
-similar = "2.4.0"
-serde_json = "1.0.114"
+tokio = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
+bytes = { workspace = true }
+similar = { workspace = true }
+serde_json = { workspace = true }
