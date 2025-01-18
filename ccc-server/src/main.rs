@@ -62,7 +62,7 @@ fn init_router() -> Router {
 async fn main() {
 	let args = Args::parse();
 
-	init_tracing(args.tracing);
+	init_tracing(&args.tracing);
 
 	let app = init_router();
 
@@ -91,7 +91,7 @@ async fn error_handler(error: BoxError) -> impl IntoResponse {
 	}
 }
 
-fn init_tracing(tracing: LogStructure) {
+fn init_tracing(tracing: &LogStructure) {
 	let output = match tracing {
 		LogStructure::Default => layer().boxed(), // ideally unreachable but would otherwise error
 		LogStructure::Debug => layer().fmt_fields(format::Pretty::default()).boxed(),
@@ -105,7 +105,7 @@ fn init_tracing(tracing: LogStructure) {
 
 	let env_filter = tracing_subscriber::EnvFilter::from_default_env();
 
-	if tracing == LogStructure::Default {
+	if tracing == &LogStructure::Default {
 		// prefer fmt+init to retain a compact ouput whereas layer+boxed is overly verbose
 		tracing_subscriber::fmt().with_env_filter(env_filter).init();
 	} else {
