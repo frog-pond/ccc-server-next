@@ -1,2 +1,26 @@
 [env]
 _.file = '.env'
+
+[tasks.build]
+run = "cargo build"
+
+[tasks.check]
+depends = ["clippy", "format-check", "test"]
+
+[tasks.clippy]
+run = "cargo clippy --workspace --all-features --all-targets"
+
+[tasks.diff]
+run = "git diff --exit-code -- types/bindings/index.d.ts"
+
+[tasks.format]
+run = "cargo fmt --all"
+
+[tasks.format-check]
+run = "cargo fmt --all -- --check"
+
+[tasks.start]
+run = "cargo run --bin ccc-server"
+
+[tasks.test]
+run = "cargo test --workspace --all-features --all-targets --no-fail-fast"
