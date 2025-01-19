@@ -23,10 +23,14 @@ where
 
 	let (base_url, entity) = get_query_base_url_and_entity(&query_type);
 
+	let username = std::env::var("BON_APPETIT_API_USERNAME").expect("Bonapp username not set");
+	let password = std::env::var("BON_APPETIT_API_PASSWORD").expect("Bonapp password not set");
+
 	let request = ccc_proxy::global_proxy()
 		.client()
 		.request(Method::GET, base_url)
 		.query(&[(entity, entity_id)])
+		.basic_auth(username, Some(password))
 		.build()
 		.map_err(ProxyError::ProxiedRequest)
 		.map_err(BonAppProxyError::GenericProxy)?;
@@ -70,9 +74,18 @@ use QueryType::*;
 #[inline]
 const fn get_query_base_url_and_entity(query_type: &QueryType) -> (&str, &str) {
 	match query_type {
-		Cafe => ("https://legacy.cafebonappetit.com/api/2/cafes", "cafe"),
-		Menu => ("https://legacy.cafebonappetit.com/api/2/menus", "cafe"),
-		ItemNutrition => ("https://legacy.cafebonappetit.com/api/2/items", "item"),
+		Cafe => (
+			"https://cafemanager-api.cafebonappetit.com/api/2/cafes",
+			"cafe",
+		),
+		Menu => (
+			"https://cafemanager-api.cafebonappetit.com/api/2/menus",
+			"cafe",
+		),
+		ItemNutrition => (
+			"https://cafemanager-api.cafebonappetit.com/api/2/items",
+			"item",
+		),
 	}
 }
 
