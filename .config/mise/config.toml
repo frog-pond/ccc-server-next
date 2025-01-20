@@ -24,3 +24,6 @@ run = "cargo run --bin ccc-server"
 
 [tasks.test]
 run = "cargo test --workspace --all-features --all-targets --no-fail-fast"
+
+[tasks.e2e]
+run = "cargo run --bin e2e"
