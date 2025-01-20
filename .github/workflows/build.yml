@@ -18,15 +18,16 @@ jobs:
       run: |
         rustup toolchain install ${{ matrix.rust }}
         rustup default ${{ matrix.rust }}
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: jdx/mise-action@v2
     - name: Run rustfmt
       run: |
         rustup component add rustfmt
-        cargo fmt --all -- --check
+        mise run format-check
     - name: Run clippy
       run: |
         rustup component add clippy
-        cargo clippy --workspace --all-features --all-targets
+        mise run clippy
   test:
     name: Test the code
     runs-on: ubuntu-latest
@@ -39,10 +40,11 @@ jobs:
       run: |
         rustup toolchain install ${{ matrix.rust }}
         rustup default ${{ matrix.rust }}
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: jdx/mise-action@v2
     - name: Run cargo test
       run: |
-        cargo test --workspace --all-features --all-targets --no-fail-fast
+        mise run test
     - name: Ensure index.d.ts is up-to-date after tests were run
       run: |
-        git diff --exit-code -- types/bindings/index.d.ts
+        mise run diff
