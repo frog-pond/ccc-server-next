@@ -8,10 +8,10 @@ use ccc_handlers::{
 
 pub fn router() -> Router {
 	Router::new()
-		.route("/menu/:cafe_id", get(cafe_menu_handler))
-		.route("/cafe/:cafe_id", get(cafe_handler))
-		.route("/item/:item_id", get(nutrition_handler))
-		.route("/named/cafe/:name", get(named_cafe_handler))
-		.route("/named/menu/:name", get(named_cafe_menu_handler))
+		.route("/menu/{cafe_id}", get(cafe_menu_handler))
+		.route("/cafe/{cafe_id}", get(cafe_handler))
+		.route("/item/{item_id}", get(nutrition_handler))
+		.route("/named/cafe/{name}", get(named_cafe_handler))
+		.route("/named/menu/{name}", get(named_cafe_menu_handler))
 		.route("/named/menu/the-pause", get(pause_menu_handler))
 }
