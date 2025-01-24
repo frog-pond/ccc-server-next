@@ -1,11 +1,16 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use ts_rs::TS;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, rename = "Stream")]
 pub struct StreamEntry {
+	#[ts(type = "string")]
 	pub starttime: DateTime<Utc>,
 	pub location: String,
+	#[ts(type = "any")]
 	pub eid: serde_json::Value,
 	pub performer: String,
 	pub subtitle: String,
@@ -21,7 +26,9 @@ pub struct StreamEntry {
 	pub iframesrc: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct StreamResponse {
 	pub results: Vec<StreamEntry>,
 }
