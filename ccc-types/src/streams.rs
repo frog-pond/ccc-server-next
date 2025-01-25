@@ -15,9 +15,11 @@ pub struct StreamEntry {
 	pub status: String,
 	pub category: String,
 	pub hptitle: String,
-	// errors with serde/deserde/renaming this field
+	// issues with (de)serde/renaming this field
+	#[serde(rename = "category_textcolor")]
 	pub category_textcolor: Option<String>,
-	// errors with serde/deserde/renaming this field
+	// issues with (de)serde/renaming this field
+	#[serde(rename = "category_color")]
 	pub category_color: Option<String>,
 	pub thumb: String,
 	pub title: String,

@@ -260,8 +260,8 @@ export type Stream = {
   status: string;
   category: string;
   hptitle: string;
-  categoryTextcolor: string | null;
-  categoryColor: string | null;
+  category_textcolor: string | null;
+  category_color: string | null;
   thumb: string;
   title: string;
   iframesrc: string;
