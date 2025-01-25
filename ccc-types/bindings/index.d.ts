@@ -252,7 +252,7 @@ export interface Schedule {
 export type Stream = {
   starttime: string;
   location: string;
-  eid: any;
+  eid: string;
   performer: string;
   subtitle: string;
   poster: string;
@@ -260,8 +260,8 @@ export type Stream = {
   status: string;
   category: string;
   hptitle: string;
-  categoryTextcolor: string;
-  categoryColor: string;
+  categoryTextcolor: string | null;
+  categoryColor: string | null;
   thumb: string;
   title: string;
   iframesrc: string;

@@ -5,7 +5,7 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 #[ts(export, rename = "Stream")]
 pub struct StreamEntry {
-	pub starttime:String,
+	pub starttime: String,
 	pub location: String,
 	pub eid: String,
 	pub performer: String,
