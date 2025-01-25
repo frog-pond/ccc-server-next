@@ -52,7 +52,7 @@ fn init_router() -> Router {
 		.nest("/webcams", ccc_routes::webcams::router());
 
 	Router::new()
-		.nest("/", meta_routes)
+		.merge(meta_routes)
 		.nest("/api", api_routes)
 		.layer(middleware_stack)
 		.fallback(fallback)
