@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -6,11 +5,9 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 #[ts(export, rename = "Stream")]
 pub struct StreamEntry {
-	#[ts(type = "string")]
-	pub starttime: DateTime<Utc>,
+	pub starttime:String,
 	pub location: String,
-	#[ts(type = "any")]
-	pub eid: serde_json::Value,
+	pub eid: String,
 	pub performer: String,
 	pub subtitle: String,
 	pub poster: String,
@@ -18,8 +15,8 @@ pub struct StreamEntry {
 	pub status: String,
 	pub category: String,
 	pub hptitle: String,
-	pub category_textcolor: String,
-	pub category_color: String,
+	pub category_textcolor: Option<String>,
+	pub category_color: Option<String>,
 	pub thumb: String,
 	pub title: String,
 	pub iframesrc: String,
