@@ -15,7 +15,9 @@ pub struct StreamEntry {
 	pub status: String,
 	pub category: String,
 	pub hptitle: String,
+	// errors with serde/deserde/renaming this field
 	pub category_textcolor: Option<String>,
+	// errors with serde/deserde/renaming this field
 	pub category_color: Option<String>,
 	pub thumb: String,
 	pub title: String,
