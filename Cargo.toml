@@ -17,6 +17,7 @@ ccc-handlers = { path = "./ccc-handlers" }
 ccc-proxy = { path = "./ccc-proxy" }
 ccc-routes = { path = "./ccc-routes" }
 ccc-types = { path = "./ccc-types" }
+chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5.3", features = ["derive"] }
 http = "1.1.0"
 phf = { version = "0.11.2", features = ["macros"] }

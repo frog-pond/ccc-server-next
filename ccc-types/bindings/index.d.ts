@@ -249,6 +249,26 @@ export interface Schedule {
   isPhysicallyOpen: boolean | null;
 }
 
+export type Stream = {
+  starttime: string;
+  location: string;
+  eid: string;
+  performer: string;
+  subtitle: string;
+  poster: string;
+  player: string;
+  status: string;
+  category: string;
+  hptitle: string;
+  category_textcolor: string | null;
+  category_color: string | null;
+  thumb: string;
+  title: string;
+  iframesrc: string;
+};
+
+export type StreamResponse = { results: Array<Stream> };
+
 export interface TransitColors {
   bar: string;
   dot: string;

@@ -47,12 +47,13 @@ fn init_router() -> Router {
 		.nest("/food", ccc_routes::food::router())
 		.nest("/printing", ccc_routes::printing::router())
 		.nest("/spaces", ccc_routes::spaces::router())
+		.nest("/streams", ccc_routes::streams::router())
 		.nest("/tools", ccc_routes::tools::router())
 		.nest("/transit", ccc_routes::transit::router())
 		.nest("/webcams", ccc_routes::webcams::router());
 
 	Router::new()
-		.nest("/", meta_routes)
+		.merge(meta_routes)
 		.nest("/api", api_routes)
 		.layer(middleware_stack)
 		.fallback(fallback)

@@ -3,3 +3,4 @@
 
 pub mod bonapp;
 pub mod github;
+pub mod streams;
