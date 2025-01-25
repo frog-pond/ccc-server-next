@@ -1,8 +1,6 @@
 use axum::{
 	extract::Query,
 	response::{IntoResponse, Json, Response},
-	routing::get,
-	Router,
 };
 use chrono::{Duration, Utc};
 use http::StatusCode;
@@ -38,8 +36,6 @@ impl std::fmt::Display for QueryClass {
 	}
 }
 
-use QueryClass::*;
-
 #[inline]
 const fn get_query_base_url_and_entity(query_class: &QueryClass) -> (&str, &str) {
 	match query_class {
@@ -72,7 +68,7 @@ where
 		"handling proxied Stream request"
 	);
 
-	let (base_url, class) = get_query_base_url_and_entity(&query_class);
+	let (base_url, _class) = get_query_base_url_and_entity(&query_class);
 	let query_type = query_class.to_string();
 
 	let request = ccc_proxy::global_proxy()
