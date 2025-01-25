@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 use ts_rs::TS;
 
 #[derive(Serialize, Deserialize, TS)]
