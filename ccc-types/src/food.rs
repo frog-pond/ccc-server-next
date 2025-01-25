@@ -119,6 +119,7 @@ pub struct BonAppMenuSingleCafeResponse {
 }
 
 impl BonAppMenuMultipleCafesResponse {
+	#[must_use]
 	pub fn as_single_day_response(self, cafe: &str) -> BonAppMenuSingleCafeResponse {
 		let items = self.items;
 		let cor_icons = self.cor_icons;

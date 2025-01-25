@@ -14,7 +14,7 @@ pub struct Proxy {
 pub static GLOBAL_PROXY: OnceLock<Proxy> = OnceLock::new();
 
 pub fn global_proxy() -> &'static Proxy {
-	GLOBAL_PROXY.get_or_init(|| Proxy::default())
+	GLOBAL_PROXY.get_or_init(Proxy::default)
 }
 
 fn user_agent() -> HeaderValue {

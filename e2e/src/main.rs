@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use bytes::Bytes;
 use reqwest::{
 	header::HeaderMap, Client, ClientBuilder, Method, Request, StatusCode, Url, Version,
 };
@@ -257,6 +256,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 	let targets = test_targets()?;
 
 	let test_plan = TestPlan::generate(targets);
+	type Response = Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>;
 
 	for ((mode, route), servers) in test_plan.plan {
 		println!(
@@ -270,10 +270,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		println!("  references:");
 
-		let mut reference_results: BTreeMap<
-			String,
-			BTreeMap<Url, Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>>,
-		> = BTreeMap::default();
+		let mut reference_results: BTreeMap<String, BTreeMap<Url, Response>> = BTreeMap::default();
 
 		for reference in references {
 			let url = reference.join(&route)?;
@@ -292,13 +289,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 						reference_results
 							.entry(route.clone())
-							.or_insert(BTreeMap::default())
+							.or_default()
 							.insert(url.clone(), Ok((version, status, headers, body)));
 					}
 					Err(e) => {
 						reference_results
 							.entry(route.clone())
-							.or_insert(BTreeMap::default())
+							.or_default()
 							.insert(url.clone(), Err(e));
 					}
 				}
@@ -311,10 +308,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 		println!("  candidates:");
 
-		let mut candidate_results: BTreeMap<
-			String,
-			BTreeMap<Url, Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>>,
-		> = BTreeMap::default();
+		let mut candidate_results: BTreeMap<String, BTreeMap<Url, Response>> = BTreeMap::default();
 
 		for candidate in candidates {
 			let url = candidate.join(&route)?;
@@ -333,13 +327,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 						candidate_results
 							.entry(route.clone())
-							.or_insert(BTreeMap::default())
+							.or_default()
 							.insert(url.clone(), Ok((version, status, headers, body)));
 					}
 					Err(e) => {
 						candidate_results
 							.entry(route.clone())
-							.or_insert(BTreeMap::default())
+							.or_default()
 							.insert(url.clone(), Err(e));
 					}
 				}
@@ -347,12 +341,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 			// TODO: Assertion: Candidate matches Reference targets
 
-			for (candidate_url, candidate_result) in candidate_results
+			for (_candidate_url, candidate_result) in candidate_results
 				.get(&route)
 				.expect("no reference results for route")
 				.iter()
 			{
-				for (reference_url, reference_result) in reference_results
+				for (_reference_url, reference_result) in reference_results
 					.get(&route)
 					.expect("no reference results for route")
 					.iter()
