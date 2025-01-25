@@ -28,7 +28,7 @@ serde_urlencoded = "0.7.1"
 similar = "2.4.0"
 thiserror = "1.0.58"
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
-tower = { version = "0.4.13", features = ["filter", "timeout"] }
+tower = { version = "0.5.0", features = ["filter", "timeout"] }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
