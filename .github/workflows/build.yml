@@ -23,7 +23,7 @@ jobs:
     - name: Run rustfmt
       run: |
         rustup component add rustfmt
-        mise run format-check
+        mise run fmt-check
     - name: Run clippy
       run: |
         rustup component add clippy
