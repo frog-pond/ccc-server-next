@@ -211,6 +211,13 @@ export type Schedule = {
   isPhysicallyOpen: boolean | null;
 };
 
+export type StavMealtimeDay = {
+  date: string;
+  times: { [key in string]?: number };
+};
+
+export type StavMealtimeReport = Array<StavMealtimeDay>;
+
 export type Stream = {
   starttime: string;
   location: string;
