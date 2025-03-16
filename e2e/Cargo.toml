@@ -5,6 +5,9 @@ edition = "2021"
 license = "AGPL-3.0-only"
 description = "End-to-end tests for the project"
 
+[lints]
+workspace = true
+
 [dependencies]
 tokio = { workspace = true }
 reqwest = { workspace = true }
