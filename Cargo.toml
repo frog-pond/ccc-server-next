@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.lints.clippy]
-all = "deny"
+all = { level = "deny", priority = -1 }
 cargo = "warn"
 pedantic = "warn"
 cognitive_complexity = "warn"
