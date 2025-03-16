@@ -9,6 +9,9 @@ members = [
 	"e2e",
 ]
 
+[workspace.package]
+rust-version = "1.74"
+
 [workspace.dependencies]
 axum = "0.8.0"
 axum-macros = "0.5.0"
