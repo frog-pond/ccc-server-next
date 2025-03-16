@@ -11,7 +11,7 @@ depends = ["clippy", "fmt-check", "test"]
 run = "cargo clippy --workspace --all-features --all-targets"
 
 [tasks.diff]
-run = "git diff --exit-code -- types/bindings/index.d.ts"
+run = "git diff --exit-code -- ccc-types/bindings/index.d.ts"
 
 [tasks.fmt]
 run = "cargo fmt --all"

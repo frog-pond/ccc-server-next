@@ -28,6 +28,7 @@ jobs:
         run: |
           rustup component add clippy
           mise run clippy
+
   test:
     name: Test the code
     runs-on: ubuntu-latest
