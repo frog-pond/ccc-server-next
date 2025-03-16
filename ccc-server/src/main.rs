@@ -3,6 +3,7 @@ use axum::{
 	BoxError, Router,
 };
 use clap::{Parser, ValueEnum};
+use tokio::net::TcpListener;
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
 use tracing_subscriber::{
 	fmt::{format, layer},
@@ -57,22 +58,30 @@ fn init_router() -> Router {
 		.fallback(fallback)
 }
 
-#[tokio::main]
-async fn main() {
+mod rt;
+
+async fn server_main() -> Result<(), Box<dyn std::error::Error>> {
+	let app = init_router();
+
+	let bind_addrs: Vec<std::net::SocketAddr> = vec!["[::]:3000".parse()?, "0.0.0.0:3000".parse()?];
+
+	let multi_tcp_listener = TcpListener::bind(&bind_addrs[..]).await?;
+
+	Ok(
+		axum::serve(multi_tcp_listener, app.into_make_service())
+			.await
+			.map_err(Box::new)?,
+	)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let args = Args::parse();
 
 	init_tracing(&args.tracing);
 
-	let app = init_router();
+	rt::normal()?.block_on(server_main())?;
 
-	let tcp_listener =
-		tokio::net::TcpListener::bind("0.0.0.0:3000".parse::<std::net::SocketAddr>().unwrap())
-			.await
-			.expect("failed to bind");
-
-	axum::serve(tcp_listener, app.into_make_service())
-		.await
-		.expect("server failed to exit successfully");
+	Ok(())
 }
 
 #[allow(clippy::unused_async)]
