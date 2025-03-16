@@ -9,6 +9,12 @@ members = [
 	"e2e",
 ]
 
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+cargo = "warn"
+pedantic = "warn"
+cognitive_complexity = "warn"
+
 [workspace.package]
 rust-version = "1.74"
 

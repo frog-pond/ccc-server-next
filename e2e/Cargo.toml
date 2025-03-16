@@ -6,6 +6,9 @@ license = "AGPL-3.0-only"
 description = "End-to-end tests for the project"
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 tokio = { workspace = true }
 reqwest = { workspace = true }

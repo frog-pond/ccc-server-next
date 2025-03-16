@@ -5,6 +5,9 @@ edition = "2021"
 publish = false
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 axum = { workspace = true }
 clap = { workspace = true }

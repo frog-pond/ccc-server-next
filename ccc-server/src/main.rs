@@ -1,6 +1,3 @@
-#![deny(clippy::all)]
-#![warn(clippy::cargo, clippy::pedantic, clippy::cognitive_complexity)]
-
 use axum::{
 	error_handling::HandleErrorLayer, http::StatusCode, response::IntoResponse, routing::get,
 	BoxError, Router,
