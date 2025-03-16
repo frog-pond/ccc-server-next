@@ -45,7 +45,6 @@ fn should_consider_entry(dir_entry: &DirEntry) -> bool {
 fn find_relevant_sources(dir: &str) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
 	Ok(
 		read_dir(dir)?
-			.into_iter()
 			.filter_map(Result::ok)
 			.filter(should_consider_entry)
 			.map(|dir_entry| dir_entry.path()),
@@ -84,12 +83,12 @@ fn generate_tscode(paths: &BTreeSet<PathBuf>) -> Result<String, std::io::Error> 
 
 	// For each path, open and read the file, appending lines to be included to `output`.
 	for path in paths {
-		let file = File::open(&path)?;
+		let file = File::open(path)?;
 		let reader = BufReader::new(file);
 
 		for line in reader
 			.lines()
-			.flatten()
+			.map_while(Result::ok)
 			.filter(|line| should_include(line.as_str()))
 		{
 			output.push_str(&line);
