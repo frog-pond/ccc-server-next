@@ -3,6 +3,7 @@ name = "e2e"
 version = "0.1.0"
 edition = "2021"
 description = "End-to-end tests for the project"
+publish = false
 license.workspace = true
 rust-version.workspace = true
 
