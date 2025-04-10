@@ -100,13 +100,17 @@ async fn handle_stream_request(
 ) -> Result<Json<ccc_types::streams::StreamResponse>, StreamProxyError> {
 	let now = Utc::now();
 
-	let date_from = (!params.date_from.is_empty())
-		.then(|| params.date_from.clone())
-		.unwrap_or_else(|| date_from_fn(now).format("%Y-%m-%d").to_string());
+	let date_from = if !params.date_from.is_empty() {
+		params.date_from.clone()
+	} else {
+		date_from_fn(now).format("%Y-%m-%d").to_string()
+	};
 
-	let date_to = (!params.date_to.is_empty())
-		.then(|| params.date_to.clone())
-		.unwrap_or_else(|| date_to_fn(now).format("%Y-%m-%d").to_string());
+	let date_to = if !params.date_to.is_empty() {
+		params.date_to.clone()
+	} else {
+		date_to_fn(now).format("%Y-%m-%d").to_string()
+	};
 
 	send_proxied_query(query_class, &date_from, &date_to, &params.sort).await
 }
