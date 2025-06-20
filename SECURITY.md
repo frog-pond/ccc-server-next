@@ -4,10 +4,12 @@ We take security issues in our project seriously and appreciate the efforts of t
 
 ## Supported versions
 
-| Version   | Supported          |
-| --------- | ------------------ |
-|   0.1.0   | :white_check_mark: |
-| < 0.1.0   | :x:                |
+Any security issue found actively deployed in `HEAD` of the main branch is eligible to receive a fix.
+
+ | Reference | Supported          |
+ | --------- | ------------------ |
+ |  `HEAD`   | :white_check_mark: |
+ | < `HEAD`  | :x:                |
 
 ## Reporting a vulnerability
 
