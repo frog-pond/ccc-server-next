@@ -228,7 +228,7 @@ fn header_map_as_string(
 		.collect::<Result<_, reqwest::header::ToStrError>>()?;
 
 	for (header, value) in sorted {
-		writeln!(&mut string, "{}: {}", header, value)?;
+		writeln!(&mut string, "{header}: {value}")?;
 	}
 
 	Ok(string)
@@ -341,15 +341,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 			// TODO: Assertion: Candidate matches Reference targets
 
-			for (_candidate_url, candidate_result) in candidate_results
+			for candidate_result in candidate_results
 				.get(&route)
 				.expect("no reference results for route")
-				.iter()
+				.values()
 			{
-				for (_reference_url, reference_result) in reference_results
+				for reference_result in reference_results
 					.get(&route)
 					.expect("no reference results for route")
-					.iter()
+					.values()
 				{
 					let candidate_result = &candidate_result;
 
@@ -383,7 +383,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 										similar::ChangeTag::Insert => "+",
 										similar::ChangeTag::Equal => " ",
 									};
-									print!("{}{}", sign, change);
+									print!("{sign}{change}");
 								}
 							}
 						}

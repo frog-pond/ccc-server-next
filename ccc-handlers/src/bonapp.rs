@@ -25,7 +25,7 @@ where
 
 	let bon_app_auth =
 		std::env::var("BON_APPETIT_AUTH").expect("BON_APPETIT_AUTH credential not set");
-	let auth_header_value = format!("Basic {}", bon_app_auth);
+	let auth_header_value = format!("Basic {bon_app_auth}");
 
 	let request = ccc_proxy::global_proxy()
 		.client()
@@ -70,7 +70,7 @@ enum QueryType {
 	ItemNutrition,
 }
 
-use QueryType::*;
+use QueryType::{Cafe, ItemNutrition, Menu};
 
 #[inline]
 const fn get_query_base_url_and_entity(query_type: &QueryType) -> (&str, &str) {
