@@ -38,6 +38,7 @@ impl Default for Proxy {
 }
 
 impl Proxy {
+	#[must_use]
 	pub fn client(&self) -> &reqwest::Client {
 		&self.client
 	}
@@ -71,7 +72,7 @@ impl Proxy {
 	{
 		let bytes: Bytes = self.send_request(request).await?;
 
-		let string = core::str::from_utf8(&bytes).map(|str| str.to_string());
+		let string = core::str::from_utf8(&bytes).map(std::string::ToString::to_string);
 		let parsed = serde_json::from_slice(&bytes);
 
 		match (parsed, string) {
