@@ -43,6 +43,7 @@ fn init_router() -> Router {
 		.nest("/dictionary", ccc_routes::dictionary::router())
 		.nest("/faqs", ccc_routes::faqs::router())
 		.nest("/food", ccc_routes::food::router())
+		.nest("/news", ccc_routes::news::router())
 		.nest("/printing", ccc_routes::printing::router())
 		.nest("/reports", ccc_routes::reports::router())
 		.nest("/spaces", ccc_routes::spaces::router())
