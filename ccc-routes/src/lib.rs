@@ -2,6 +2,7 @@ pub mod contacts;
 pub mod dictionary;
 pub mod faqs;
 pub mod food;
+pub mod news;
 pub mod printing;
 pub mod reports;
 pub mod spaces;
