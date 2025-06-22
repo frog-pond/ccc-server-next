@@ -43,61 +43,61 @@ macro_rules! gh_pages_handlers {
 gh_pages_handlers!(
 	[
 		contacts_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"contact-info.json",
 		ccc_types::contacts::Response
 	],
 	[
 		dictionary_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"dictionary.json",
 		ccc_types::dictionary::Response
 	],
 	[
 		faqs_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"faqs.json",
 		ccc_types::faqs::Response
 	],
 	[
 		color_printers_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"color-printers.json",
 		ccc_types::printing::Response
 	],
 	[
 		pause_menu_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"pause-menu.json",
 		ccc_types::food::PauseMenuResponse
 	],
 	[
 		hours_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"building-hours.json",
 		ccc_types::spaces::HoursResponse
 	],
 	[
 		help_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"help.json",
 		ccc_types::tools::Response
 	],
 	[
 		transit_bus_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"bus-times.json",
 		ccc_types::transit::BusTimesResponse
 	],
 	[
 		transit_modes_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"transportation.json",
 		ccc_types::transit::ModesResponse
 	],
 	[
 		webcams_handler,
-		"aao-react-native",
+		"AAO-React-Native",
 		"webcams.json",
 		ccc_types::webcams::Response
 	],
