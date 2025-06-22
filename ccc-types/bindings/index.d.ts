@@ -137,7 +137,7 @@ export type HoursItem = {
   name: string;
   image: string | null;
   category: string;
-  schedule: Array<BreakSchedule>;
+  schedule: Array<Schedule>;
   breakSchedule: BreakSchedule;
   subtitle: string | null;
 };

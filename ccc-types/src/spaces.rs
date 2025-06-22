@@ -38,12 +38,19 @@ pub struct Hour {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BreakSchedule {
+	#[serde(default)]
 	fall: Vec<Schedule>,
+	#[serde(default)]
 	thanksgiving: Vec<Schedule>,
+	#[serde(default)]
 	winter: Vec<Schedule>,
+	#[serde(default)]
 	interim: Vec<Schedule>,
+	#[serde(default)]
 	spring: Vec<Schedule>,
+	#[serde(default)]
 	easter: Vec<Schedule>,
+	#[serde(default)]
 	summer: Vec<Schedule>,
 }
 
@@ -55,7 +62,7 @@ pub struct HoursItem {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	image: Option<String>,
 	category: String,
-	schedule: Vec<BreakSchedule>,
+	schedule: Vec<Schedule>,
 	break_schedule: BreakSchedule,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	subtitle: Option<String>,
