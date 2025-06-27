@@ -39,18 +39,18 @@ fn init_router() -> Router {
 		.route("/ping", get(heartbeat_handler));
 
 	let api_routes = Router::new()
-		.nest("/contacts", ccc_routes::contacts::router())
-		.nest("/dictionary", ccc_routes::dictionary::router())
-		.nest("/faqs", ccc_routes::faqs::router())
-		.nest("/food", ccc_routes::food::router())
-		.nest("/news", ccc_routes::news::router())
-		.nest("/printing", ccc_routes::printing::router())
-		.nest("/reports", ccc_routes::reports::router())
-		.nest("/spaces", ccc_routes::spaces::router())
-		.nest("/streams", ccc_routes::streams::router())
-		.nest("/tools", ccc_routes::tools::router())
-		.nest("/transit", ccc_routes::transit::router())
-		.nest("/webcams", ccc_routes::webcams::router());
+		.nest("/contacts", ccc_server_routes::contacts::router())
+		.nest("/dictionary", ccc_server_routes::dictionary::router())
+		.nest("/faqs", ccc_server_routes::faqs::router())
+		.nest("/food", ccc_server_routes::food::router())
+		.nest("/news", ccc_server_routes::news::router())
+		.nest("/printing", ccc_server_routes::printing::router())
+		.nest("/reports", ccc_server_routes::reports::router())
+		.nest("/spaces", ccc_server_routes::spaces::router())
+		.nest("/streams", ccc_server_routes::streams::router())
+		.nest("/tools", ccc_server_routes::tools::router())
+		.nest("/transit", ccc_server_routes::transit::router())
+		.nest("/webcams", ccc_server_routes::webcams::router());
 
 	Router::new()
 		.merge(meta_routes)

@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use ccc_handlers::github::{transit_bus_handler, transit_modes_handler};
+use ccc_upstream_handlers::github::{transit_bus_handler, transit_modes_handler};
 
 pub fn router() -> Router {
 	Router::new()

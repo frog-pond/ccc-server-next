@@ -71,7 +71,7 @@ where
 	let (base_url, _class) = get_query_base_url_and_entity(&query_class);
 	let query_type = query_class.to_string();
 
-	let request = ccc_proxy::global_proxy()
+	let request = ccc_upstream_proxy::global_proxy()
 		.client()
 		.get(base_url)
 		.query(&[
@@ -81,10 +81,10 @@ where
 			("sort", sort),
 		])
 		.build()
-		.map_err(ccc_proxy::ProxyError::ProxiedRequest)
+		.map_err(ccc_upstream_proxy::ProxyError::ProxiedRequest)
 		.map_err(StreamProxyError::GenericProxy)?;
 
-	ccc_proxy::global_proxy()
+	ccc_upstream_proxy::global_proxy()
 		.send_request_parse_json::<T>(request)
 		.await
 		.map(Json)
@@ -144,7 +144,7 @@ pub async fn archived_handler(
 #[derive(thiserror::Error, Debug)]
 pub enum StreamProxyError {
 	#[error("error from generic proxy: {0}")]
-	GenericProxy(ccc_proxy::ProxyError),
+	GenericProxy(ccc_upstream_proxy::ProxyError),
 }
 
 impl IntoResponse for StreamProxyError {

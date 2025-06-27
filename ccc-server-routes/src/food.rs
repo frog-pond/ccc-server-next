@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use ccc_handlers::{
+use ccc_upstream_handlers::{
 	bonapp::{
 		cafe_handler, cafe_menu_handler, named_cafe_handler, named_cafe_menu_handler, nutrition_handler,
 	},

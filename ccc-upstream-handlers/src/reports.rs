@@ -5,7 +5,7 @@ use axum::{
 use http::StatusCode;
 use tracing::instrument;
 
-use ccc_proxy::ProxyError;
+use ccc_upstream_proxy::ProxyError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ReportsProxyError {
@@ -37,7 +37,9 @@ pub async fn stav_mealtime_report_handler(
 
 	let report: ccc_types::reports::StavMealtimeReport =
 		serde_json::from_value(data_value).map_err(|e| {
-			ReportsProxyError::Proxy(ccc_proxy::ProxyError::ParseProxiedResponse(e, data_str))
+			ReportsProxyError::Proxy(ccc_upstream_proxy::ProxyError::ParseProxiedResponse(
+				e, data_str,
+			))
 		})?;
 
 	Ok(Json(report))

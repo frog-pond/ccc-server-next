@@ -2,19 +2,22 @@ use axum::response::Json;
 use reqwest::Method;
 use serde::de::DeserializeOwned;
 
-async fn gh_pages_handler<T>(filename: &str, repo: &str) -> Result<Json<T>, ccc_proxy::ProxyError>
+async fn gh_pages_handler<T>(
+	filename: &str,
+	repo: &str,
+) -> Result<Json<T>, ccc_upstream_proxy::ProxyError>
 where
 	T: DeserializeOwned,
 {
 	let url = format!("https://stodevx.github.io/{repo}/{filename}");
 
-	let request = ccc_proxy::global_proxy()
+	let request = ccc_upstream_proxy::global_proxy()
 		.client()
 		.request(Method::GET, url)
 		.build()
-		.map_err(ccc_proxy::ProxyError::ProxiedRequest)?;
+		.map_err(ccc_upstream_proxy::ProxyError::ProxiedRequest)?;
 
-	ccc_proxy::global_proxy()
+	ccc_upstream_proxy::global_proxy()
 		.send_request_parse_json::<T>(request)
 		.await
 		.map(Json)
@@ -25,7 +28,7 @@ macro_rules! gh_pages_handler {
 		/// # Errors
 		///
 		/// Will return `JsonProxyError` if the network request or json serialization failed
-		pub async fn $name() -> Result<Json<$response_type>, ccc_proxy::ProxyError> {
+		pub async fn $name() -> Result<Json<$response_type>, ccc_upstream_proxy::ProxyError> {
 			let data = gh_pages_handler::<$response_type>($filename, $repo).await?;
 			Ok(data)
 		}

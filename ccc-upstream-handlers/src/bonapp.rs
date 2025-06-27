@@ -9,7 +9,7 @@ use http::StatusCode;
 use reqwest::Method;
 use tracing::instrument;
 
-use ccc_proxy::ProxyError;
+use ccc_upstream_proxy::ProxyError;
 
 #[instrument]
 async fn send_proxied_query<T>(
@@ -27,7 +27,7 @@ where
 		std::env::var("BON_APPETIT_AUTH").expect("BON_APPETIT_AUTH credential not set");
 	let auth_header_value = format!("Basic {bon_app_auth}");
 
-	let request = ccc_proxy::global_proxy()
+	let request = ccc_upstream_proxy::global_proxy()
 		.client()
 		.request(Method::GET, base_url)
 		.query(&[(entity, entity_id)])
@@ -36,7 +36,7 @@ where
 		.map_err(ProxyError::ProxiedRequest)
 		.map_err(BonAppProxyError::GenericProxy)?;
 
-	ccc_proxy::global_proxy()
+	ccc_upstream_proxy::global_proxy()
 		.send_request_parse_json::<T>(request)
 		.await
 		.map(Json)

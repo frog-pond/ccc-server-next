@@ -217,52 +217,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "ccc-handlers"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-macros",
- "ccc-proxy",
- "ccc-types",
- "chrono",
- "http",
- "phf",
- "reqwest",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ccc-proxy"
-version = "0.1.0"
-dependencies = [
- "axum",
- "bytes",
- "http",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ccc-routes"
-version = "0.1.0"
-dependencies = [
- "axum",
- "ccc-handlers",
-]
-
-[[package]]
 name = "ccc-server"
 version = "0.1.0"
 dependencies = [
  "axum",
- "ccc-routes",
+ "ccc-server-routes",
  "ccc-types",
  "clap",
  "reqwest",
@@ -275,12 +234,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccc-server-routes"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "ccc-upstream-handlers",
+]
+
+[[package]]
 name = "ccc-types"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
  "ts-rs",
+]
+
+[[package]]
+name = "ccc-upstream-handlers"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "axum-macros",
+ "ccc-types",
+ "ccc-upstream-proxy",
+ "chrono",
+ "http",
+ "phf",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "ccc-upstream-proxy"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]
