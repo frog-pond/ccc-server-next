@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use ccc_handlers::streams::{archived_handler, upcoming_handler};
+use ccc_upstream_handlers::streams::{archived_handler, upcoming_handler};
 
 pub fn router() -> Router {
 	Router::new()

@@ -1,5 +1,5 @@
 [package]
-name = "ccc-handlers"
+name = "ccc-upstream-handlers"
 version = "0.1.0"
 publish = false
 edition.workspace = true
@@ -10,7 +10,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-ccc-proxy = { workspace = true }
+ccc-upstream-proxy = { workspace = true }
 ccc-types = { workspace = true }
 axum = { workspace = true }
 axum-macros = { workspace = true }

@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
+	"ccc-upstream-handlers",
+	"ccc-upstream-proxy",
 	"ccc-server",
-	"ccc-handlers",
-	"ccc-proxy",
-	"ccc-routes",
+	"ccc-server-routes",
 	"ccc-types",
 	"e2e",
 ]
@@ -24,9 +24,9 @@ rust-version = "1.74"
 axum = "0.8.0"
 axum-macros = "0.5.0"
 bytes = "1.5.0"
-ccc-handlers = { path = "./ccc-handlers" }
-ccc-proxy = { path = "./ccc-proxy" }
-ccc-routes = { path = "./ccc-routes" }
+ccc-upstream-handlers = { path = "./ccc-upstream-handlers" }
+ccc-upstream-proxy = { path = "./ccc-upstream-proxy" }
+ccc-server-routes = { path = "./ccc-server-routes" }
 ccc-types = { path = "./ccc-types" }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5.3", features = ["derive"] }

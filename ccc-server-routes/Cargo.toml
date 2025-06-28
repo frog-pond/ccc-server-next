@@ -1,5 +1,5 @@
 [package]
-name = "ccc-routes"
+name = "ccc-server-routes"
 version = "0.1.0"
 publish = false
 edition.workspace = true
@@ -11,4 +11,4 @@ workspace = true
 
 [dependencies]
 axum = { workspace = true }
-ccc-handlers = { workspace = true }
+ccc-upstream-handlers = { workspace = true }

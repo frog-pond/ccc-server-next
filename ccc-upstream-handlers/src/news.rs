@@ -7,7 +7,7 @@ use http::StatusCode;
 use serde::Deserialize;
 use tracing::instrument;
 
-use ccc_proxy::ProxyError;
+use ccc_upstream_proxy::ProxyError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum NewsProxyError {
@@ -44,14 +44,14 @@ pub async fn wp_json_handler(
 		.url
 		.ok_or_else(|| NewsProxyError::MissingParameter("url".to_string()))?;
 
-	let request = ccc_proxy::global_proxy()
+	let request = ccc_upstream_proxy::global_proxy()
 		.client()
 		.get(url)
 		.build()
 		.map_err(ProxyError::ProxiedRequest)
 		.map_err(NewsProxyError::Proxy)?;
 
-	ccc_proxy::global_proxy()
+	ccc_upstream_proxy::global_proxy()
 		.send_request_parse_json::<Vec<ccc_types::news::WpJsonPost>>(request)
 		.await
 		.map(Json)
