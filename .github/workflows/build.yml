@@ -19,7 +19,7 @@ jobs:
           rustup toolchain install ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: jdx/mise-action@156251fcc627ac4e26cb0f93dd47d1d4979abf24 # v3
+      - uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3
       - name: Run rustfmt
         run: |
           rustup component add rustfmt
@@ -42,7 +42,7 @@ jobs:
           rustup toolchain install ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: jdx/mise-action@156251fcc627ac4e26cb0f93dd47d1d4979abf24 # v3
+      - uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3
       - name: Run cargo test
         run: |
           mise run test
