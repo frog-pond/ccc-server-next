@@ -43,5 +43,5 @@ tower = { version = "0.5.0", features = ["filter", "timeout"] }
 tower-http = { version = "0.6.0", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
-ts-rs = { version = "11.0.0" }
+ts-rs = { version = "12.0.0" }
 url = "2.5.0"
