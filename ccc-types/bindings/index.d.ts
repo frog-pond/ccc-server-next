@@ -24,7 +24,7 @@ export type BonAppCafeResponse = {
 };
 
 export type BonAppCafesResponse = {
-  cafes: { [key in string]?: BonAppCafeResponse };
+  cafes: { [key in string]: BonAppCafeResponse };
 };
 
 export type BonAppCorIcon = {
@@ -89,7 +89,7 @@ export type ContactResponseItem = {
   text: string;
 };
 
-export type CorIcons = { [key in string]?: BonAppCorIcon };
+export type CorIcons = { [key in string]: BonAppCorIcon };
 
 export type CurrencyString = string;
 
@@ -198,7 +198,7 @@ export type NutritionDetailType = NutritionDetail;
 export type PauseMenuItemResponse = {
   stationMenus: Array<FoodStationMenu>;
   foodItems: Array<FoodItemResponse>;
-  corIcons: { [key in string]?: BonAppCorIcon };
+  corIcons: { [key in string]: BonAppCorIcon };
 };
 
 export type PauseMenuResponse = { data: PauseMenuItemResponse };
@@ -213,7 +213,7 @@ export type Schedule = {
 
 export type StavMealtimeDay = {
   date: string;
-  times: { [key in string]?: number };
+  times: { [key in string]: number };
 };
 
 export type StavMealtimeReport = Array<StavMealtimeDay>;
@@ -242,7 +242,7 @@ export type TransitColors = { bar: string; dot: string };
 
 export type TransitSchedule = {
   days: Array<string>;
-  coordinates: { [key in string]?: [number, number] };
+  coordinates: { [key in string]: [number, number] };
   stops: Array<string>;
   times: Array<Array<string | boolean>>;
 };
