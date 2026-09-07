@@ -1,3 +1,8 @@
-// Documentation TODO: introduce Trifecta's operation model with one complete
-// uncached example, then contrast transport integration, typed resolution assembly,
-// cache bypass, future cache/singleflight configuration, and runtime neutrality.
+//! Runtime-neutral asynchronous domain-value acquisition.
+
+pub mod body;
+pub mod future;
+pub mod operation;
+pub mod pipeline;
+pub mod source;
+pub mod transform;
