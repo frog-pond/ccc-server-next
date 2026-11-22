@@ -1,0 +1,12 @@
+{
+  "name": "ccc-fixture-worker-experiment",
+  "private": true,
+  "scripts": {
+    "worker-build:install": "cargo install --locked --version '=0.9.0' --root .worker-tools worker-build",
+    "worker-build": ".worker-tools/bin/worker-build",
+    "dev": "wrangler dev --local"
+  },
+  "devDependencies": {
+    "wrangler": "4.166.0"
+  }
+}

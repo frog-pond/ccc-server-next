@@ -1,7 +1,7 @@
 # Worker experiment
 
-Use Rust 1.98 or newer and install the `wasm32-unknown-unknown` target. The
-native and Worker entry points are draft signatures under review.
+Use Rust 1.98 or newer with the `wasm32-unknown-unknown` target, Node.js, and
+Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.9.0.
 
 ## Local setup
 
@@ -11,8 +11,8 @@ returns 302 with `Location: /redirect-target`. The target returns `99`, so a
 followed redirect produces a visibly different success. The server logs every
 request on stderr, including any request to the redirect target.
 
-With the entry points implemented, run the native server from the root and the
-Worker from its crate directory in separate terminals:
+Run the native server from the root and the Worker from its crate directory in
+separate terminals:
 
 ```sh
 cargo run --locked -p fixture-experiment-native
@@ -20,16 +20,27 @@ cargo run --locked -p fixture-experiment-native
 
 ```sh
 cd experiments/worker
-wrangler dev --local
+npm ci
+npm run worker-build:install
+npm run dev
 ```
 
-Wrangler uses `worker-build` 0.9.0 on `PATH` and the local `FIXTURES` binding with
-its SQLite class migration. Send requests to `/experiment/value` and
+The `dev` script runs `wrangler dev --local`. Wrangler uses the crate-local
+worker-build binary and the local `FIXTURES` binding with its SQLite migration.
+Send requests to `/experiment/value` and
 `/experiment/redirect` on `127.0.0.1:18788` for native and `127.0.0.1:8787` for
 the Worker. The Worker may first return a pending reply while its alarm runs.
-Use the same local persistence directory when restarting Wrangler to test that
-an alarm can reload the job after restart. If Wrangler asks for a login or a
-feature requires a remote binding, stop and ask the maintainer.
+The completed responses share HTTP 200 and an `application/json` body. The
+value is 42 and the redirect reports `http_status` 302. The fixture log should
+show no request to `/redirect-target`. An unknown fixture returns 404. A non-GET
+request for a known fixture returns 405 with `Allow: GET`.
+
+To test alarm recovery, start with `npm run dev -- --persist-to <local-dir>`.
+Get a pending reply, stop Wrangler before the three-second alarm delay elapses,
+and restart with the same persistence directory. The alarm reloads the SQLite
+job and stores the completed JSON reply even before another request arrives.
+If Wrangler asks for a login or a feature requires a remote binding, stop and
+ask the maintainer.
 
 ## Compile probes
 
@@ -52,10 +63,10 @@ cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --exam
 
 ## Test and lint coverage
 
-`mise run check` checks workspace formatting, runs host Clippy and tests, and runs the
-board tool tests. The host Rust tests fix the JSON for stored jobs, outcomes,
-and replies across the Durable Object call. They also check the HTTP status
-type. Lint the WASM-only runtime and compile probes separately:
+`mise run check` checks workspace formatting and runs host Clippy, Rust tests,
+and board tool tests. The shared route tests check fixture naming, stable JSON,
+status construction, body decoding, failure classification, and the common
+event fields. Lint the WASM-only runtime and compile probes separately:
 
 ```sh
 cargo clippy --locked --target wasm32-unknown-unknown -p worker-experiment --all-targets
