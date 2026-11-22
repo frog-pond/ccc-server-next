@@ -26,9 +26,8 @@ This procedure was written before any route had been brought over. Steps marked 
 ## 2. Types and signatures first
 
 5. Write the types and signatures only, with `todo!()` bodies:
-   - types for what the site sends, deriving `Deserialize` only, starting from the reference's schema for that site;
-   - types for what the apps receive;
-   - `impl TryFrom` from one to the other and its error enum, with one case per way the site's data can be unusable;
+   - types for what the site sends and what the apps receive, starting from the reference's schema and following [T1](../../../docs/review/rubric.md#t-types);
+   - the conversion signature and any error types, following [T2](../../../docs/review/rubric.md#t-types);
    - the description of the resource: its name, parameters and how long its value stays fresh.
 
    Write the documentation with the types, not afterwards: every public type, field, variant and function says what it represents, any rule about its contents, and for a site's type where its shape comes from in the reference. The reviewer reads the documentation to judge the types. For each type, ask whether a struct or an enum fits the data, and whether an `Option` or a `String` could be something more exact.
