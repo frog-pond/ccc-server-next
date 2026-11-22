@@ -12,14 +12,14 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 ## Starting a session
 
 1. Run from a worktree, not the main checkout, which holds the maintainer's own work. `git fetch origin`, then use a worktree of `origin/rearchitecture`. While the scaffolding has not merged into it (`tools/board` is missing there), use the highest open pull request's branch instead.
-2. Read the most recent status comment on #424. It says what the last session left in flight and what is waiting on the maintainer.
-3. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this conversation, or a grant recorded on #424 still covers the work and has not reached its end point, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. Record the grant on #424. With no answer, you are at level 1.
+2. Name this thread `Driver: <the work>` if the host lets you. Find the previous driver thread (search threads for `Driver:`) and read its last message: it says what was left in flight and what is waiting on the maintainer. If the host cannot read threads, ask the maintainer.
+3. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this thread, or pointed you to a thread whose grant still covers the work, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. State the grant back in one line. With no answer, you are at level 1.
 4. Before every action, check it is within your level and not on the list escalated at every level. If it is not, bring it to the maintainer as options with a recommendation.
 5. Hand each issue to its own worker in its own worktree. Where the host can start a separate agent with its own checkout, use that. For the second reviewer of a thorough review, use a model from another vendor where one is available.
 
 ## Ending a session
 
-Before you stop, leave a comment on #424:
+Before you stop, end with this as your last message in the thread. Do not post it on an issue.
 
 ```
 State: <what moved this session: pull requests opened, reviewed, ready to merge, merged>
@@ -38,13 +38,13 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 1. **Look.** Run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs him (`sync-reference`).
 2. **Tend what is in flight first.** For each open pull request on the stack:
    - checks failing: send it back to a worker with the failure, using the follow-up request below;
-   - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the record in its description or in a comment naming the commit; GitHub's review decision is separate and is the maintainer's;
+   - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the "Review" section of its description, naming the commit it covers; GitHub's review decision is separate and is the maintainer's;
    - findings outstanding: send them to a worker;
    - a draft: leave it, unless its types are waiting for review;
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
 3. **Start what is ready.** An issue is ready when `tools/board` marks it and prints a base for it: everything that blocks it is closed, or is in open pull requests that are not drafts and lie on one chain. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
 4. **Hand over.** Give each worker the request below. A worker for a different issue is a new worker, not a follow-up message to an old one.
-5. **Record.** Set statuses on the board. If you learned something another worker needs, put it in a comment on the issue or in the documentation, not in your conversation.
+5. **Record.** Set statuses on the board. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
 6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
 
 ## The requests to a worker
@@ -86,7 +86,7 @@ Some issues are too large for one pull request, such as #434. Split along the li
 
 ## When something needs the maintainer
 
-Do not guess, and do not let it stop unrelated work. Comment on the issue with the question and the options you see, leave the issue's status as it is, move on to other ready work, and list the question when you stop.
+Do not guess, and do not let it stop unrelated work. Ask in this thread, with the options you see and a recommendation, leave the issue's status as it is, move on to other ready work, and list the question again when you stop. Questions from workers come to you in their reports; answer what your level allows and bring the rest here.
 
 What goes to him depends on your level, and the list in `docs/delegation-levels.md` goes to him at every level.
 

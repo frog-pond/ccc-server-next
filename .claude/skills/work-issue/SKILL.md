@@ -23,7 +23,7 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 ## 3. Do the work
 
-- Do what the issue's "Changes" say, and nothing it does not ask for. If the work needs a decision the issue does not make, stop and ask in a comment on the issue.
+- Do what the issue's "Changes" say, and nothing it does not ask for. If the work needs a decision the issue does not make, stop and put the question in your report.
 - Check each "Done when" item yourself and keep the evidence: a command and its output, or a test name.
 - `mise run check` passes. A crate meant for both builds also passes `cargo check --target wasm32-unknown-unknown -p <crate>`.
 - Commit in small steps, with short imperative subjects: `Add the WordPress post schema`. Say `Part of #<N>` in the body.
@@ -33,12 +33,12 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 - Push the branch and open the pull request as a draft, against the branch you branched from. Never open one against `main`.
 - Fill in the pull request template. Say `Part of #N` for the issue. A merge into `rearchitecture` does not close an issue by itself, so do not rely on `Closes`.
 - If the work adds or changes types, push the types and signatures first and get them reviewed in the draft before writing the bodies (`design-types`). Add the bodies to the same pull request.
-- When the work is complete, mark the pull request ready for review, set the issue's status to "In review" (`tools/board status <N> "In review"`), and report back. The driver arranges the review, because a worker cannot start other agents. When findings come back to you, fix them and say in the pull request what changed since the reviewed commit.
+- When the work is complete, mark the pull request ready for review, set the issue's status to "In review" (`tools/board status <N> "In review"`), and report back. The driver arranges the review, because a worker cannot start other agents. When findings come back to you, fix them and say in your report what changed since the reviewed commit.
 - Do not merge it yourself.
 
 ## 5. If you stop before finishing
 
-Leave a comment on the issue, because nobody can read your conversation:
+End with this report as your final message. Whoever started you reads it from your thread; do not post it on the issue.
 
 ```
 State: <what is done, what is not>
@@ -49,7 +49,7 @@ Questions: <anything that needs the maintainer>
 
 ## An experiment
 
-Some issues ask for an experiment first, such as #429. Do it on a branch named `rearch/<issue>-experiment` that is never merged. The result is a comment on the issue saying what was tried, what happened and what it means for each open question, with the branch name for anyone who wants the code.
+Some issues ask for an experiment first, such as #429. Do it on a branch named `rearch/<issue>-experiment` that is never merged. The result is your report: what was tried, what happened and what it means for each open question, with the branch name for anyone who wants the code. The driver takes it to the maintainer, and what it settles is written into the issue or the documentation.
 
 ## Never
 

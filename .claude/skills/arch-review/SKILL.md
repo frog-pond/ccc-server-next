@@ -54,7 +54,7 @@ For a route, add its `id` from `docs/reference/routes.toml` and ask the reviewer
 1. Check each finding in the code yourself. Drop any you cannot reproduce, and say why.
 2. Fix the ones that hold.
 3. Where the two reviewers disagree about structure, or you disagree with a finding that holds, take it to the maintainer. The author does not settle it alone.
-4. Write in the pull request: which kind of review it was, which models reviewed, the commit they reviewed, each finding and what was done about it.
+4. Record the review in the "Review" section of the pull request's description, replacing what the last round wrote: which kind of review it was, which models reviewed, the commit they reviewed, and one line per finding with what was done (the commit that fixed it, or why it was dropped). Do not add a comment for a review round. If an earlier round left comments, minimize them as outdated.
 
 A review covers the commit it read. Types reviewed in a draft are reviewed again, with their bodies, before the pull request merges.
 

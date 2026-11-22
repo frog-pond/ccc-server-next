@@ -60,9 +60,13 @@ Full wording and reasons are in `docs/review/rubric.md`. Reviews check against t
 | Who is working on what | GitHub issues, one per piece of work | The pull request links the issue. |
 | Whether a route is finished | Worked out from merged pull requests | Never keep a list of finished routes in a file. |
 | What is in progress | The project board "@rye's Rearchitecting Push" | `tools/board` reads it. |
-| Discussion and exploration | The conversation | Not a record. Anything someone else needs goes in a row above. |
+| A pull request's review | The "Review" section of its description | Edited in place for each round. No comment per review. |
+| Grants of autonomy, handoffs between sessions, and questions for the maintainer | The driver's T3 thread | A worker's report is its final message in its own thread. |
+| Discussion and exploration | The conversation | Anything a person reading the issue later needs goes in a row above. |
 
 The design of `trifecta` is described in #425 and its sub-issues. The maintainer also keeps working notes locally. They are not in the repository, so do not assume they are present, and do not guess their contents.
+
+Comments on issues and pull requests are kept for what a person reading them later needs, such as a question only the maintainer can answer. Progress, handoffs and review rounds do not go in comments. When a comment is superseded, minimize it as outdated.
 
 Issues and documents are written for a person who has not followed the work: say what happens and why in ordinary words, and do not invent names for things.
 

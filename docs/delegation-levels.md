@@ -45,15 +45,6 @@ The driver asks "What level can I run at?" with two to four levels that make sen
 
 ## Recording
 
-The driver records each grant as a comment on #424:
+A grant is given in the driver's T3 thread and stays there. The driver states it back in one line: the level, the issues it covers, the end point, and any escalations beyond the fixed list.
 
-```
-Delegation grant
-Level: <1-5>
-Scope: <issue numbers>
-End point: <where the run stops>
-Escalations beyond the fixed list: <none, or each one>
-Granted: <date>, by the maintainer in conversation
-```
-
-A grant comes from the maintainer in conversation; a comment only records it. A later session may continue under a recorded grant until its end point, within its scope. The status comment at the end of each session lists the level of each piece of work in flight. When the maintainer changes a level, the driver records a new grant.
+A grant covers the thread it was given in. A new driver thread asks again, unless the maintainer points it to the thread that holds a grant still in force. The driver's last message in each session lists the level of each piece of work in flight. When the maintainer changes a level, the driver states the new grant the same way.
