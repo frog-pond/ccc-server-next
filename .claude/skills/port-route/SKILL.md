@@ -7,7 +7,7 @@ description: Port one route or one upstream source from the reference ccc-server
 
 One conversion per branch and pull request: one shape function in the reference and its source, with every entry of `docs/reference/routes.toml` that uses it (often the same path for both colleges). An issue for an upstream may hold several conversions; each is its own pull request. The pull request starts as a draft holding the types and signatures, and the bodies are added to the same pull request once the types are approved. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
 
-This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. The types follow `design-types`.
+This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. Follow `design-types` and use [the type layout](../../../docs/types.md) to place schemas, conversions and errors.
 
 This procedure was written before any route had been brought over. Steps marked *provisional* describe the intent, and should be replaced with what was actually done once the first few routes are approved.
 
