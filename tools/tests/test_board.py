@@ -8,6 +8,7 @@ import datetime
 import importlib.machinery
 import importlib.util
 import pathlib
+import re
 import subprocess
 import sys
 import unittest
@@ -296,7 +297,7 @@ class Reading(unittest.TestCase):
 		queries = []
 
 		def fake(query, **_):
-			asked = [int(n) for n in __import__("re").findall(r"\bp(\d+):", query)]
+			asked = [int(n) for n in re.findall(r"\bp(\d+):", query)]
 			queries.append(asked)
 			data = {}
 			for n in asked:
@@ -329,6 +330,7 @@ class Reading(unittest.TestCase):
 	def test_network_hint(self):
 		self.assertIn("network access", board.network_hint("Could not resolve host: github.com", "x"))
 		self.assertEqual(board.network_hint("HTTP 404: Not Found", "x"), "")
+		self.assertIn("network access", board.network_hint("Unknown Owner Type", "x"))
 
 	def test_failed_ls_remote_stops_the_tool(self):
 		"""The other fault Copilot found in #447: a failure gave an empty set."""

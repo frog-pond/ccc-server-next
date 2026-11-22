@@ -57,7 +57,7 @@ import json
 import re
 import subprocess
 import sys
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 REPO = "frog-pond/ccc-server-next"
 OWNER = "frog-pond"
@@ -216,7 +216,7 @@ def network_hint(err, otherwise):
 	"""A line to add to an error from `gh` or `git` when it looks like GitHub
 	could not be reached, which in a sandbox usually means no network access."""
 	lowered = err.lower()
-	if "unknown owner type" in err or "connect" in lowered or "resolve" in lowered:
+	if "unknown owner type" in lowered or "connect" in lowered or "resolve" in lowered:
 		return ("\nGitHub could not be reached. In a sandbox, give this command network access;"
 			f" otherwise {otherwise}.")
 	return ""
