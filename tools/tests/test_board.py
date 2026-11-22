@@ -207,11 +207,26 @@ class Notes(unittest.TestCase):
 	def test_stray_foreign_and_draft_items(self):
 		draft = board.Item(id="D", kind="DraftIssue", number=None, repository=None, title="Idea",
 			status=None, size=None, estimate=None, iteration=None)
-		snap = snapshot([issue(1)], items=[item(1), item(99), draft], foreign=["other/repo#3 (under #424)"])
+		pr = board.Item(id="P", kind="PullRequest", number=7, repository=REPO, title=None,
+			status=None, size=None, estimate=None, iteration=None)
+		snap = snapshot([issue(1)], items=[item(1), item(99), draft, pr],
+			foreign=[board.ForeignIssue(3, "other/repo", PARENT, False)])
 		notes = self.notes(snap)
 		self.assertIn(f"#99: on the board but not under #{PARENT}", notes)
 		self.assertIn("other/repo#3 (under #424): a sub-issue in another repository; tools/board does not follow it", notes)
 		self.assertIn("draft \"Idea\": waiting for the maintainer to review it and file it", notes)
+		self.assertIn(f"pull request {REPO}#7 is on the board; tools/board ignores it", notes)
+
+	def test_open_foreign_sub_issue_keeps_parent_open(self):
+		"""Codex, round 2: the parent was reported ready to close."""
+		snap = snapshot([issue(1, children=True), issue(2, parent=1, depth=1, closed=True)],
+			foreign=[board.ForeignIssue(3, "other/repo", 1, False)])
+		self.assertFalse(any("every sub-issue is closed" in n for n in self.notes(snap)))
+
+	def test_closed_foreign_sub_issue_counts(self):
+		snap = snapshot([issue(1, children=True), issue(2, parent=1, depth=1, closed=True)],
+			foreign=[board.ForeignIssue(3, "other/repo", 1, True)])
+		self.assertIn("#1: every sub-issue is closed; check its \"Done when\" and close it", self.notes(snap))
 
 
 class Output(unittest.TestCase):
@@ -225,6 +240,18 @@ class Output(unittest.TestCase):
 		snap = snapshot([issue(1, priority=None)], items=[])
 		line = board.table(board.rows(snap))[3]
 		self.assertTrue(line.startswith("→ #1     -            -       -        -  -"), line)
+
+	def test_foreign_blocker_shows_its_repository(self):
+		"""Claude, round 2: it showed as this repository's #5."""
+		snap = snapshot([issue(1, blockers=[board.Blocker(5, "frog-pond/ccc-server", False), 2]), issue(2)])
+		r = row(snap, 1)
+		self.assertEqual((r.open_blockers, r.foreign_blockers), ([2], ["frog-pond/ccc-server#5"]))
+		self.assertIn("#2,frog-pond/ccc-server#5", board.table([r])[3])
+
+	def test_json_keeps_dashes_for_missing_status_and_size(self):
+		"""Codex, round 2: --json had changed them to null."""
+		data = board.json_row(row(snapshot([issue(1, priority=None)], items=[]), 1))
+		self.assertEqual((data["status"], data["size"], data["priority"], data["estimate"]), ("-", "-", None, None))
 
 	def test_current_iteration(self):
 		iterations = [{"id": "A", "startDate": "2026-11-22", "duration": 14}]
@@ -248,6 +275,45 @@ class Reading(unittest.TestCase):
 		self.assertEqual(parsed.priority, "Urgent")
 		self.assertEqual([b.number for b in parsed.blockers], [3, 9])
 		self.assertEqual([b.closed for b in parsed.blockers], [True, False])
+
+	def test_null_issue_fields_are_read_as_none(self):
+		"""Codex, round 2: a null connection or entry raised AttributeError."""
+		base = {"number": 1, "title": "t", "url": "u", "state": "OPEN", "repository": {"nameWithOwner": REPO},
+			"assignees": None, "subIssuesSummary": None, "blockedBy": {"nodes": [None]}}
+		for fields in (None, {"nodes": None}, {"nodes": [None]}):
+			parsed = board.parse_issue(dict(base, issueFieldValues=fields), 0, PARENT)
+			self.assertEqual((parsed.priority, parsed.assignees, parsed.blockers), (None, [], []))
+
+	def test_a_wide_level_is_read_in_batches(self):
+		"""Codex and Claude, round 2: one query for a whole level could pass GitHub's node limit."""
+		parents = list(range(100, 100 + board.TREE_BATCH + 3))
+
+		def node(n, kids):
+			return {"number": n, "title": "t", "url": "u", "state": "OPEN", "repository": {"nameWithOwner": REPO},
+				"assignees": {"nodes": []}, "subIssuesSummary": {"total": kids}, "blockedBy": {"nodes": []},
+				"issueFieldValues": {"nodes": []}}
+
+		queries = []
+
+		def fake(query, **_):
+			asked = [int(n) for n in __import__("re").findall(r"\bp(\d+):", query)]
+			queries.append(asked)
+			data = {}
+			for n in asked:
+				kids = [node(c, 1) for c in parents] if n == PARENT else [node(n * 10, 0)]
+				data[f"p{n}"] = {"subIssues": {"nodes": kids}}
+			return {"repository": data}
+
+		real = board.graphql
+		board.graphql = fake
+		try:
+			issues, foreign = board.fetch_tree()
+		finally:
+			board.graphql = real
+		self.assertEqual([len(q) for q in queries], [1, board.TREE_BATCH, 3])
+		self.assertEqual(len(issues), 2 * len(parents))
+		self.assertEqual((issues[0].number, issues[1].number, issues[1].parent), (100, 1000, 100))
+		self.assertEqual(foreign, [])
 
 	def test_a_second_page_stops_the_tool(self):
 		with self.assertRaises(SystemExit):

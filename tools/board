@@ -39,6 +39,10 @@ starts into the current iteration when it has none. It never closes or reopens
 an issue, never moves an issue that is in progress without a pull request, and
 never touches draft items; it reports those instead.
 
+Pull requests, draft items and other repositories' issues on the board are
+reported, never moved. A sub-issue in another repository counts toward its
+parent's status but is not followed further.
+
 Every list is read in full or not at all: when GitHub has more entries than
 one request returns and the tool does not page through them, it stops and says
 so, because a partial list would give wrong answers without any sign of it.
@@ -131,13 +135,24 @@ class Pull:
 
 
 @dataclasses.dataclass
-class Snapshot:
-	"""Everything the rules need, read from GitHub in one go.
+class ForeignIssue:
+	"""A sub-issue that lives in another repository. The tool does not follow
+	its own sub-issues or touch its board item, but its state counts when
+	deciding about the issue it sits under."""
+	number: int
+	repository: str
+	parent: int
+	closed: bool
 
-	`foreign` lists sub-issues that live in another repository; the tool does
-	not follow them."""
+	def label(self):
+		return f"{self.repository}#{self.number} (under #{self.parent})"
+
+
+@dataclasses.dataclass
+class Snapshot:
+	"""Everything the rules need, read from GitHub in one go."""
 	issues: List[Issue]
-	foreign: List[str]
+	foreign: List[ForeignIssue]
 	items: List[Item]
 	pulls: List[Pull]
 	merged_issues: set
@@ -162,6 +177,7 @@ class Row:
 	has_children: bool
 	blocked_by: List[int]
 	open_blockers: List[int]
+	foreign_blockers: List[str]
 	pulls: List[int]
 	draft_pull: bool
 	merged: bool
@@ -216,17 +232,27 @@ def graphql(query, **variables):
 
 
 def whole(connection, what):
-	"""The nodes of a connection, or a stop if GitHub has more than one page."""
-	if (connection.get("pageInfo") or {}).get("hasNextPage"):
-		sys.exit(f"{what} has more entries than tools/board reads in one request ({PAGE});"
-			" it needs paging there")
-	return connection.get("nodes") or []
+	"""The nodes of a connection, or a stop if GitHub has more than one page.
 
+	GitHub may return a null connection, or null entries in one; both are read
+	as nothing there."""
+	connection = connection or {}
+	if (connection.get("pageInfo") or {}).get("hasNextPage"):
+		sys.exit(f"{what} has more entries than tools/board reads in one request;"
+			" it needs paging there")
+	return [n for n in connection.get("nodes") or [] if n is not None]
+
+
+# The tree query asks about at most this many parents at once. GitHub limits a
+# query to 500,000 nodes, counted as the product of the page sizes: each parent
+# costs 100 sub-issues × (20 assignees + 100 blockers + 25 fields), about
+# 14,600, so 10 parents stay far below the limit.
+TREE_BATCH = 10
 
 ISSUE_FIELDS = """
 number title url state
 repository { nameWithOwner }
-assignees(first: 100) { pageInfo { hasNextPage } nodes { login } }
+assignees(first: 20) { pageInfo { hasNextPage } nodes { login } }
 subIssuesSummary { total }
 blockedBy(first: 100) { pageInfo { hasNextPage } nodes { number state repository { nameWithOwner } } }
 issueFieldValues(first: 25) {
@@ -240,7 +266,7 @@ def parse_issue(node, depth, parent):
 	"""An `Issue` from a sub-issue node of the tree query."""
 	where = f"#{node['number']}"
 	priority = None
-	for value in whole(node["issueFieldValues"], f"{where}'s issue fields"):
+	for value in whole(node.get("issueFieldValues"), f"{where}'s issue fields"):
 		if (value.get("field") or {}).get("name") == "Priority":
 			priority = value["name"]
 	return Issue(
@@ -250,11 +276,11 @@ def parse_issue(node, depth, parent):
 		closed=node["state"] == "CLOSED",
 		depth=depth,
 		parent=parent,
-		assignees=[a["login"] for a in whole(node["assignees"], f"{where}'s assignees")],
+		assignees=[a["login"] for a in whole(node.get("assignees"), f"{where}'s assignees")],
 		has_children=(node.get("subIssuesSummary") or {}).get("total", 0) > 0,
 		blockers=sorted(
 			(Blocker(b["number"], b["repository"]["nameWithOwner"], b["state"] == "CLOSED")
-				for b in whole(node["blockedBy"], f"what blocks {where}")),
+				for b in whole(node.get("blockedBy"), f"what blocks {where}")),
 			key=lambda b: (b.repository, b.number),
 		),
 		priority=priority,
@@ -263,7 +289,7 @@ def parse_issue(node, depth, parent):
 
 def fetch_tree():
 	"""Every issue under the parent, depth first, and the sub-issues that are
-	in another repository. One query per level of the tree."""
+	in another repository. One query per `TREE_BATCH` parents at each level."""
 	owner, name = REPO.split("/")
 	children = {}
 	foreign = []
@@ -271,18 +297,21 @@ def fetch_tree():
 	depth = 0
 	seen = {PARENT}
 	while level:
-		aliases = " ".join(
-			f"p{n}: issue(number: {n}) {{ subIssues(first: {PAGE}) {{ pageInfo {{ hasNextPage }} nodes {{ {ISSUE_FIELDS} }} }} }}"
-			for n in level
-		)
-		data = graphql(f'{{ repository(owner: "{owner}", name: "{name}") {{ {aliases} }} }}')["repository"]
+		data = {}
+		for start in range(0, len(level), TREE_BATCH):
+			aliases = " ".join(
+				f"p{n}: issue(number: {n}) {{ subIssues(first: {PAGE}) {{ pageInfo {{ hasNextPage }} nodes {{ {ISSUE_FIELDS} }} }} }}"
+				for n in level[start:start + TREE_BATCH]
+			)
+			data.update(graphql(f'{{ repository(owner: "{owner}", name: "{name}") {{ {aliases} }} }}')["repository"] or {})
 		next_level = []
 		for n in level:
 			issue = data.get(f"p{n}") or {}
 			kids = []
 			for node in whole(issue.get("subIssues") or {}, f"#{n}'s sub-issues"):
 				if node["repository"]["nameWithOwner"] != REPO:
-					foreign.append(f"{node['repository']['nameWithOwner']}#{node['number']} (under #{n})")
+					foreign.append(ForeignIssue(node["number"], node["repository"]["nameWithOwner"], n,
+						node["state"] == "CLOSED"))
 					continue
 				if node["number"] in seen:
 					continue
@@ -338,7 +367,7 @@ def parse_item(node):
 	"""An `Item` from a node of the board query."""
 	content = node.get("content") or {}
 	values = {}
-	for value in whole(node["fieldValues"], f"board item {node['id']}'s fields"):
+	for value in whole(node.get("fieldValues"), f"board item {node['id']}'s fields"):
 		field = (value.get("field") or {}).get("name")
 		if field:
 			values[field] = value.get("name", value.get("number", value.get("title")))
@@ -590,8 +619,10 @@ def rows(snapshot):
 			assignees=issue.assignees,
 			item_id=item.id if item else None,
 			has_children=issue.has_children,
-			blocked_by=[b.number for b in issue.blockers],
-			open_blockers=[b.number for b in issue.blockers if not b.closed],
+			blocked_by=[b.number for b in issue.blockers if b.repository == REPO],
+			open_blockers=[b.number for b in issue.blockers if b.repository == REPO and not b.closed],
+			foreign_blockers=[f"{b.repository}#{b.number}" for b in issue.blockers
+				if b.repository != REPO and not b.closed],
 			pulls=[p.number for p in own],
 			draft_pull=bool(own) and all(p.draft for p in own),
 			merged=issue.number in snapshot.merged_issues,
@@ -665,14 +696,18 @@ def plan(rows, snapshot, branches):
 	children = {}
 	for r in rows:
 		children.setdefault(r.parent, []).append(r)
+	foreign_children = {}
+	for f in snapshot.foreign:
+		foreign_children.setdefault(f.parent, []).append(f)
 
 	def wanted(r):
 		if not r.open:
 			return "Done"
 		if r.has_children:
 			kids = children.get(r.number, [])
-			started = any(k.status in STARTED or not k.open for k in kids)
-			if kids and all(not k.open for k in kids):
+			foreign_kids = foreign_children.get(r.number, [])
+			started = any(k.status in STARTED or not k.open for k in kids) or any(f.closed for f in foreign_kids)
+			if (kids or foreign_kids) and all(not k.open for k in kids) and all(f.closed for f in foreign_kids):
 				notes.append(f"#{r.number}: every sub-issue is closed; check its \"Done when\" and close it")
 			return "In progress" if started else "Backlog"
 		if r.pulls:
@@ -711,12 +746,27 @@ def plan(rows, snapshot, branches):
 	in_tree = {r.number for r in rows} | {PARENT}
 	for number in sorted(n for n in board if n not in in_tree):
 		notes.append(f"#{number}: on the board but not under #{PARENT}")
-	for where in snapshot.foreign:
-		notes.append(f"{where}: a sub-issue in another repository; tools/board does not follow it")
+	for f in snapshot.foreign:
+		notes.append(f"{f.label()}: a sub-issue in another repository; tools/board does not follow it")
 	for item in others:
 		if item.kind == "DraftIssue":
 			notes.append(f"draft \"{item.title}\": waiting for the maintainer to review it and file it")
+		elif item.kind == "PullRequest":
+			notes.append(f"pull request {item.repository}#{item.number} is on the board; tools/board ignores it")
+		elif item.kind == "Issue":
+			notes.append(f"{item.repository}#{item.number}: an issue from another repository is on the board")
 	return moves, notes
+
+
+def json_row(r):
+	"""A row as `--json` prints it. A missing status or size is "-", as it was
+	before those became None inside the tool; a missing priority or estimate is
+	null."""
+	data = dataclasses.asdict(r)
+	for key in ("status", "size"):
+		if data[key] is None:
+			data[key] = "-"
+	return data
 
 
 def estimate_line(rows):
@@ -737,7 +787,7 @@ def table(rows):
 		f"{'':2}{'issue':<7}{'status':<13}{'prio':<8}{'size':<5}{'est':>5}  {'PR':<8}{'blocked by':<26}title"]
 	for r in rows:
 		mark = "✓" if not r.open else ("→" if r.ready else " ")
-		blocked = ",".join(f"#{n}" for n in r.open_blockers) or "-"
+		blocked = ",".join([f"#{n}" for n in r.open_blockers] + r.foreign_blockers) or "-"
 		prs = ",".join(f"#{n}" for n in r.pulls) or "-"
 		est = "-" if r.estimate is None else f"{r.estimate:g}"
 		line = (f"{mark:2}{'#' + str(r.number):<7}{r.status or '-':<13}{r.priority or '-':<8}{r.size or '-':<5}"
@@ -779,7 +829,7 @@ def show(as_json):
 			"number": p.number, "head": p.head, "base": p.base, "title": p.title, "checks": p.checks,
 			"review": p.review, "draft": p.draft, "reaches_base": chain(p.head, by_head) is not None,
 		} for p in snapshot.pulls]
-		json.dump({"issues": [dataclasses.asdict(r) for r in found], "pull_requests": pulls}, sys.stdout, indent=1)
+		json.dump({"issues": [json_row(r) for r in found], "pull_requests": pulls}, sys.stdout, indent=1)
 		print()
 		return
 	print("\n".join(table(found)))

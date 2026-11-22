@@ -36,6 +36,8 @@ The board shows each issue under #424 with a Status (Backlog, Ready, In progress
 | Open, but marked Done | It was reopened, or closed by mistake. Ask. |
 | No size, no priority or no estimate | These are the maintainer's judgment. List the issue for him; do not guess. |
 | On the board but not under #424 | Either link it as a sub-issue of the right issue, or it belongs to other work. Ask. |
+| A pull request, or another repository's issue, on the board | The board tracks this repository's issues. Ask whether it belongs there; do not remove it. |
+| A sub-issue in another repository | It counts toward its parent's status, but the tool does not follow it. Ask whether it belongs under #424. |
 | A draft item | Drafts wait for the maintainer to review and file them. Leave them. |
 
 ## Limits
