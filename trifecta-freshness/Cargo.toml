@@ -1,0 +1,14 @@
+[package]
+name = "trifecta-freshness"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Cache freshness, refresh scheduling, and failure policy"
+repository = "https://github.com/frog-pond/ccc-server-next"
+keywords = ["cache", "freshness", "backoff"]
+categories = ["caching"]
+
+[lints]
+workspace = true
