@@ -5,7 +5,7 @@ description: Bring the project board "@rye's Rearchitecting Push" in line with t
 
 # Maintain the board
 
-The board shows each issue under #424 with a Status (Backlog, Ready, In progress, In review, Done), a Size, an Iteration and its assignees. Most of that follows from facts GitHub already has: which issues are closed, which block which, and which pull requests are open or merged. `tools/board maintain` works out the moves those facts call for. This skill is about running it and dealing with what it cannot decide.
+The board shows each issue under #424 with a Status (Backlog, Ready, In progress, In review, Done), a Priority, a Size, an Estimate in hours, an Iteration and its assignees. Most of that follows from facts GitHub already has: which issues are closed, which block which, and which pull requests are open or merged. `tools/board maintain` works out the moves those facts call for. This skill is about running it and dealing with what it cannot decide.
 
 ## Steps
 
@@ -34,7 +34,7 @@ The board shows each issue under #424 with a Status (Backlog, Ready, In progress
 | In progress or In review, with no branch and no pull request | Someone may have stopped without pushing. A driver checks its own workers; otherwise ask the maintainer. Do not reset the status. |
 | In review, with a branch but no open pull request | The pull request was closed or never opened. Find out which before moving the issue. |
 | Open, but marked Done | It was reopened, or closed by mistake. Ask. |
-| No size | Sizes are the maintainer's estimate. List the issue for him; do not guess. |
+| No size, no priority or no estimate | These are the maintainer's judgment. List the issue for him; do not guess. |
 | On the board but not under #424 | Either link it as a sub-issue of the right issue, or it belongs to other work. Ask. |
 | A draft item | Drafts wait for the maintainer to review and file them. Leave them. |
 

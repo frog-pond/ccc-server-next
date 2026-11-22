@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Prints the state of the rearchitecture: every issue under the parent issue
-with its status, size, pull request, what it is waiting on and, when it is
-ready to start, the branch to start it from. Then the open pull requests whose
-branches follow the naming rule.
+with its status, priority, size, estimate in hours, pull request, what it is
+waiting on and, when it is ready to start, the branch to start it from. Then
+the open pull requests whose branches follow the naming rule.
+
+Priority is the organisation's issue field (Urgent, High, Medium, Low). Size
+and Estimate are fields of the project. All three are the maintainer's.
 
 Usage:
   tools/board [--json]
@@ -78,6 +81,31 @@ def sub_issues(number, depth=0, seen=None):
 		seen.add(child["number"])
 		found.append((child, depth, number))
 		found.extend(sub_issues(child["number"], depth + 1, seen))
+	return found
+
+
+def priorities(numbers):
+	"""Each issue's Priority (Urgent, High, Medium or Low), keyed by number.
+
+	Priority is an issue field set for the whole organisation, not a field of
+	the project, so `gh project item-list` does not return it. Issues without
+	one are left out."""
+	found = {}
+	numbers = sorted(set(numbers))
+	for start in range(0, len(numbers), 50):
+		chunk = numbers[start:start + 50]
+		aliases = " ".join(
+			f"i{n}:issue(number:{n}){{issueFieldValues(first:20){{nodes{{"
+			"... on IssueFieldSingleSelectValue{name field{... on IssueFieldSingleSelect{name}}}}}}"
+			for n in chunk
+		)
+		owner, name = REPO.split("/")
+		data = gh("api", "graphql", "-f", f'query={{repository(owner:"{owner}",name:"{name}"){{{aliases}}}}}')
+		for n in chunk:
+			issue = (data["data"]["repository"] or {}).get(f"i{n}") or {}
+			for value in (issue.get("issueFieldValues") or {}).get("nodes") or []:
+				if (value.get("field") or {}).get("name") == "Priority":
+					found[n] = value["name"]
 	return found
 
 
@@ -214,7 +242,9 @@ def collect():
 		return None, "blockers are on separate branches"
 
 	rows = []
-	for issue, depth, parent in sub_issues(PARENT):
+	tree = sub_issues(PARENT)
+	priority = priorities([issue["number"] for issue, _, _ in tree])
+	for issue, depth, parent in tree:
 		number = issue["number"]
 		blockers = gh("api", f"repos/{REPO}/issues/{number}/dependencies/blocked_by") or []
 		item = board.get(number, {})
@@ -240,6 +270,8 @@ def collect():
 			"state": issue["state"],
 			"status": status,
 			"size": item.get("size") or "-",
+			"priority": priority.get(number),
+			"estimate": item.get("estimate"),
 			"iteration": (item.get("iteration") or {}).get("title"),
 			"assignees": [a["login"] for a in issue.get("assignees") or []],
 			"item_id": item.get("id"),
@@ -324,8 +356,14 @@ def plan(rows, strays, drafts, branches):
 			moves.append(("assign", r, MAINTAINER))
 		if r["iteration"] is None and r["state"] == "open" and active and not r["has_children"]:
 			moves.append(("iteration", r, None))
-		if r["size"] == "-" and r["state"] == "open" and not r["has_children"]:
-			notes.append(f"#{r['number']}: no size")
+		if r["state"] == "open" and not r["has_children"]:
+			missing = [name for name, absent in (
+				("size", r["size"] == "-"),
+				("priority", r["priority"] is None),
+				("estimate", r["estimate"] is None),
+			) if absent]
+			if missing:
+				notes.append(f"#{r['number']}: no {', no '.join(missing)}")
 	for item in strays:
 		notes.append(f"#{item['content']['number']}: on the board but not under #{PARENT}")
 	for item in drafts:
@@ -386,18 +424,22 @@ def show(as_json):
 		return
 
 	print(f"Issues under #{PARENT}\n")
-	print(f"{'':2}{'issue':<7}{'status':<13}{'size':<5}{'PR':<8}{'blocked by':<26}title")
+	print(f"{'':2}{'issue':<7}{'status':<13}{'prio':<8}{'size':<5}{'est':>5}  {'PR':<8}{'blocked by':<26}title")
 	for r in rows:
 		mark = "✓" if r["state"] == "closed" else ("→" if r["ready"] else " ")
 		blocked = ",".join(f"#{n}" for n in r["open_blockers"]) or "-"
 		prs = ",".join(f"#{n}" for n in r["pulls"]) or "-"
-		line = f"{mark:2}{'#' + str(r['number']):<7}{r['status']:<13}{r['size']:<5}{prs:<8}{blocked:<26}{'  ' * r['depth']}{r['title']}"
+		est = "-" if r["estimate"] is None else f"{r['estimate']:g}"
+		line = (f"{mark:2}{'#' + str(r['number']):<7}{r['status']:<13}{r['priority'] or '-':<8}{r['size']:<5}"
+			f"{est:>5}  {prs:<8}{blocked:<26}{'  ' * r['depth']}{r['title']}")
 		if r["ready"]:
 			line += f"  [start from {r['base']}]"
 		elif r["state"] == "open" and not r["pulls"] and r["waiting_reason"]:
 			line += f"  [{r['waiting_reason']}]"
 		print(line)
-	print("\n→ ready to start   ✓ closed")
+	print("\n→ ready to start   ✓ closed   est: the maintainer's estimate in hours")
+	remaining = sum(r["estimate"] or 0 for r in rows if r["state"] == "open" and not r["has_children"])
+	print(f"Estimated hours left on open issues without sub-issues: {remaining:g}")
 
 	print("\nOpen pull requests\n")
 	if not summary:
