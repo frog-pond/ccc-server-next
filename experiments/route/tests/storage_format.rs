@@ -24,6 +24,24 @@ fn refresh_job_json_is_stable() {
 }
 
 #[test]
+fn fixture_names_identify_the_same_parameters_on_each_boundary() {
+	for (fixture, segment, object) in [
+		(Fixture::Value, "value", "fixture-value"),
+		(Fixture::Redirect, "redirect", "fixture-redirect"),
+	] {
+		assert_eq!(segment.parse(), Ok(fixture));
+		assert_eq!(
+			Fixture::from_route_path(&format!("/experiment/{segment}")),
+			Ok(fixture)
+		);
+		assert_eq!(fixture.object_name(), object);
+		assert_eq!(Fixture::from_object_name(object), Ok(fixture));
+	}
+	assert!(Fixture::from_route_path("/experiment/missing").is_err());
+	assert!(Fixture::from_route_path("/experiment/value/extra").is_err());
+}
+
+#[test]
 fn refresh_outcome_json_is_stable() {
 	assert_storage_format(
 		&RefreshOutcome::Value { value: 42 },

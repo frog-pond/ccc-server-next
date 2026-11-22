@@ -291,6 +291,7 @@ dependencies = [
  "axum",
  "fixture-experiment-route",
  "reqwest",
+ "serde_json",
  "thiserror",
  "tokio",
  "trifecta",

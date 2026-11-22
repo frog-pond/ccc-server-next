@@ -4,76 +4,114 @@
 //! handler produces [`ObjectReply`] for the Worker to forward. Its `alarm`
 //! reads a [`RefreshJob`] and persists the operation's [`RefreshOutcome`].
 
-// The shared pipeline bodies follow the draft signature review.
-#![allow(dead_code)]
+use std::{error::Error as StdError, marker::PhantomData, str::FromStr};
 
-use bytes::Bytes;
-use futures_util::{future, stream};
+use bytes::{Bytes, BytesMut};
+use futures_util::{future, stream, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use trifecta::{
 	body::{AdaptResponse, Body, BodyReadError, BodyWithMetadata},
 	future::BoxFuture,
-	operation::{Error as OperationError, Operation},
+	operation::{Error as OperationError, ErrorKind, Operation},
+	pipeline::Id,
 	source::Source,
 	transform::Transform,
+	uncached::Pipeline,
 };
 
 /// Which response the experiment requests from the loopback fixture server.
 /// Each fixture has its own Durable Object and owns its job, alarm and result.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Fixture {
 	/// An HTTP 200 with a JSON unsigned integer as its body.
-	/// Uses the Durable Object named `fixture-value`.
-	#[serde(rename = "value")]
 	Value,
 	/// An HTTP 302 pointing to a separate fixture path.
-	/// Uses the Durable Object named `fixture-redirect`.
-	#[serde(rename = "redirect")]
 	Redirect,
 }
 
+/// The input does not identify either fixture.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+#[error("unknown fixture")]
+pub struct UnknownFixture;
+
 impl Fixture {
-	/// Parses the last path segment of `/experiment/{fixture}`.
-	/// Returns `None` for segments other than `value` and `redirect`.
-	#[must_use]
-	pub fn from_path_segment(segment: &str) -> Option<Self> {
-		match segment {
-			"value" => Some(Self::Value),
-			"redirect" => Some(Self::Redirect),
-			_ => None,
+	const ALL: [Self; 2] = [Self::Value, Self::Redirect];
+
+	const fn names(self) -> (&'static str, &'static str) {
+		match self {
+			Self::Value => ("value", "fixture-value"),
+			Self::Redirect => ("redirect", "fixture-redirect"),
 		}
 	}
 
-	/// Returns the stable name used by the Worker to select the fixture's object.
+	/// The stable path segment and serialized fixture parameter.
+	#[must_use]
+	pub const fn segment(self) -> &'static str {
+		self.names().0
+	}
+
+	/// The stable name used to select the fixture's Durable Object.
 	#[must_use]
 	pub const fn object_name(self) -> &'static str {
-		match self {
-			Self::Value => "fixture-value",
-			Self::Redirect => "fixture-redirect",
-		}
+		self.names().1
 	}
 
-	/// Identifies the fixture from the name supplied to the Durable Object.
-	/// Returns `None` for an object outside this route's two known names.
-	#[must_use]
-	pub fn from_object_name(name: &str) -> Option<Self> {
-		[Self::Value, Self::Redirect]
+	/// Identifies a fixture by its Durable Object name.
+	///
+	/// # Errors
+	///
+	/// Returns [`UnknownFixture`] for other names.
+	pub fn from_object_name(name: &str) -> Result<Self, UnknownFixture> {
+		Self::ALL
 			.into_iter()
 			.find(|fixture| fixture.object_name() == name)
+			.ok_or(UnknownFixture)
 	}
 
-	/// The HTTP path to request from the loopback fixture server.
-	#[must_use]
-	pub const fn upstream_path(self) -> &'static str {
-		match self {
-			Self::Value => "/value",
-			Self::Redirect => "/redirect",
-		}
+	/// Parses the full route path shared by both entry points.
+	///
+	/// # Errors
+	///
+	/// Returns [`UnknownFixture`] unless the path is `/experiment/{fixture}`
+	/// with a known fixture segment.
+	pub fn from_route_path(path: &str) -> Result<Self, UnknownFixture> {
+		path
+			.strip_prefix("/experiment/")
+			.ok_or(UnknownFixture)?
+			.parse()
+	}
+}
+
+impl FromStr for Fixture {
+	type Err = UnknownFixture;
+
+	/// Parses the exact fixture segment used in the route and in storage.
+	fn from_str(segment: &str) -> Result<Self, Self::Err> {
+		Self::ALL
+			.into_iter()
+			.find(|fixture| fixture.segment() == segment)
+			.ok_or(UnknownFixture)
+	}
+}
+
+impl Serialize for Fixture {
+	fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+		serializer.serialize_str(self.segment())
+	}
+}
+
+impl<'de> Deserialize<'de> for Fixture {
+	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+		String::deserialize(deserializer)?
+			.parse()
+			.map_err(serde::de::Error::custom)
 	}
 }
 
 /// The operation and parameters persisted before scheduling a refresh.
-/// An alarm decodes this record and prepares a new request from its binding.
+/// The alarm uses the stored parameters to prepare the request. The object name
+/// serves as a diagnostic identity and a check that the job reached its owner.
+/// A mismatch is an invalid stored record.
 /// The SQLite storage format is `{"name":"read_fixture","parameters":"value"}`
 /// or the same object with `"redirect"` as its parameters.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -85,8 +123,9 @@ pub enum RefreshJob {
 	ReadFixture(Fixture),
 }
 
-/// The outcome of a refresh, persisted in the SQLite-backed Durable Object.
-/// The SQLite storage format is `{"outcome":"value","value":42}` for a value,
+/// A completed fixture attempt. The Worker encodes this inside a completed
+/// [`ObjectReply`] before persisting the ready-to-serve JSON in SQLite.
+/// The nested outcome format is `{"outcome":"value","value":42}` for a value,
 /// or `{"outcome":"failed","failure":{"kind":"http_status","status":302}}`
 /// for a failure, with the inner `kind` and fields defined by [`RefreshFailure`].
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -195,7 +234,7 @@ pub enum ObjectReply {
 	/// Storage is accessible, but the runtime rejected the alarm schedule.
 	#[serde(rename = "alarm_scheduling_failed")]
 	AlarmSchedulingFailed,
-	/// A stored job or result was read but could not be decoded.
+	/// The stored job could not be decoded or belonged to a different fixture.
 	#[serde(rename = "stored_record_invalid")]
 	StoredRecordInvalid,
 }
@@ -203,20 +242,6 @@ pub enum ObjectReply {
 impl From<RefreshOutcome> for ObjectReply {
 	fn from(result: RefreshOutcome) -> Self {
 		Self::Complete { result }
-	}
-}
-
-impl ObjectReply {
-	/// Gives both entry points the status for the serialized reply. A completed
-	/// attempt is delivered as 200 even when the embedded refresh failed.
-	#[must_use]
-	pub const fn http_status(self) -> u16 {
-		match self {
-			Self::Complete { .. } => 200,
-			Self::Pending => 202,
-			Self::StorageUnavailable | Self::AlarmSchedulingFailed => 503,
-			Self::StoredRecordInvalid => 500,
-		}
 	}
 }
 
@@ -258,36 +283,141 @@ impl<P> Transform<P, (), u32> for FixtureTransform {
 	fn transform<'a>(
 		&'a self,
 		_request: &'a P,
-		_body: BodyWithMetadata<()>,
+		body: BodyWithMetadata<()>,
 	) -> BoxFuture<'a, Result<u32, Self::Error>> {
-		Box::pin(async { todo!("decode the integer from the adapted body") })
+		Box::pin(decode_fixture(body))
 	}
 }
 
-/// Assembles the same uncached fixture operation from either entry point's
-/// transport source and adapter. Both supply a successful body with no metadata.
-pub fn fixture_operation<P, S, A>(_source: S, _adapter: A) -> Operation<P, u32>
-where
-	P: Send + Sync + 'static,
-	S: Source<P>,
-	A: AdaptResponse<S::Response, Metadata = ()>,
-{
-	todo!("compose the source and adapter with FixtureTransform")
+async fn decode_fixture(body: BodyWithMetadata<()>) -> Result<u32, TransformFailure> {
+	let mut chunks = body.into_parts().0.into_stream();
+	let first = chunks
+		.try_next()
+		.await
+		.map_err(TransformFailure::ReadBody)?
+		.unwrap_or_default();
+	let Some(second) = chunks
+		.try_next()
+		.await
+		.map_err(TransformFailure::ReadBody)?
+	else {
+		return serde_json::from_slice(&first).map_err(TransformFailure::Decode);
+	};
+	let mut bytes = BytesMut::from(first.as_ref());
+	bytes.extend_from_slice(&second);
+	while let Some(chunk) = chunks
+		.try_next()
+		.await
+		.map_err(TransformFailure::ReadBody)?
+	{
+		bytes.extend_from_slice(&chunk);
+	}
+	serde_json::from_slice(&bytes).map_err(TransformFailure::Decode)
 }
 
-/// Builds the outcome shared by both entry points. `E` is the transport's
-/// underlying error, such as `worker::Error` or `reqwest::Error`.
-///
-/// `Source` downcasts to [`FixtureSourceError`] to distinguish `Fetch`,
-/// `InvalidStatus` and `HttpStatus`. For `HttpStatus`, the source captures the
-/// checked status from its original HTTP response. `ResponseAdaptation` maps to
-/// `ReadBody`. `Transformation` downcasts to select `ReadBody` or `Decode`.
-/// An unexpected stage or cause maps to `Pipeline`. The caller still owns the
-/// original error and can log it before it stores or returns the outcome.
-#[must_use]
-pub fn classify_refresh_failure<E>(_error: &OperationError) -> RefreshFailure
+/// The uncached fixture pipeline with its transport error type retained for
+/// classification after Trifecta erases the concrete cause.
+pub struct FixtureOperation<P, E> {
+	operation: Operation<P, u32>,
+	transport_error: PhantomData<fn() -> E>,
+}
+
+/// Assembles the same fixture pipeline from either transport. The source's
+/// error type determines how this operation later recovers its concrete cause.
+pub fn fixture_operation<P, S, A, E>(source: S, adapter: A) -> FixtureOperation<P, E>
 where
-	E: std::error::Error + Send + Sync + 'static,
+	P: Send + Sync + 'static,
+	S: Source<P, Error = FixtureSourceError<E>>,
+	A: AdaptResponse<S::Response, Metadata = ()>,
+	E: StdError + Send + Sync + 'static,
 {
-	todo!("classify the stage and downcast its cause where needed")
+	let pipeline = Pipeline::new(source, adapter, FixtureTransform);
+	FixtureOperation {
+		operation: Operation::new(pipeline.into_handle(Id::new("read_fixture"))),
+		transport_error: PhantomData,
+	}
+}
+
+/// A classified fixture failure and the original Trifecta diagnostic for logs.
+#[derive(Debug, thiserror::Error)]
+#[error("{cause}")]
+pub struct FailedRefresh {
+	/// The failure safe to include in a response or persist in SQLite.
+	pub failure: RefreshFailure,
+	/// The original pipeline error with its concrete error source.
+	#[source]
+	pub cause: OperationError,
+}
+
+impl<P, E> FixtureOperation<P, E>
+where
+	P: Send + Sync + 'static,
+	E: StdError + Send + Sync + 'static,
+{
+	/// Performs the shared operation and returns the decoded fixture integer.
+	///
+	/// # Errors
+	///
+	/// Returns the classified source, body, or conversion failure with its cause.
+	pub async fn perform(&self, request: P) -> Result<u32, FailedRefresh> {
+		self
+			.operation
+			.perform(request)
+			.await
+			.map(trifecta::operation::Outcome::into_value)
+			.map_err(|cause| FailedRefresh {
+				failure: Self::classify(&cause),
+				cause,
+			})
+	}
+
+	fn classify(error: &OperationError) -> RefreshFailure {
+		match error.kind() {
+			ErrorKind::Source => match error
+				.source()
+				.and_then(|cause| cause.downcast_ref::<FixtureSourceError<E>>())
+			{
+				Some(FixtureSourceError::Fetch(_)) => RefreshFailure::Fetch,
+				Some(FixtureSourceError::HttpStatus(status)) => {
+					RefreshFailure::HttpStatus { status: *status }
+				}
+				Some(FixtureSourceError::InvalidStatus(_)) => RefreshFailure::InvalidStatus,
+				None => RefreshFailure::Pipeline,
+			},
+			ErrorKind::ResponseAdaptation => RefreshFailure::ReadBody,
+			ErrorKind::Transformation => match error
+				.source()
+				.and_then(|cause| cause.downcast_ref::<TransformFailure>())
+			{
+				Some(TransformFailure::ReadBody(_)) => RefreshFailure::ReadBody,
+				Some(TransformFailure::Decode(_)) => RefreshFailure::Decode,
+				None => RefreshFailure::Pipeline,
+			},
+			_ => RefreshFailure::Pipeline,
+		}
+	}
+}
+
+/// The shared structured refresh failure event for native and Worker logs.
+#[derive(Debug, Serialize)]
+pub struct RefreshFailureEvent<'a> {
+	event: &'static str,
+	fixture: Fixture,
+	operation: &'static str,
+	failure: RefreshFailure,
+	cause: &'a str,
+}
+
+impl<'a> RefreshFailureEvent<'a> {
+	/// Uses a diagnostic prepared by the entry point with sensitive data removed.
+	#[must_use]
+	pub const fn new(fixture: Fixture, failure: RefreshFailure, cause: &'a str) -> Self {
+		Self {
+			event: "fixture_experiment.refresh_failed",
+			fixture,
+			operation: "read_fixture",
+			failure,
+			cause,
+		}
+	}
 }
