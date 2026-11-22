@@ -76,22 +76,23 @@ Issues and documents are written for a person who has not followed the work: say
 Work is tracked in GitHub issues under #424. `tools/board` shows their state and which are ready to start.
 
 1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. Claude drives; Codex works issues and reviews. The skills work on any host that can run an agent in a git worktree; `docs/agent-hosts.md` maps each step to T3 Code, Claude Code, the Codex CLI and doing it by hand. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
-2. One issue per branch and pull request, in its own worktree. Branches are named `rearch/<issue>-<name>`.
+2. One issue per branch and pull request, in its own worktree. Branches are named `rearch/<issue>-<name>`. A change to the tools, skills or agent instructions that the maintainer asks for directly needs no issue: its branch is `rearch/<topic>`, with no number, and `tools/board` does not list it. Reviewers do not flag such a branch for having no issue.
 3. Branch from the base `tools/board` prints for the issue: `rearchitecture`, or the branch of the pull request the issue is waiting on while that is unmerged. Foundation work therefore forms a stack of pull requests, and routes are independent of each other.
 4. Nothing pushed is rewritten: no rebase and no force-push. When a branch you built on changes, merge it into yours.
 5. A pull request is opened as a draft. Types and signatures are reviewed in the draft before the bodies are written, and the bodies are added to the same pull request (`design-types`, `port-route`). A draft is never merged.
 6. `mise run check` passes before review. Review follows the `arch-review` skill, which decides how thorough the review is from what the change touches.
-7. You may push `rearchitecture` and `rearch/*` branches and open pull requests between them without asking. Never push to `main`, open a pull request against it, or merge into it. `main` is also protected on GitHub: it accepts only pull requests with passing checks. Merging a pull request is the maintainer's, unless he has granted level 5 for that work (`docs/delegation-levels.md`).
+7. You may push `rearchitecture` and `rearch/*` branches and open pull requests between them without asking. Never push to `main`, open a pull request against it, or merge into it. `main` is also protected on GitHub: it accepts only pull requests with passing checks. Merging a pull request is the maintainer's, unless they have granted level 5 for that work (`docs/delegation-levels.md`).
 
 ## Commands
 
 ```sh
 tools/board         # every issue under #424, what blocks it, and the open pull requests
 tools/board maintain [--apply]   # the board moves the rules call for (see the board-maintenance skill)
-mise run check      # clippy, fmt-check and test; this is what "passing" means
+mise run check      # clippy, fmt-check, test and test:tools; this is what "passing" means
 mise run clippy
 mise run fmt
 mise run test
+mise run test:tools # offline tests of the rules in tools/board
 tools/reference-path    # where the reference is checked out
 tools/reference-drift   # what changed in the reference since the recorded commit
 ```

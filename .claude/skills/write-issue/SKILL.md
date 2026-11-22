@@ -37,11 +37,11 @@ Anything that makes a new argument, changes a goal or records a decision is a fu
 
 ## Voice
 
-Write the way the maintainer does. This paragraph is his, and is the reference:
+Write the way the maintainer does. This paragraph is the maintainer's, and is the reference:
 
 > The server currently has no caching nor singleflighting. This issue tracks adding both, through a shared pipeline framework which I'm calling "Trifecta". Notably, I want to preserve the ability to deploy on both Workers and a standalone docker image, so Trifecta is not just a caching and singleflighting framework but also a way of formalizing the pieces that we care about in application code and breaking things up. We also don't just want to have caching and singleflighting, we want to have some flexibility to proactively warm, backfill, and update the cache from dedicated worker jobs.
 
-- First person singular for his views and intentions ("I want", "I'm calling").
+- First person singular for the maintainer's views and intentions ("I want", "I'm calling").
 - Flat, declarative statements of fact. Do not make it more exciting than it is: no scene-setting about phones or lunch queues, no slogans, no bold lead-in phrases, no rhetorical questions.
 - Use the ordinary technical word: cache, singleflight, Workers, Durable Object, docker image, upstream. Do not paraphrase a standard term into everyday language, and do not invent a name for something. `Trifecta` is the one project name, and it means the caching and pipeline framework.
 - Numbers and dates over adjectives: "19 routes", "open since October 2022", not "few" or "long-standing".
@@ -59,5 +59,5 @@ Write the way the maintainer does. This paragraph is his, and is the reference:
 ## Process
 
 1. Draft the issue and show it to the maintainer. Read it once for flow before showing it: each sentence should say one thing, and nothing should be there for effect.
-2. When he approves the text, add it as a draft to the project "@rye's Rearchitecting Push" (`gh project item-create 4 --owner frog-pond --title "..." --body "..."`), where he reviews it in GitHub.
-3. File it as a real issue only when he asks. The one exception is the short form above: once he has approved splitting an issue, its pieces are filed directly.
+2. When the maintainer approves the text, add it as a draft to the project "@rye's Rearchitecting Push" (`gh project item-create 4 --owner frog-pond --title "..." --body "..."`), where they review it in GitHub.
+3. File it as a real issue only when the maintainer asks. The one exception is the short form above: once the maintainer has approved splitting an issue, its pieces are filed directly.
