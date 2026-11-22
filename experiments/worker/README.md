@@ -30,12 +30,12 @@ Setup and the first build can download tools from npm and GitHub, in addition
 to Cargo dependencies. Warm the build before applying the loopback-only runtime
 restriction below.
 
-The `dev` script sets the following variables. Use all three for any direct
-Wrangler invocation for this experiment. They disable telemetry, error reports,
-and Miniflare's `cf.json` download for the process.
+The `dev` script sets the following variables. Use them for any direct Wrangler
+invocation for this experiment. They disable telemetry, error reports,
+Miniflare's `cf.json` download, and the banner's npm update check.
 
 ```sh
-WRANGLER_SEND_METRICS=false WRANGLER_SEND_ERROR_REPORTS=false CLOUDFLARE_CF_FETCH_ENABLED=false wrangler dev --local
+WRANGLER_SEND_METRICS=false WRANGLER_SEND_ERROR_REPORTS=false CLOUDFLARE_CF_FETCH_ENABLED=false WRANGLER_HIDE_BANNER=true wrangler dev --local
 ```
 
 Wrangler uses the crate-local worker-build binary and the local `FIXTURES`
@@ -51,14 +51,15 @@ request for a known fixture returns 405 with `Allow: GET`.
 Each completed attempt schedules another refresh in five seconds. The Worker
 serves the cached reply during that refresh. A failed refresh preserves the last
 good value and logs `worker_experiment.stale_value_served` when a read serves it.
-A five-second transfer deadline covers both response headers and body.
+Both builds share a five-second deadline covering the source, response
+adapter, and transform.
 
 ## Loopback-only verification
 
 On macOS, after warming the build, run these commands from `experiments/worker`.
 The verification runs used this OS policy to permit loopback and Unix socket
-connections and deny other outbound connections. The opt-outs apply within the
-process, independently of the OS policy.
+connections and deny other outbound connections. The OS guard still allows DNS
+lookups. The opt-outs apply within the process, independently of the OS policy.
 
 ```sh
 mkdir -p .wrangler
@@ -80,6 +81,7 @@ installation. They show the opt-outs independently of the network restriction.
 | --- | --- |
 | Wrangler 4.166.0 telemetry | `wrangler/wrangler-dist/cli.js` line 10009 reads `WRANGLER_SEND_METRICS`. Lines 55845–55852 give it precedence over the project setting and global consent. |
 | Wrangler 4.166.0 error reports | `wrangler/wrangler-dist/cli.js` lines 10011–10014 declare `WRANGLER_SEND_ERROR_REPORTS`. Lines 119107–119115 return before reporting when it is false. The transport at line 119147 targets `platform.dash.cloudflare.com`. |
+| Wrangler 4.166.0 banner | `wrangler/wrangler-dist/cli.js` lines 10082–10084 read `WRANGLER_HIDE_BANNER`. Lines 80561–80566 return before the npm update check when it is true. |
 | Miniflare 5.20261119.0-beta, locked by Wrangler 4.166.0 | `miniflare/dist/src/index.js` lines 113816–113817 declare the URL and variable. Lines 113875–113905 make `false` select built-in metadata before any cache read or download. |
 
 ## Manual runtime checks
@@ -257,7 +259,7 @@ Actual redirect handling, SQLite persistence, and alarm delivery require
 Wrangler 4.166.0's `dev` command does not honor the project's `send_metrics`
 setting for telemetry. The initial runs sent eight telemetry events to
 `sparrow.cloudflare.com` and Miniflare fetched `cf.json` from
-`workers.cloudflare.com`. The dev script sets the three environment overrides above. The repeat runs
+`workers.cloudflare.com`. The dev script sets the environment overrides above. The repeat runs
 started with the cached `cf.json` removed.
 
 Hosted Workers Fetch requires a hostname for subrequests, so the numeric
