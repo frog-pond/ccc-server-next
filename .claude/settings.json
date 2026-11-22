@@ -16,6 +16,7 @@
 			"Bash(mise run fmt)",
 			"Bash(mise run fmt-check)",
 			"Bash(mise run test)",
+			"Bash(mise run test:tools)",
 			"Bash(mise run reference:path)",
 			"Bash(mise run reference:drift)",
 			"Bash(tools/reference-path)",
