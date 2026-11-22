@@ -45,6 +45,6 @@ The driver asks "What level can I run at?" with two to four levels that make sen
 
 ## Recording
 
-A grant is given in the driver's T3 thread and stays there. The driver states it back in one line: the level, the issues it covers, the end point, and any escalations beyond the fixed list.
+A grant is given in the driver's session (in T3 Code, its thread) and stays there. The driver states it back in one line: the level, the issues it covers, the end point, and any escalations beyond the fixed list.
 
-A grant covers the thread it was given in. A new driver thread asks again, unless the maintainer points it to the thread that holds a grant still in force. The driver's last message in each session lists the level of each piece of work in flight. When the maintainer changes a level, the driver states the new grant the same way.
+A grant covers the session it was given in. A new driver session asks again, unless the maintainer points it to the session that holds a grant still in force. The driver's last message in each session lists the level of each piece of work in flight. When the maintainer changes a level, the driver states the new grant the same way.

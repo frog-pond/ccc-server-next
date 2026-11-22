@@ -11,11 +11,11 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 1. Read the issue, its parent, and the issues it is blocked by: `tools/board` shows them. If one it is blocked by is still open and its branch is not on the stack, stop and say so.
 2. Read `AGENTS.md`. For a route, follow `port-route`. For any new or changed type, follow `design-types`.
-3. Set the issue's status to "In progress" (`tools/board status <N> "In progress"`), and link the issue to your thread if the host offers that.
+3. Set the issue's status to "In progress" (`tools/board status <N> "In progress"`), and link the issue to your session if the host offers that.
 
 ## 2. Branch
 
-- Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, use it; otherwise `git worktree add ../ccc-server-next-<N>`. If the issue already has a branch, continue on it (`git switch rearch/<N>-<name>`) instead of starting another.
+- Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, use it; otherwise `git worktree add ../ccc-server-next-<N> origin/<base>`. If the issue already has a branch, continue on it (`git switch rearch/<N>-<name>`) instead of starting another.
 - In a new worktree, `mise trust` may be needed once. The Worker build needs `rustup target add wasm32-unknown-unknown`.
 - Name the branch `rearch/<issue number>-<short-name>`. `tools/board` only recognizes branches named this way.
 - Branch from the base `tools/board` prints for the issue (`[start from …]`), after `git fetch origin`: `git switch -c rearch/<N>-<name> origin/<base>`. If the board prints no base, the issue is not ready: stop and say why.
@@ -38,7 +38,7 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 ## 5. If you stop before finishing
 
-End with this report as your final message. Whoever started you reads it from your thread; do not post it on the issue.
+End with this report as your final output. Whoever started you reads it there, whatever the host; do not post it on the issue.
 
 ```
 State: <what is done, what is not>

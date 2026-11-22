@@ -28,8 +28,10 @@ One reviewer starting from nothing, on a different model from the author where o
 
 Two reviewers working separately, one Claude and one Codex:
 
-- Claude: the `arch-reviewer` subagent, or another Claude started fresh.
-- Codex: through whatever the host offers for handing work to Codex, or `codex review` from a shell.
+- Claude: the `arch-reviewer` subagent, or a fresh Claude session given the request and the contents of `.claude/agents/arch-reviewer.md` (`claude -p`).
+- Codex: whatever the host offers for handing work to Codex, or `codex review --base <base>` or `codex exec` with the request, run in the worktree being reviewed.
+
+`docs/agent-hosts.md` says how to start each on the common hosts.
 
 Give both the same request. Neither sees what the other found.
 

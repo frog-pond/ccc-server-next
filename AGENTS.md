@@ -61,7 +61,7 @@ Full wording and reasons are in `docs/review/rubric.md`. Reviews check against t
 | Whether a route is finished | Worked out from merged pull requests | Never keep a list of finished routes in a file. |
 | What is in progress | The project board "@rye's Rearchitecting Push" | `tools/board` reads it. |
 | A pull request's review | The "Review" section of its description | Edited in place for each round. No comment per review. |
-| Grants of autonomy, handoffs between sessions, and questions for the maintainer | The driver's T3 thread | A worker's report is its final message in its own thread. |
+| Grants of autonomy, handoffs between sessions, and questions for the maintainer | The driver's session (a T3 thread, or another host's session) | A worker's report is its final output. `docs/agent-hosts.md` says how each host provides these. |
 | Discussion and exploration | The conversation | Anything a person reading the issue later needs goes in a row above. |
 
 The design of `trifecta` is described in #425 and its sub-issues. The maintainer also keeps working notes locally. They are not in the repository, so do not assume they are present, and do not guess their contents.
@@ -74,7 +74,7 @@ Issues and documents are written for a person who has not followed the work: say
 
 Work is tracked in GitHub issues under #424. `tools/board` shows their state and which are ready to start.
 
-1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
+1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. The skills work on any host that can run an agent in a git worktree; `docs/agent-hosts.md` maps each step to T3 Code, Claude Code, the Codex CLI and doing it by hand. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
 2. One issue per branch and pull request, in its own worktree. Branches are named `rearch/<issue>-<name>`.
 3. Branch from the base `tools/board` prints for the issue: `rearchitecture`, or the branch of the pull request the issue is waiting on while that is unmerged. Foundation work therefore forms a stack of pull requests, and routes are independent of each other.
 4. Nothing pushed is rewritten: no rebase and no force-push. When a branch you built on changes, merge it into yours.

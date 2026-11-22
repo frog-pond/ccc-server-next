@@ -12,14 +12,14 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 ## Starting a session
 
 1. Run from a worktree, not the main checkout, which holds the maintainer's own work. `git fetch origin`, then use a worktree of `origin/rearchitecture`. While the scaffolding has not merged into it (`tools/board` is missing there), use the highest open pull request's branch instead.
-2. Name this thread `Driver: <the work>` if the host lets you. Find the previous driver thread (search threads for `Driver:`) and read its last message: it says what was left in flight and what is waiting on the maintainer. If the host cannot read threads, ask the maintainer.
-3. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this thread, or pointed you to a thread whose grant still covers the work, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. State the grant back in one line. With no answer, you are at level 1.
+2. Name this session `Driver: <the work>` if the host lets you. Find the previous driver session and read its last message: it says what was left in flight and what is waiting on the maintainer. `docs/agent-hosts.md` says how on each host; if yours cannot, ask the maintainer for it.
+3. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this session, or pointed you to a session whose grant still covers the work, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. State the grant back in one line. With no answer, you are at level 1.
 4. Before every action, check it is within your level and not on the list escalated at every level. If it is not, bring it to the maintainer as options with a recommendation.
-5. Hand each issue to its own worker in its own worktree. Where the host can start a separate agent with its own checkout, use that. For the second reviewer of a thorough review, use a model from another vendor where one is available.
+5. Hand each issue to its own worker in its own worktree, using whatever your host offers for starting an agent with its own checkout (`docs/agent-hosts.md`). For the second reviewer of a thorough review, use a model from another vendor where one is available.
 
 ## Ending a session
 
-Before you stop, end with this as your last message in the thread. Do not post it on an issue.
+Before you stop, end with this as your last message in the session. Do not post it on an issue.
 
 ```
 State: <what moved this session: pull requests opened, reviewed, ready to merge, merged>
@@ -86,7 +86,7 @@ Some issues are too large for one pull request, such as #434. Split along the li
 
 ## When something needs the maintainer
 
-Do not guess, and do not let it stop unrelated work. Ask in this thread, with the options you see and a recommendation, leave the issue's status as it is, move on to other ready work, and list the question again when you stop. Questions from workers come to you in their reports; answer what your level allows and bring the rest here.
+Do not guess, and do not let it stop unrelated work. Ask in this session, with the options you see and a recommendation, leave the issue's status as it is, move on to other ready work, and list the question again when you stop. Questions from workers come to you in their reports; answer what your level allows and bring the rest here.
 
 What goes to him depends on your level, and the list in `docs/delegation-levels.md` goes to him at every level.
 
