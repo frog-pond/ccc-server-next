@@ -1,4 +1,4 @@
-//! Fetch a `WordPress` JSON feed with one uncached Trifecta operation.
+//! Fetch a WP-JSON feed with one uncached Trifecta operation.
 //!
 //! # A mental map of this example
 //!
@@ -57,7 +57,7 @@ mod transform;
 use std::{error::Error, sync::Arc, time::Instant};
 
 use domain::{Intent, WpJsonFeed};
-use operation::Service;
+use operation::WpJsonService;
 use trifecta::operation::CacheStatus;
 
 /// The application can create arbitrary types for holding shared resources
@@ -84,15 +84,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 	// The application creates its service once and decides whether setup should
 	// be measured. Trifecta does not own this lifecycle or this clock.
-	let setup_started = Instant::now();
-	let feeds = Service::new(&resources).await;
-	println!("service setup took {:?}", setup_started.elapsed());
+	let t_setup_started = Instant::now();
+	let feeds = WpJsonService::new(&resources).await;
+	println!("service setup took {:?}", t_setup_started.elapsed());
 
 	// A caller gives the application an "intent". The service will prepare that
 	// intent before invoking the private operation assembled during setup.
-	let invocation_started = Instant::now();
+	let t_invocation_started = Instant::now();
 	let outcome = feeds.load_feed(Intent::new("blog.example.com")).await?;
-	println!("service invocation took {:?}", invocation_started.elapsed());
+	println!(
+		"service invocation took {:?}",
+		t_invocation_started.elapsed()
+	);
 
 	assert_eq!(
 		outcome.value(),

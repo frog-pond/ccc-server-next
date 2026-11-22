@@ -13,9 +13,10 @@ use trifecta::{
 	body::{AdaptResponse, Body, BodyReadError, BodyWithMetadata},
 	future::BoxFuture,
 	operation::{CacheStatus, ErrorKind, Operation},
-	pipeline::{Id, Uncached},
+	pipeline::Id,
 	source::Source,
 	transform::Transform,
+	uncached,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,7 +117,7 @@ fn fixture(failure: FailureStage) -> Fixture {
 	let source_calls = Arc::new(AtomicUsize::new(0));
 	let adaptation_calls = Arc::new(AtomicUsize::new(0));
 	let transform_calls = Arc::new(AtomicUsize::new(0));
-	let handle = Uncached::new(
+	let handle = uncached::Pipeline::new(
 		TestSource {
 			failure,
 			calls: source_calls.clone(),

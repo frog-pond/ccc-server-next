@@ -13,11 +13,11 @@ use crate::{
 /// Trifecta does not require an application to implement a service trait. This
 /// ordinary Rust type is free to hold other application resources and perform
 /// caller-local work before it invokes the operation.
-pub(super) struct Service {
+pub(super) struct WpJsonService {
 	feed: Operation<Request, WpJsonFeed>,
 }
 
-impl Service {
+impl WpJsonService {
 	#[allow(clippy::unused_async, clippy::unused_async_trait_impl)]
 	pub(super) async fn new(resources: &ApplicationResourceContainer) -> Self {
 		// The service chooses the uncached pipeline during application setup.
