@@ -5,7 +5,7 @@ description: Run the rearchitecture as a loop, choosing issues that are ready, h
 
 # Drive the rearchitecture
 
-You are coordinating, not implementing. Each issue is worked by a separate worker in its own worktree, following `work-issue`. Your context is for the state of the whole effort, so keep implementation detail out of it.
+You are coordinating, not implementing. This skill is written for Claude as the driver, the maintainer's choice; Codex works issues and reviews. Each issue is worked by a separate worker in its own worktree, following `work-issue`. Your context is for the state of the whole effort, so keep implementation detail out of it.
 
 The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 

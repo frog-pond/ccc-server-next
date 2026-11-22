@@ -48,6 +48,7 @@ Full wording and reasons are in `docs/review/rubric.md`. Reviews check against t
 - **Internal failures are recorded.** The cache being unavailable, a refresh failing or a stale value being served after a failed refresh emits a structured event with a stable name. Never swallow one.
 - **Conversions do no I/O** and read no clock or environment, so both builds share them and one set of tests covers them.
 - **Tests never contact a live site.** Use the reference's fixtures. Do not `curl` a site to see what it returns; several already rate-limit or challenge the reference. Ask the maintainer if a new capture is needed.
+- **When a sandbox blocks a command, ask.** Request approval to run that one command outside the sandbox, through your host's approval mechanism. Do not work around the sandbox, and do not skip the step without saying so.
 - **Do not trust memory for Cloudflare or `worker` crate APIs.** Read the crate's source under `~/.cargo/registry` or the current documentation.
 
 ## Where things are written down
@@ -74,7 +75,7 @@ Issues and documents are written for a person who has not followed the work: say
 
 Work is tracked in GitHub issues under #424. `tools/board` shows their state and which are ready to start.
 
-1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. The skills work on any host that can run an agent in a git worktree; `docs/agent-hosts.md` maps each step to T3 Code, Claude Code, the Codex CLI and doing it by hand. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
+1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. Claude drives; Codex works issues and reviews. The skills work on any host that can run an agent in a git worktree; `docs/agent-hosts.md` maps each step to T3 Code, Claude Code, the Codex CLI and doing it by hand. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
 2. One issue per branch and pull request, in its own worktree. Branches are named `rearch/<issue>-<name>`.
 3. Branch from the base `tools/board` prints for the issue: `rearchitecture`, or the branch of the pull request the issue is waiting on while that is unmerged. Foundation work therefore forms a stack of pull requests, and routes are independent of each other.
 4. Nothing pushed is rewritten: no rebase and no force-push. When a branch you built on changes, merge it into yours.

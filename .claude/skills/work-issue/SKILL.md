@@ -9,7 +9,7 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 ## 1. Before starting
 
-1. Run `tools/board`. If it does not mark the issue ready (→) and print `[start from …]` for it, stop and report the reason it gives. Readiness is defined in one place, the board's own help text, and nowhere else.
+1. Run `tools/board`. If it does not mark the issue ready (→) and print `[start from …]` for it, stop and report the reason it gives. If the sandbox stops it from reaching GitHub, ask for approval to run it outside the sandbox; the same goes later for `git push`, `gh` and `tools/board status`. Readiness is defined in one place, the board's own help text, and nowhere else.
 2. Read the issue, its parent and the issues it is blocked by, and `AGENTS.md`. For a route, follow `port-route`. For any new or changed type, follow `design-types`.
 3. Create your branch (section 2), then set the issue's status to "In progress" (`tools/board status <N> "In progress"`), and link the issue to your session if the host offers that.
 
