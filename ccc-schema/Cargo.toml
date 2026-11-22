@@ -1,0 +1,11 @@
+[package]
+name = "ccc-schema"
+version = "0.1.0"
+description = "Response types for the CCC API"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
