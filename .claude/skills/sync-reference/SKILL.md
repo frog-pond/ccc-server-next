@@ -11,15 +11,17 @@ The reference keeps moving. `docs/reference/` describes it at the commit in `doc
 
 1. Run `tools/reference-drift`.
    - If it reports local modifications in the reference checkout, stop and tell the user. Do not clean them up yourself.
+   - If it reports that the recorded commit is not an ancestor of the reference's head, stop and tell the user.
    - If the reference is at the pinned commit, there is nothing to do.
 2. If the user wants the latest reference, they update that checkout. Do not run `git pull` or `git checkout` in it yourself.
-3. For each commit the script lists, read its diff in the reference (`git -C "$(tools/reference-path)" show <sha>`) and sort it:
+3. Read the whole difference between the recorded commit and the reference's head (`git -C "$(tools/reference-path)" diff <recorded>..HEAD`), using the script's lists of commits and files as a guide. The script lists every changed file, not only code. Sort each change:
    - **Route table change**: a route added, removed or re-pointed. Update `routes.toml`.
    - **Shape change**: a conversion's output changed. Note which rows name that shape function.
    - **Cache behaviour change**: anything under the source cache. Update `cache-semantics.md`, and flag it: the freshness crate's tests must change too.
    - **Upstream change**: a host, request or quirk. Update `upstreams.md`.
+   - **Configuration, tests and fixtures**: `wrangler.jsonc`, a renamed fixture, a changed test. Update whatever in the extracts cites them.
    - **No effect on the contract**: refactors, tooling. Say so in one line.
-4. Update the extracts with `file:line` citations at the new commit. Re-check the citations in any section you touched: line numbers move.
+4. Update the extracts with `file:line` citations at the new commit. Re-check every citation into a reference file that changed, whether or not the text around the citation changed: line numbers move.
 5. Write the new commit to `docs/reference/REFERENCE_COMMIT`.
 6. Report to the user:
    - routes added or removed;

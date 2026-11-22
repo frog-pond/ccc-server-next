@@ -25,7 +25,7 @@ Common terms used below (defined once, cited here):
   (`workers/src/lifetimes.ts:3`) unless noted.
 - **SOURCE_TTL** is 1 h (`workers/src/lifetimes.ts:10`); every source below uses
   `staleIfError` = 1 day unless noted.
-- **Archive** means the source's `record` hook writes each read into an `ArchiveDO`
+- **Archive** means the source's `record` hook writes the result of each successful load into an `ArchiveDO`
   (`workers/src/define-source.ts:16-17`, `workers/src/source-do.ts:210-217`), whose alarm
   separately walks the feed's history backwards, 2 steps per run, 1 min apart, backing off
   1 min doubling to 1 h, honouring `Retry-After` (`workers/src/archive-do.ts:11-14`,
@@ -277,7 +277,7 @@ Common terms used below (defined once, cited here):
   Routes on both campuses: `/calendar/carleton`, `/calendar/upcoming-convos`,
   `/calendar/sumo-schedule` (`workers/src/calendars.ts:99`, `109-110`), and on Carleton
   `/convos/upcoming` (`workers/src/campuses.ts:174`, `workers/src/router.ts:402`).
-- **Request.** Two requests in parallel per read (`workers/src/sources/calendars.ts:102-110`):
+- **Request.** Two requests in parallel per load (`workers/src/sources/calendars.ts:102-110`):
   1. Feed: `GET https://www.carleton.edu<path>?loadFeed=calendar&stamp=<stamp>` with
      `accept: text/calendar` (`workers/src/calendars.ts:58-59`); paths and stamps
      `/calendar/` `1714843628`, `/convocations/calendar/` `1714843936`,
@@ -548,7 +548,7 @@ Common terms used below (defined once, cited here):
 - **Used by.** Source `athletics-scores` (`workers/src/sources/athletics.ts:79-99`); route
   `/athletics/scores` on both campuses (`workers/src/router.ts:416`, `257-265`); params
   `scoresUrl`, `teamName` (`Oles` / `Knights`) (`workers/src/campuses.ts:153-156`, `179-182`).
-- **Request.** Three parallel `GET`s per read (`workers/src/sources/athletics.ts:84-88`):
+- **Request.** Three parallel `GET`s per load (`workers/src/sources/athletics.ts:84-88`):
   1. `https://<host>/services/scores_chris.aspx?format=json` (`workers/src/campuses.ts:154`, `180`);
   2. `https://<host>/services/livestats.ashx` (`source/athletics/shape.ts:182-187`);
   3. `https://<host>/services/responsive-calendar.ashx?type=events&sport=0&date=<M/D/YYYY of campus yesterday>`
@@ -933,7 +933,7 @@ The test config binds placeholder values for the six secrets/variables above (na
    `workers/src/archives/calendars.ts:1` import it, and `workers/vitest.config.ts:24-28`
    configures for it.
 5. **README vs config, Preview bindings.** README says `previews` repeats the `SOURCE`
-   and `STUDENT_WORK` bindings (`workers/README.md:434-436`); `wrangler.jsonc:44-51`
+   and `STUDENT_WORK` bindings (`workers/README.md:380-383`); `wrangler.jsonc:44-51`
    repeats all four.
 6. **README vs code, Google key missing.** README says without the key "those calendars
    are a 502" (`workers/README.md:264-266`); with a stored value they are served

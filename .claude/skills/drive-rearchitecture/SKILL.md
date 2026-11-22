@@ -16,8 +16,9 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
    - checks failing: send it back to a worker with the failure;
    - not yet reviewed: run `arch-review`;
    - findings outstanding: send them to a worker;
-   - reviewed and passing: it is ready to merge (see "Merging").
-3. **Start what is ready.** An issue is ready when everything that blocks it is closed or has a pull request on the stack. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
+   - a draft: leave it, unless its types are waiting for review;
+   - reviewed at its current head and passing: it is ready to merge (see "Merging").
+3. **Start what is ready.** An issue is ready when `tools/board` marks it and prints a base for it: everything that blocks it is closed, or is in open pull requests that are not drafts and lie on one chain. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
 4. **Hand over.** Give each worker the request below. A worker for a different issue is a new worker, not a follow-up message to an old one.
 5. **Record.** Set statuses on the board. If you learned something another worker needs, put it in a comment on the issue or in the documentation, not in your conversation.
 6. **Stop** when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
@@ -26,7 +27,7 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 
 ```
 Work issue #<N> in frog-pond/ccc-server-next, following the work-issue skill.
-Branch from <base branch>. Open the pull request against <base branch>.
+Branch from <the base the board prints>. Open the pull request against that branch.
 Report: the pull request URL, the head commit, what you checked for each
 "Done when" item, and any question for the maintainer.
 ```
@@ -36,13 +37,13 @@ Add nothing about how to do the work. If the issue is not enough to work from, f
 ## The stack
 
 - Foundation work is a stack of pull requests: each is based on the branch before it, and the bottom one is based on `rearchitecture`.
-- Routes are not stacked on each other. Each branches from `rearchitecture`, or from the top of the stack while what it needs is unmerged.
+- Routes are not stacked on each other. Each branches from the base the board prints for it.
 - Nothing pushed is rewritten. When a lower branch gains commits, merge it into each branch above it, bottom to top, and push. No rebase, no force-push.
 - Merge pull requests with a merge commit, not a squash, so the branches above already contain the merged commits. GitHub then points the next pull request at `rearchitecture` by itself.
 
 ## Merging
 
-- Merge from the bottom of the stack upward, only when checks pass and the review is recorded in the pull request.
+- Merge from the bottom of the stack upward, only when checks pass and the review of the current head is recorded in the pull request. A draft is never merged.
 - A change that got the thorough review also needs the maintainer's approval on GitHub before it merges. He reviews types and structure himself.
 - Merging asks the maintainer for confirmation each time. Until he changes that, queue what is ready to merge and tell him.
 - After a merge, close the issue if every "Done when" item is met, and set it to "Done". Add the pull request's number to the parent issue where it lists the change.

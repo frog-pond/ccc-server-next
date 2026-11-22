@@ -119,8 +119,12 @@ Schema: `workers/src/source-do.ts:68-76`.
 Write rule: only after a successful load, the whole table is deleted and then
 refilled with the answers this load used. An answer is skipped when its gzip is
 larger than `MAX_KEPT_COMPRESSED` (`workers/src/source-do.ts:159-178`, `:201`).
-This step runs before the `entry` update in the same `try`. A failed load leaves
-the table unchanged (`workers/src/source-do.ts:219-233`).
+This step runs before the `entry` update in the same `try`. A load that fails
+inside `spec.load` leaves the table unchanged, because the step is never reached
+(`workers/src/source-do.ts:200-201`). A failure after the step has started, in
+the step itself or in the `entry` update that follows it, is caught by the same
+`catch` (`workers/src/source-do.ts:219-233`), which records the failure and does
+not restore the table. The stored value can then be older than the kept answers.
 
 ### 3.3 Alarm
 
@@ -380,7 +384,9 @@ under `waitUntil` with a `.catch` (`workers/src/source-do.ts:211-217`).
 
 `failures = failures + 1`, `backoff_until = now_l + wait`, and
 `last_error = String(err)` (`workers/src/source-do.ts:220-231`). `value`,
-`fetched_at`, `epoch`, `ttl` and the `response` table are left unchanged.
+`fetched_at`, `epoch` and `ttl` are left unchanged. The `response` table is
+unchanged too when the failure was inside `spec.load`; a failure after that
+point can leave it rewritten (see the write rule in §3).
 Trace attributes are noted (§13), the error is re-thrown (`:233`), and
 `#schedule` runs (`:235`).
 
@@ -516,12 +522,15 @@ decides **whether a stored value may be served**.
 - **Going quiet:** when the alarm fires with `now - last_read > 2 days`, it does
   nothing and leaves no alarm (`workers/src/source-do.ts:253`). If a load
   finishes with `now_s - last_read > 2 days`, `#schedule` deletes the alarm
-  (`workers/src/source-do.ts:245`). Because of the 10-minute touch granularity,
-  the real threshold falls between 2 days and 2 days + 10 min after the latest
-  read. A load that a read started cannot see the row as idle, since that read
-  has just made `last_read ≥ now_r − 10 min`. The `:245` branch is therefore
-  reached only when an alarm-started load runs for long enough to cross the
-  threshold.
+  (`workers/src/source-do.ts:245`). Both tests use the stored
+  `last_read`, which can be up to 10 minutes older than the latest real read
+  (`workers/src/source-do.ts:101-103`). A source can therefore become eligible to
+  go quiet as early as 2 days minus 10 minutes after it was last really read.
+  Eligibility is not the moment it goes quiet: that happens when the next alarm
+  fires or the next load finishes. `#schedule` applies the test after every load,
+  however the load was started. After a load that a read started, `last_read` is
+  at most 10 minutes plus the load's duration old, so in practice the `:245`
+  branch is reached from alarm-started loads.
 - **Waking up:** see §5.3.
 - **`purge()`** (`workers/src/source-do.ts:268-272`) runs `DELETE FROM entry`
   and `DELETE FROM response`, then `deleteAlarm()`. It does not touch
@@ -607,9 +616,10 @@ its method is GET (`workers/src/upstream.ts:15-17`). `SourceDO.#load` runs
    one wins (`Map.set`). Test `a page too big for a row is kept compressed`
    (`workers/test/conditional.test.ts:91-102`) keeps a page over 3 MB, because
    its gzip is under 1 MiB.
-9. **Failure:** the `response` table is left unchanged, so the next attempt uses
-   the same validators (`workers/src/source-do.ts:201` is reached only on
-   success).
+9. **Failure inside the load:** the `response` table is left unchanged, so the
+   next attempt uses the same validators (`workers/src/source-do.ts:201` is
+   reached only when `spec.load` succeeds). A failure after that point can leave
+   the table rewritten (see the write rule in §3).
 
 ### 10.4 `Retry-After`
 

@@ -15,11 +15,9 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 ## 2. Branch
 
-- Work in your own git worktree, never in the main checkout.
-- Name the branch `rearch/<issue number>-<short-name>`.
-- Branch from the work it builds on:
-  - foundation work branches from the top of the stack, which `tools/board` prints;
-  - a route branches from `rearchitecture`, or from the top of the stack if what it needs has not merged yet.
+- Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, create your branch in it.
+- Name the branch `rearch/<issue number>-<short-name>`. `tools/board` only recognizes branches named this way.
+- Branch from the base `tools/board` prints for the issue (`[start from …]`), after `git fetch origin`: `git switch -c rearch/<N>-<name> origin/<base>`. If the board prints no base, the issue is not ready: stop and say why.
 - Never rewrite a branch that has been pushed. If the branch you built on gains commits, merge it into yours. Do not rebase and do not force-push.
 
 ## 3. Do the work
@@ -31,10 +29,11 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 ## 4. Open the pull request
 
-- Push the branch and open a pull request whose base is the branch you branched from. Never open one against `main`.
+- Push the branch and open the pull request as a draft, against the branch you branched from. Never open one against `main`.
 - Fill in the pull request template. Say `Part of #N` for the issue. A merge into `rearchitecture` does not close an issue by itself, so do not rely on `Closes`.
-- Set the issue's status to "In review".
-- Run the `arch-review` skill and deal with what it finds.
+- If the work adds or changes types, push the types and signatures first and get them reviewed in the draft before writing the bodies (`design-types`). Add the bodies to the same pull request.
+- When the work is complete, run the `arch-review` skill on the current head and deal with what it finds. Record the commit that was reviewed.
+- Then mark the pull request ready for review and set the issue's status to "In review". Pushing a fix to a finding means the review no longer covers the head: say in the pull request what changed since.
 - Do not merge it yourself.
 
 ## 5. If you stop before finishing

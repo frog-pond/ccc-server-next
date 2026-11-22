@@ -5,7 +5,7 @@ description: Port one route or one upstream source from the reference ccc-server
 
 # Bring one route over from the reference
 
-One entry of `docs/reference/routes.toml` per branch and pull request. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
+One entry of `docs/reference/routes.toml` per branch and pull request. The pull request starts as a draft holding the types and signatures, and the bodies are added to the same pull request once the types are approved. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
 
 This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. The types follow `design-types`.
 
@@ -20,7 +20,7 @@ This procedure was written before any route had been brought over. Steps marked 
    - what the outside site sends, and which fields can really be absent, with the fixture or schema line that shows it;
    - what the apps receive;
    - every failure: status, body, `Cache-Control`;
-   - the resource's name, its parameters and how long its answer stays good;
+   - the resource's name, its parameters and how long its value stays fresh;
    - anything in the reference you could not explain.
 
 ## 2. Types and signatures first
@@ -29,12 +29,12 @@ This procedure was written before any route had been brought over. Steps marked 
    - types for what the site sends, deriving `Deserialize` only, starting from the reference's schema for that site;
    - types for what the apps receive;
    - `impl TryFrom` from one to the other and its error enum, with one case per way the site's data can be unusable;
-   - the description of the resource: its name, parameters and how long its answer stays good.
+   - the description of the resource: its name, parameters and how long its value stays fresh.
 
    Write the documentation with the types, not afterwards: every public type, field, variant and function says what it represents, any rule about its contents, and for a site's type where its shape comes from in the reference. The reviewer reads the documentation to judge the types. For each type, ask whether a struct or an enum fits the data, and whether an `Option` or a `String` could be something more exact.
-6. Get those reviewed before writing the bodies. The first route that reads from a given site needs the more thorough review (`arch-review` skill) and the maintainer's approval of the types. A later route for the same site that adds no new public types may go ahead, and says so in its pull request.
+6. Push them, open the draft pull request, and get them reviewed before writing the bodies. The first route that reads from a given upstream needs the more thorough review (`arch-review` skill) and the maintainer's approval of the types. A later route for the same upstream that adds no new public types writes its bodies without waiting, and says so in its pull request.
 
-`todo!()` is allowed only in a pull request that contains types and signatures alone. Nothing is merged with one that can be reached.
+`todo!()` is allowed only while the pull request is a draft. A draft is never merged.
 
 ## 3. Write the bodies against the reference's outputs
 

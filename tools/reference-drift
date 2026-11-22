@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Reports how the reference checkout differs from the commit that
-# docs/reference/ describes. Exits 0 when the reference is clean and at the
-# pinned commit, 1 when it has moved or has local modifications, 2 when the
-# pinned commit cannot be found.
+# docs/reference/ describes.
+#
+# Exit status:
+#   0  the reference is clean and at the recorded commit
+#   1  it has moved, or has local modifications
+#   2  the recorded commit cannot be found
+#   3  the recorded commit is not an ancestor of the reference's head
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -18,25 +22,34 @@ if [[ -n "$(git -C "$ref" status --porcelain)" ]]; then
 fi
 
 if ! git -C "$ref" cat-file -e "$pin^{commit}" 2>/dev/null; then
-	echo "pinned commit $pin is not in the reference checkout" >&2
+	echo "recorded commit $pin is not in the reference checkout" >&2
 	exit 2
 fi
 
 head=$(git -C "$ref" rev-parse HEAD)
 if [[ "$head" == "$pin" ]]; then
-	echo "reference is at the pinned commit $pin"
+	echo "reference is at the recorded commit $pin"
 	exit $status
 fi
 
-# Only code the Worker serves from matters; fixtures and tooling churn do not.
-paths=(workers/src source ':(exclude)**/fixtures/**' ':(exclude)**/*.test.ts')
+if ! git -C "$ref" merge-base --is-ancestor "$pin" "$head"; then
+	echo "The reference's head $head does not contain the recorded commit $pin."
+	echo "It was rewritten or a different branch is checked out. Stop and ask."
+	exit 3
+fi
 
-echo "pinned: $pin"
-echo "head:   $head"
+echo "recorded: $pin"
+echo "head:     $head"
 echo
-echo "Commits touching served code since the pin:"
-git -C "$ref" log --oneline --no-merges "$pin..$head" -- "${paths[@]}"
+echo "Every changed file, including configuration, tests and fixtures:"
+git -C "$ref" diff --stat=200 "$pin..$head"
 echo
-echo "Changed files:"
-git -C "$ref" diff --stat "$pin..$head" -- "${paths[@]}"
+echo "Changed files cited by docs/reference/:"
+cited=$(grep -o -h -E '(workers|source|scripts)/[A-Za-z0-9_./-]+\.[a-z]+|wrangler\.jsonc|package\.json|README\.md' \
+	"$here/../docs/reference/"*.md "$here/../docs/reference/"*.toml | sort -u)
+changed=$(git -C "$ref" diff --name-only "$pin..$head")
+comm -12 <(echo "$cited") <(echo "$changed" | sort -u) | sed 's/^/  /' || true
+echo
+echo "Commits, including merges:"
+git -C "$ref" log --oneline "$pin..$head"
 exit 1

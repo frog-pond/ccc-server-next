@@ -58,4 +58,4 @@ Write the way the maintainer does. This paragraph is his, and is the reference:
 
 1. Draft the issue and show it to the maintainer. Read it once for flow before showing it: each sentence should say one thing, and nothing should be there for effect.
 2. When he approves the text, add it as a draft to the project "@rye's Rearchitecting Push" (`gh project item-create 4 --owner frog-pond --title "..." --body "..."`), where he reviews it in GitHub.
-3. File it as a real issue only when he asks.
+3. File it as a real issue only when he asks. The one exception is the short form above: once he has approved splitting an issue, its pieces are filed directly.
