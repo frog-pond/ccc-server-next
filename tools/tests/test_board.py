@@ -316,6 +316,36 @@ class Reading(unittest.TestCase):
 		self.assertEqual((issues[0].number, issues[1].number, issues[1].parent), (100, 1000, 100))
 		self.assertEqual(foreign, [])
 
+	def test_board_pages_skip_null_items(self):
+		"""Copilot, at 7d05ae9: a null item on the board raised AttributeError."""
+		item_node = {"id": "I", "content": {"__typename": "Issue", "number": 5, "repository": {"nameWithOwner": REPO}},
+			"fieldValues": {"nodes": [{"name": "Ready", "field": {"name": "Status"}}]}}
+		pages = [
+			{"organization": {"projectV2": {"items": {"pageInfo": {"hasNextPage": True, "endCursor": "C"},
+				"nodes": [None, item_node]}}}},
+			{"organization": {"projectV2": {"items": {"pageInfo": {"hasNextPage": False}, "nodes": [None]}}}},
+		]
+		cursors = []
+
+		def fake(query, after=None, **_):
+			cursors.append(after)
+			return pages[len(cursors) - 1]
+
+		real = board.graphql
+		board.graphql = fake
+		try:
+			items = board.fetch_board()
+		finally:
+			board.graphql = real
+		self.assertEqual(cursors, [None, "C"])
+		self.assertEqual([(i.number, i.status) for i in items], [(5, "Ready")])
+
+	def test_unreadable_project_stops_with_a_reason(self):
+		for data in ({"organization": {"projectV2": None}}, {"organization": None}, None):
+			with self.assertRaises(SystemExit) as stop:
+				board.project_of(data)
+			self.assertIn("could not be read", str(stop.exception.code))
+
 	def test_a_second_page_stops_the_tool(self):
 		with self.assertRaises(SystemExit):
 			board.whole({"pageInfo": {"hasNextPage": True}, "nodes": []}, "#1's sub-issues")

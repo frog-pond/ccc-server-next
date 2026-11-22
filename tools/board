@@ -384,15 +384,27 @@ def parse_item(node):
 	)
 
 
+def project_of(data):
+	"""The project from a query on `organization.projectV2`, or a stop that
+	says why it is missing. GitHub returns null when the project does not
+	exist or the token cannot read it."""
+	project = ((data or {}).get("organization") or {}).get("projectV2")
+	if project is None:
+		sys.exit(f"project {PROJECT} of {OWNER} could not be read; check that it exists and that"
+			" `gh auth status` shows the `project` scope")
+	return project
+
+
 def fetch_board():
 	"""Every item on the project board, all pages."""
 	items = []
 	after = None
 	while True:
 		page = graphql(BOARD_QUERY, owner=OWNER, number=PROJECT, after=after)
-		connection = page["organization"]["projectV2"]["items"]
-		items.extend(parse_item(node) for node in connection["nodes"])
-		if not connection["pageInfo"]["hasNextPage"]:
+		connection = project_of(page)["items"] or {}
+		# Null entries are skipped, as `whole()` does; this list is paged instead of read whole.
+		items.extend(parse_item(node) for node in connection.get("nodes") or [] if node is not None)
+		if not (connection.get("pageInfo") or {}).get("hasNextPage"):
 			return items
 		after = connection["pageInfo"]["endCursor"]
 
@@ -473,7 +485,7 @@ class Project:
 	"""
 
 	def __init__(self, today):
-		project = graphql(self.QUERY, owner=OWNER, number=PROJECT)["organization"]["projectV2"]
+		project = project_of(graphql(self.QUERY, owner=OWNER, number=PROJECT))
 		if not project.get("status"):
 			sys.exit("the project has no Status field")
 		self.id = project["id"]
