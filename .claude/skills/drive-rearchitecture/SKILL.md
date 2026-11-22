@@ -9,6 +9,25 @@ You are coordinating, not implementing. Each issue is worked by a separate worke
 
 The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 
+## Starting a session
+
+1. Run from a worktree, not the main checkout, which holds the maintainer's own work. `git fetch origin`, then use a worktree of `origin/rearchitecture`. While the scaffolding has not merged into it (`tools/board` is missing there), use the highest open pull request's branch instead.
+2. Read the most recent status comment on #424. It says what the last session left in flight and what is waiting on the maintainer.
+3. Hand each issue to its own worker in its own worktree. Where the host can start a separate agent with its own checkout, use that. For the second reviewer of a thorough review, use a model from another vendor where one is available.
+
+## Ending a session
+
+Before you stop, leave a comment on #424:
+
+```
+State: <what moved this session: pull requests opened, reviewed, ready to merge>
+In flight: <each worker still running, and its issue>
+Next: <what the next session should do first>
+Waiting on the maintainer: <one line per item, with the issue or pull request number>
+```
+
+Then tell the maintainer the "Waiting on the maintainer" list.
+
 ## Each time round
 
 1. **Look.** Run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too; if the reference has moved, follow `sync-reference` before starting route work.
