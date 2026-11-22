@@ -10,7 +10,7 @@ The repository is being rebuilt. Read this file before changing anything.
 - **Where the work happens:** the `rearchitecture` branch, not `main`. Issue #424 describes the effort and lists its parts.
 - **Removed:** `ccc-server`, `ccc-server-routes`, `ccc-types`, `ccc-upstream-handlers` and `ccc-upstream-proxy`, the previous attempt. They still exist on `main`. Do not bring them back or copy how they were written.
 - **Kept:** `e2e`, which compares this server's responses with a running reference.
-- **Not built yet:** `trifecta` (its first cut is on the `trifecta` branch and comes in with #425), the Worker build, cache backends, and tests that compare conversions with the reference's output. If a document or skill mentions one of these, check that it exists before relying on it.
+- **Not built yet:** `trifecta` (#425 and its sub-issues describe it; the `trifecta` branch holds an unmerged draft, which is a starting point and not a precedent), the Worker build, cache backends, and tests that compare conversions with the reference's output. If a document or skill mentions one of these, check that it exists before relying on it.
 
 ## The reference implementation
 

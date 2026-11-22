@@ -17,7 +17,7 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 
 - Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, use it; otherwise `git worktree add ../ccc-server-next-<N> origin/<base>`. If the issue already has a branch, continue on it (`git switch rearch/<N>-<name>`) instead of starting another.
 - In a new worktree, `mise trust` may be needed once. The Worker build needs `rustup target add wasm32-unknown-unknown`.
-- Name the branch `rearch/<issue number>-<short-name>`. `tools/board` only recognizes branches named this way.
+- Name the branch `rearch/<issue number>-<short-name>`, where the short name is two to four words of the issue's title, lowercase and joined by hyphens (`rearch/428-check-structure-in-ci`). `tools/board` only recognizes branches named this way.
 - Branch from the base `tools/board` prints for the issue (`[start from …]`), after `git fetch origin`: `git switch -c rearch/<N>-<name> origin/<base>`. If the board prints no base, the issue is not ready: stop and say why.
 - Never rewrite a branch that has been pushed. If the branch you built on gains commits, merge it into yours. Do not rebase and do not force-push.
 
