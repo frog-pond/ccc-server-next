@@ -17,7 +17,7 @@ The previous attempt's crates have been removed from this branch. They are still
 | `docs/review/rubric.md` | The rules a change is reviewed against. |
 | `docs/agent-hosts.md` | How to run the agents' procedures from T3 Code, Claude Code, the Codex CLI or by hand. |
 | `docs/delegation-levels.md` | How much a coordinating agent may do on its own, and how the maintainer grants it. |
-| `.claude/skills/` | Step-by-step procedures: working an issue, designing types, porting a route, reviewing a change, syncing with the reference, writing an issue and driving the whole effort. |
+| `.claude/skills/` | Step-by-step procedures: working an issue, designing types, porting a route, reviewing a change, syncing with the reference, writing an issue, keeping the board in order and driving the whole effort. |
 
 The reference implementation is expected to be checked out beside this repository, at `../ccc-server`. `tools/reference-path` prints where it was found.
 

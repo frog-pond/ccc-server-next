@@ -9,7 +9,7 @@ The scale follows the common five levels of delegation, from "do exactly what I 
 | Level | Name | The driver may | It stops before | The maintainer hears |
 |---|---|---|---|---|
 | 1 | Do as told | Take only the step the maintainer named, such as starting a worker on one issue. Every question goes to the maintainer. | Anything not named | After the step |
-| 2 | Look and report | Run reviews, and draft the requests it would send to workers. | Starting a worker | What it found, and the drafts |
+| 2 | Look and report | Run reviews, keep the board in order (`board-maintenance`), and draft the requests it would send to workers. | Starting a worker | What it found, and the drafts |
 | 3 | Recommend | Start workers and arrange reviews. Bring each worker question, each set of review findings and each pull request that is ready to merge to the maintainer as options with a recommendation, then carry out his choice. | Every ruling, and every merge | At each decision |
 | 4 | Act, stop before merge | Start workers, answer their questions from `AGENTS.md`, the review rules and the issues, act on review findings, and split an approved issue into pieces. | Every merge | A summary at the end point, with "Decisions I made" |
 | 5 | Act and report | Everything in level 4. Also merge pull requests into `rearchitecture`, bottom of the stack first, and close the issues whose "Done when" is met. | The end point | A summary at the end point, with "Decisions I made" |
