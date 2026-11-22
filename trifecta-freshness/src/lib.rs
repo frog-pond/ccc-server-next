@@ -16,7 +16,7 @@
 
 use std::{
 	error::Error,
-	num::{NonZeroU128, NonZeroU32},
+	num::NonZeroU32,
 	time::{Duration, SystemTime},
 };
 
@@ -53,7 +53,7 @@ pub trait Timestamp: Copy + Ord {
 	#[must_use]
 	fn saturating_add(self, duration: Duration) -> Self;
 
-	/// Compute `self − other` at the type's precision. Return
+	/// Compute `self − other` at the type's precision when nonnegative. Return
 	/// [`SignedElapsed::Before`] exactly when `self < other`.
 	fn elapsed_since(self, other: Self) -> SignedElapsed;
 }
@@ -61,8 +61,8 @@ pub trait Timestamp: Copy + Ord {
 /// An elapsed time that preserves the order of the two timestamps.
 #[derive(Debug, Eq, PartialEq)]
 pub enum SignedElapsed {
-	/// A negative elapsed time, carrying its nonzero magnitude in nanoseconds.
-	Before(NonZeroU128),
+	/// The first timestamp comes before the second.
+	Before,
 	/// Zero or a positive elapsed time.
 	AtOrAfter(Duration),
 }
@@ -201,9 +201,9 @@ pub struct Entry<T, E> {
 }
 
 impl<T, E> Entry<T, E> {
-	/// Build an entry for a cold read at `t`, with no cached value or failure.
+	/// Record the read time in a new entry with no cached value and no failure.
 	#[must_use]
-	pub fn new_unread(t: T) -> Self {
+	pub fn new_for_read(t: T) -> Self {
 		todo!()
 	}
 }
@@ -252,21 +252,22 @@ pub enum FetchOutcome<'a, T, E> {
 		retry_after: Duration,
 	},
 	/// The fetch could not start because reading the saved upstream responses
-	/// for conditional requests failed. If the pipeline instead proceeds
-	/// directly to the source under [`StorageReadFailurePolicy::FetchFromSource`],
-	/// use the resulting fetch outcome. A failed entry read follows the
-	/// entry-read policy, and a failed write follows [`StorageWriteFailurePolicy`].
+	/// for conditional requests failed. Entry reads follow
+	/// [`StorageReadFailurePolicy`]. Failed writes follow
+	/// [`StorageWriteFailurePolicy`].
 	Aborted,
 }
 
-/// What to do after reporting a storage read failure.
+/// What to do after reporting a failed read of the cache entry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StorageReadFailurePolicy {
-	/// Return the storage error on an entry read, as the reference does.
-	/// If reading saved upstream responses prevents a fetch from starting,
-	/// use [`FetchOutcome::Aborted`] for the answer to waiting readers.
+	/// Return the storage error, as the reference does for an entry read.
 	Propagate,
-	/// Fetch directly from the source and return its outcome.
+	/// Fetch directly from the source. Then call
+	/// [`FreshnessPolicy::on_fetch_finished`] with [`EntryAtFetchEnd::Missing`]
+	/// using the read time. Apply the resulting fields as for any fetch,
+	/// inserting if the entry is absent. A failed write follows
+	/// [`StorageWriteFailurePolicy`].
 	FetchFromSource,
 }
 
@@ -286,7 +287,7 @@ pub enum ReadDecision<'a, T, E> {
 	/// Insert an empty entry, then start a fetch or wait for the one already
 	/// running. After an insert failure, follow the storage write policy.
 	InsertAndWaitForFetch {
-		/// The time to pass to [`Entry::new_unread`].
+		/// The time to pass to [`Entry::new_for_read`].
 		insert_at: T,
 	},
 	/// Answer using the entry and the requested action.
@@ -306,18 +307,27 @@ pub enum ReadAction<'a, T, E> {
 		/// When the fetch that produced the cached value began.
 		fetch_started_at: T,
 	},
-	/// Serve the cached value as stale and enqueue a refresh immediately.
-	ServeStaleAndEnqueueImmediateRefresh,
+	/// Serve the cached value as stale and enqueue a refresh at the read
+	/// time. Keep any refresh already pending at an earlier time.
+	ServeStaleAndEnqueueImmediateRefresh {
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
+	},
 	/// Serve the cached value as stale and request a refresh for later.
+	/// Keep any refresh already pending at an earlier time.
 	ServeStaleAndRefreshAt {
-		/// When the refresh should run.
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
+		/// When the requested refresh should run.
 		refresh_at: T,
 	},
-	/// Fetch inline and serve the result. Keep the current cached value for
-	/// fallback if the fetch fails and the cached value is still eligible.
-	FetchAndServeLive {
-		/// The cached value's fetch start, used to check fallback age.
-		fetch_started_at: T,
+	/// Start a fetch or join the one already running. Keep the cached value
+	/// already read without copying it. Pass its metadata as the fallback
+	/// to [`FreshnessPolicy::on_fetch_finished`] so it remains available on
+	/// failure even if the entry is evicted. A purge invalidates the fallback.
+	FetchWithStaleFallback {
+		/// When the fetch that produced the fallback began.
+		fallback_fetch_started_at: T,
 	},
 	/// Serve the cached value after a failed fetch.
 	ServeCachedAfterFailure {
@@ -328,17 +338,19 @@ pub enum ReadAction<'a, T, E> {
 	},
 	/// Report the cached fetch error immediately during backoff.
 	ReportCachedError(&'a E),
-	/// Start a fetch or wait for the one already running. This includes an
-	/// over-age cached fallback after backoff ends, even within the stale window.
-	WaitForFetch,
+	/// Start a fetch or join the one already running. No usable fallback
+	/// is cached, so a failed fetch returns its error.
+	FetchWithoutFallback,
 }
 
 /// What follows serving the cached value after a failure.
 #[derive(Debug, Eq, PartialEq)]
 pub enum RefreshAfterFailure<T> {
-	/// Enqueue a refresh immediately.
+	/// Enqueue a refresh at the read time. Keep any refresh already pending
+	/// at an earlier time.
 	EnqueueImmediateRefresh,
-	/// Request a refresh at this time without waiting.
+	/// Request a refresh at this time without waiting. Keep any refresh
+	/// already pending at an earlier time.
 	RefreshAt(T),
 	/// Backoff holds off a fetch until this time. Keep the existing schedule.
 	HeldOffUntil(T),
@@ -375,12 +387,13 @@ pub enum AbortedFetchReport<'a, E> {
 pub enum EntryAtFetchEnd<'a, T, E> {
 	/// The latest entry, including any read made during the fetch.
 	Present(&'a Entry<T, E>),
-	/// The entry is missing without a purge. A successful fetch recreates it.
-	/// This differs from the [reference, which throws][missing].
+	/// The entry is absent or unknown after a failed read. Insert if absent,
+	/// or apply a partial update if present. A missing entry differs from the
+	/// [reference, which throws][missing].
 	///
 	/// [missing]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L242
 	Missing {
-		/// Last known read time, including the original read if its insert failed.
+		/// Last known read time, or the current read time if the entry is unknown.
 		last_read: T,
 	},
 	/// This fetch was invalidated by a purge, even if a read recreated the entry.
@@ -404,6 +417,7 @@ pub enum FetchDecision<'entry, 'fetch, T, E> {
 	/// Recreate a missing entry after a successful fetch. Write the value and
 	/// metadata with no failure record. If a read created the entry in the
 	/// meantime, apply the same partial update as [`Self::StoreValue`].
+	/// Decide the next refresh from the written entry.
 	StoreValueInNewEntry {
 		/// Last known read time for insertion only.
 		insert_at: T,
@@ -411,7 +425,7 @@ pub enum FetchDecision<'entry, 'fetch, T, E> {
 		cached: CachedValueMetadata<T>,
 	},
 	/// Serve the fresh value without caching it because a purge invalidated
-	/// this fetch.
+	/// this fetch. Leave scheduling alone.
 	ServeWithoutCaching {
 		/// When the successful fetch began.
 		fetch_started_at: T,
@@ -421,14 +435,28 @@ pub enum FetchDecision<'entry, 'fetch, T, E> {
 	RecordFailure {
 		/// The failure record to set, borrowing the completed fetch's error.
 		failure: Failure<T, &'fetch E>,
-		/// Calculated delay before clamping the deadline, for the
-		/// `ccc.source.backoff_ms` event field.
+		/// Calculated delay before clamping the deadline, for the caller's
+		/// backoff event.
 		backoff_delay: Duration,
 		/// Serve the cached value or report this fetch's error.
 		answer: FailureAnswer<T, ThisFetchError>,
 	},
-	/// Report this fetch's error and leave caching and scheduling alone because
-	/// the entry is missing or a purge invalidated the fetch.
+	/// Set the failure record when the entry is absent or unknown. If
+	/// absent, insert with the supplied read time. If present, change only
+	/// the failure record. Decide the next refresh from the written entry.
+	RecordFailureWithInsertIfMissing {
+		/// Read time to use only if inserting.
+		insert_at: T,
+		/// The failure record to set.
+		failure: Failure<T, &'fetch E>,
+		/// Calculated delay before clamping the deadline, for the caller's
+		/// backoff event.
+		backoff_delay: Duration,
+		/// Serve an eligible fallback or report this fetch's error.
+		answer: FailureAnswer<T, ThisFetchError>,
+	},
+	/// Report this fetch's error and leave caching and scheduling alone
+	/// because a purge invalidated the fetch.
 	ReportErrorWithoutCaching,
 	/// Answer readers after an aborted fetch without updating storage or scheduling.
 	Aborted {
@@ -467,16 +495,21 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// First serve fresh when the period matches and `age < fresh_for`, even
 	/// during backoff. Next, if the period matches and
 	/// `age < fresh_for + stale_window` (using saturating addition), apply
-	/// [`Self::on_stale`] before any failure. After a failure, serve an eligible
-	/// cached value and report the backoff deadline while backoff is active.
-	/// Once it ends, apply [`Self::on_stale_after_failure`] to the eligible
-	/// cached value. Either setting can request a refresh or fetch inline.
+	/// [`Self::on_stale`] before any recorded failure, regardless of the
+	/// fallback age limit. After a recorded failure, apply the age limit.
+	/// Serve an eligible cached value with its backoff deadline while backoff
+	/// is active. Once it ends, apply [`Self::on_stale_after_failure`] to an
+	/// eligible value in the window. Either setting can request a refresh
+	/// or fetch inline. A zero delay requests immediate enqueueing.
 	///
-	/// Outside that window, or when the cached value is ineligible or has a
-	/// different period, active backoff (`backoff_until > now`) still allows
-	/// an eligible cached value. Otherwise report the cached error if backed
-	/// off, or wait for a fetch if backoff has ended. Reporting an error
-	/// never requests a refresh.
+	/// Outside the window or on a period mismatch, active backoff
+	/// (`backoff_until > now`) still allows serving an eligible cached value.
+	/// During backoff report the cached error if there is no eligible value.
+	/// Otherwise fetch, preserving an eligible cached value for fallback when
+	/// available. Reporting an error never requests a refresh.
+	///
+	/// A read's refresh request always keeps the earlier of the requested
+	/// deadline and any pending deadline. Repeated reads cannot defer it.
 	#[must_use]
 	pub fn on_read<'a, E: Error>(
 		&self,
@@ -499,12 +532,17 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// value, and replace the cached metadata and clear the failure record
 	/// unless a purge invalidated this fetch. Apply those changes without
 	/// writing `last_read`. A successful fetch for a missing entry uses the
-	/// last known read time only if it inserts a new entry.
-	/// Use `finished_at` to evaluate cached age after failure. Record a failure
-	/// only on a present entry. A purge suppresses writes even if the entry was
-	/// recreated. On abort, apply the age limit too. Serve an eligible cached
-	/// value, otherwise report the cached error or exactly
-	/// `upstream unavailable`, in that order.
+	/// last known read time only if it inserts a new entry. A failed fetch
+	/// updates the failure record and may likewise insert a missing entry.
+	///
+	/// Pass the metadata of the cached value retained by the reader as
+	/// `fallback`. The entry at completion determines writes separately.
+	/// If the fetch fails, evaluate fallback age at `finished_at`; without an
+	/// eligible fallback, report the fetch error. Eviction does not remove
+	/// the retained fallback. A purge suppresses writes and invalidates the
+	/// fallback even if the entry was recreated. On abort, apply the age
+	/// limit too. Serve an eligible cached value, otherwise report the cached
+	/// error or exactly `upstream unavailable`, in that order.
 	///
 	/// Backoff starts at fetch start. The exponential part is
 	/// `min(MIN_BACKOFF × 2^(n−1), MAX_BACKOFF)` for the new consecutive
@@ -520,6 +558,7 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 		&self,
 		finished_at: T,
 		entry: EntryAtFetchEnd<'entry, T, E>,
+		fallback: Option<&CachedValueMetadata<T>>,
 		outcome: FetchOutcome<'fetch, T, E>,
 	) -> FetchDecision<'entry, 'fetch, T, E> {
 		todo!()
