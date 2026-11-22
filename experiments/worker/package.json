@@ -4,7 +4,7 @@
   "scripts": {
     "worker-build:install": "cargo install --locked --version '=0.9.0' --root .worker-tools worker-build",
     "worker-build": ".worker-tools/bin/worker-build",
-    "dev": "WRANGLER_SEND_METRICS=false CLOUDFLARE_CF_FETCH_ENABLED=false wrangler dev --local"
+    "dev": "WRANGLER_SEND_METRICS=false WRANGLER_SEND_ERROR_REPORTS=false CLOUDFLARE_CF_FETCH_ENABLED=false wrangler dev --local"
   },
   "devDependencies": {
     "wrangler": "4.166.0"
