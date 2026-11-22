@@ -1,3 +1,10 @@
 /target
 .env
 .DS_STORE
+
+# the maintainer's working notes stay local
+/TRIFECTA_SPEC.md
+/.notes/
+
+# machine-specific Claude Code settings
+/.claude/settings.local.json
