@@ -1,0 +1,16 @@
+[package]
+name = "worker-experiment"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version = "1.91"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

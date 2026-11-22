@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
 	"e2e",
+	"experiments/worker",
 ]
 
 [workspace.lints.clippy]
