@@ -35,7 +35,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 
 ## Each time round
 
-1. **Look.** Run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs him (`sync-reference`).
+1. **Look.** Follow `board-maintenance` first, so the board matches the issues and pull requests. Then run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs him (`sync-reference`).
 2. **Tend what is in flight first.** For each open pull request on the stack:
    - checks failing: send it back to a worker with the failure, using the follow-up request below;
    - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the "Review" section of its description, naming the commit it covers; GitHub's review decision is separate and is the maintainer's;
@@ -44,7 +44,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
 3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
 4. **Hand over.** Give each worker the request below. A worker for a different issue is a new worker, not a follow-up message to an old one.
-5. **Record.** Set statuses on the board. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
+5. **Record.** Set statuses on the board, and follow `board-maintenance` again after pull requests open or merge. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
 6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
 
 ## The requests to a worker

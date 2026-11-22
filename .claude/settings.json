@@ -22,6 +22,8 @@
 			"Bash(tools/reference-drift)",
 			"Bash(tools/board)",
 			"Bash(tools/board --json)",
+			"Bash(tools/board maintain)",
+			"Bash(tools/board --help)",
 			"Bash(git status *)",
 			"Bash(git diff *)",
 			"Bash(git log *)",

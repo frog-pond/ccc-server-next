@@ -87,6 +87,7 @@ Work is tracked in GitHub issues under #424. `tools/board` shows their state and
 
 ```sh
 tools/board         # every issue under #424, what blocks it, and the open pull requests
+tools/board maintain [--apply]   # the board moves the rules call for (see the board-maintenance skill)
 mise run check      # clippy, fmt-check and test; this is what "passing" means
 mise run clippy
 mise run fmt
