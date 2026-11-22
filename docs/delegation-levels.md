@@ -43,7 +43,23 @@ The recommendation names the signals behind it in one line.
 
 ## Asking
 
-The driver asks "What level can I run at?" with two to four levels that make sense for the work, the recommended one first. Each option is written for the work at hand, saying what it would do and where it would stop, for example: "Level 4: start workers on #428 and #431, act on review findings, stop when both pull requests are ready to merge."
+The driver asks two questions together, in one prompt where the host offers a question tool, so the maintainer answers both at once:
+
+1. **"What level can I run at?"** Two to four levels that make sense for the work, the recommended one first. Each option is written for the work at hand and says what the driver would do, for example: "Level 4: start workers on #428 and #431, answer their questions and act on review findings."
+2. **"Where should I stop?"** Two to four end points that make sense for the work, the recommended one first. Each names the issues or pull requests it would stop at.
+
+## Choosing the end point
+
+The end points to offer, from narrowest to widest:
+
+- **After one round:** start the chosen work, tend what is in flight once, then report.
+- **When chosen pull requests are ready:** stop when the pull requests for the named issues are ready to merge, or merged at level 5.
+- **Through a named issue:** keep going, taking on what each finished piece unblocks, until the named issue's pull request is ready to merge, for example "through #458".
+- **Until nothing can move:** stop when nothing is ready and everything left in flight waits on the maintainer.
+
+The driver recommends a narrower end point when it recommends level 3 or lower, when the work is the first of its kind (the first route for an upstream, a new crate), or when the session follows a grant that ended early. It recommends a wider one for work it would run at level 4 or 5. The recommendation names its reason in one line, as the level's does.
+
+An end point never raises the level. If the two disagree, for example "until merged" with level 4, the driver says so and stops at the narrower of the two. With no answer about the end point, the driver stops after one round.
 
 ## Recording
 
