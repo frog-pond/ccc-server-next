@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
 	"e2e",
+	"experiments/native",
+	"experiments/route",
 	"experiments/worker",
 ]
 
@@ -18,8 +20,11 @@ rust-version = "1.74"
 
 [workspace.dependencies]
 bytes = "1.5.0"
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 reqwest = { version = "0.13.0", features = ["json", "query"] }
 serde_json = "1.0.114"
 similar = "3.0.0"
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+# The experiment probes the traits from the unmerged Trifecta draft branch.
+trifecta = { git = "https://github.com/frog-pond/ccc-server-next.git", rev = "99170f075f4f5b3c357626865b5faeccc097bbb5" }
 url = "2.5.0"

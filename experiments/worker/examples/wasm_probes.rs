@@ -1,8 +1,5 @@
 //! Compile probes for the draft Trifecta future bound and redirect policy.
 
-// The opt-in failure probes are rustc cfgs so --all-features stays buildable.
-#![allow(unexpected_cfgs)]
-
 #[cfg(target_arch = "wasm32")]
 pub mod probes {
 	use trifecta::future::BoxFuture;

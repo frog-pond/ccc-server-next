@@ -1,5 +1,7 @@
+use fixture_experiment_route::{
+	Fixture, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob, RefreshOutcome,
+};
 use serde::{de::DeserializeOwned, Serialize};
-use worker_experiment::{Fixture, NonSuccessStatus, RefreshFailure, RefreshJob, RefreshOutcome};
 
 fn assert_storage_format<T>(value: &T, json: &str)
 where
@@ -31,6 +33,11 @@ fn refresh_outcome_json_is_stable() {
 	for (failure, json) in [
 		(RefreshFailure::Fetch, r#"{"kind":"fetch"}"#),
 		(
+			RefreshFailure::InvalidStatus,
+			r#"{"kind":"invalid_status"}"#,
+		),
+		(RefreshFailure::FixtureSetup, r#"{"kind":"fixture_setup"}"#),
+		(
 			RefreshFailure::HttpStatus { status },
 			r#"{"kind":"http_status","status":302}"#,
 		),
@@ -42,6 +49,37 @@ fn refresh_outcome_json_is_stable() {
 			&RefreshOutcome::Failed { failure },
 			&format!(r#"{{"outcome":"failed","failure":{json}}}"#),
 		);
+	}
+}
+
+#[test]
+fn object_reply_json_is_stable() {
+	for (reply, json) in [
+		(ObjectReply::Pending, r#"{"state":"pending"}"#),
+		(
+			ObjectReply::from(RefreshOutcome::Value { value: 42 }),
+			r#"{"state":"complete","result":{"outcome":"value","value":42}}"#,
+		),
+		(
+			ObjectReply::from(RefreshOutcome::Failed {
+				failure: RefreshFailure::FixtureSetup,
+			}),
+			r#"{"state":"complete","result":{"outcome":"failed","failure":{"kind":"fixture_setup"}}}"#,
+		),
+		(
+			ObjectReply::StorageUnavailable,
+			r#"{"state":"storage_unavailable"}"#,
+		),
+		(
+			ObjectReply::AlarmSchedulingFailed,
+			r#"{"state":"alarm_scheduling_failed"}"#,
+		),
+		(
+			ObjectReply::StoredRecordInvalid,
+			r#"{"state":"stored_record_invalid"}"#,
+		),
+	] {
+		assert_eq!(serde_json::to_string(&reply).unwrap(), json);
 	}
 }
 

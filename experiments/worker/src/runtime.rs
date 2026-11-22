@@ -1,30 +1,37 @@
-//! Worker entry points and adapters for the pinned Trifecta draft.
+//! The Workers runtime invokes the route and Durable Object entry points here.
+//! The object handlers use its SQLite storage and alarm API, and the alarm
+//! invokes the shared Trifecta operation through the local Fetch adapter.
 
 // These signatures are under review before the Worker bodies are written.
 #![allow(dead_code)]
 
-use std::future::Future;
+use std::{cell::Cell, future::Future, rc::Rc};
 
+use bytes::Bytes;
+use fixture_experiment_route::{
+	buffered_fixture_body, Fixture, FixtureSourceError, RefreshFailure,
+};
+use futures_util::FutureExt;
 use trifecta::{
-	body::{AdaptResponse, BodyReadError, BodyWithMetadata},
+	body::{AdaptResponse, BodyWithMetadata},
 	future::BoxFuture,
 	operation::Error as OperationError,
 	source::Source,
-	transform::Transform,
 };
 use worker::{
 	durable_object, event, send::SendFuture, wasm_bindgen, Context, DurableObject, Env, Request,
 	Response, State, Url,
 };
 
-use crate::{Fixture, InvalidNonSuccessStatus, NonSuccessStatus, RefreshFailure};
+type SourceFailure = FixtureSourceError<worker::Error>;
 
 /// Serves `GET /experiment/{value|redirect}` from the fixture's Durable Object.
 ///
 /// # Errors
 ///
 /// Returns a Worker error when the runtime cannot resolve or call the object.
-/// Expected object failures cross the call as a serialized [`crate::ObjectReply`].
+/// Expected object failures cross the call as a serialized
+/// [`fixture_experiment_route::ObjectReply`].
 #[event(fetch)]
 pub async fn fetch(_request: Request, _env: Env, _context: Context) -> worker::Result<Response> {
 	todo!("dispatch the experiment route to the fixture's Durable Object")
@@ -35,16 +42,24 @@ pub async fn fetch(_request: Request, _env: Env, _context: Context) -> worker::R
 pub struct FixtureObject {
 	state: State,
 	env: Env,
+	// get_alarm can return None while the alarm handler is running.
+	alarm_running: Rc<Cell<bool>>,
 }
 
 impl DurableObject for FixtureObject {
 	fn new(state: State, env: Env) -> Self {
-		Self { state, env }
+		Self {
+			state,
+			env,
+			alarm_running: Rc::new(Cell::new(false)),
+		}
 	}
 
 	/// Reads the fixture's recorded result or stores the initial job and schedules
-	/// its alarm. A SQLite read/write failure, a rejected alarm schedule and an
-	/// undecodable JSON record each have their own [`crate::ObjectReply`] case.
+	/// its alarm. For an unfinished job, serializes the check and re-arm with
+	/// respect to other incoming events. Reuses a scheduled or running alarm and
+	/// otherwise schedules the stored job again. A storage, scheduling or record
+	/// decoding failure is logged and returned as a distinct reply.
 	///
 	/// # Errors
 	///
@@ -53,13 +68,15 @@ impl DurableObject for FixtureObject {
 		todo!("read or schedule and return the outcome as HTTP JSON")
 	}
 
-	/// Rebuilds the refresh from the stored job and the current fixture binding.
-	/// An upstream or transform failure is logged and stored as a result.
+	/// Marks the alarm running until the handler exits, including on failure.
+	/// Reads the stored job and fixture binding, then runs the shared operation.
+	/// Duplicate deliveries skip work when the outcome is already stored. Setup,
+	/// upstream and transform failures are logged and stored as completed results.
 	///
 	/// # Errors
 	///
-	/// Returns a Worker error on storage access failures so the runtime can
-	/// retry the alarm. No completed result exists until storage accepts it.
+	/// Logs and returns storage errors so the runtime can retry the alarm. Logs
+	/// an undecodable record and leaves it for a later `fetch` to report.
 	async fn alarm(&self) -> worker::Result<Response> {
 		todo!("load the durable job, run Trifecta and store the outcome")
 	}
@@ -67,16 +84,6 @@ impl DurableObject for FixtureObject {
 
 /// Fetches the prepared loopback URL with `RequestRedirect::Manual`.
 struct FixtureSource;
-
-#[derive(Debug, thiserror::Error)]
-enum SourceFailure {
-	#[error("Workers Fetch failed")]
-	Fetch(#[source] worker::Error),
-	#[error("upstream returned HTTP {0}")]
-	HttpStatus(NonSuccessStatus),
-	#[error("Workers Fetch returned an invalid HTTP status")]
-	InvalidStatus(#[source] InvalidNonSuccessStatus),
-}
 
 impl Source<Url> for FixtureSource {
 	type Response = Response;
@@ -106,56 +113,97 @@ impl AdaptResponse<Response> for FixtureAdapter {
 		&self,
 		response: Response,
 	) -> BoxFuture<'_, Result<BodyWithMetadata<()>, Self::Error>> {
-		Box::pin(read_fixture_body(response))
+		Box::pin(read_fixture_body(response).map(|result| result.map(buffered_fixture_body)))
 	}
 }
 
 /// The SDK's body-read future also needs `SendFuture` before Trifecta can box it.
+/// Transfers the SDK's `Vec<u8>` into `Bytes` by ownership. The adapter moves
+/// those bytes into the shared one-chunk stream without copying the payload.
 fn read_fixture_body(
 	_response: Response,
-) -> SendFuture<impl Future<Output = worker::Result<BodyWithMetadata<()>>>> {
+) -> SendFuture<impl Future<Output = worker::Result<Bytes>>> {
 	SendFuture::new(async { todo!("read the Workers response body once") })
 }
 
-/// Decodes the fixture's JSON integer after the adapter removes Worker types.
-struct FixtureTransform;
-
 #[derive(Debug, thiserror::Error)]
-enum TransformFailure {
-	#[error("failed to consume the adapted body")]
-	ReadBody(#[source] BodyReadError),
-	#[error("fixture body was not a JSON unsigned integer")]
-	Decode(#[source] serde_json::Error),
+enum FixtureSetupFailure {
+	#[error("EXPERIMENT_FIXTURE_ORIGIN binding is missing or unreadable")]
+	Binding(#[source] worker::Error),
+	#[error("fixture origin must be a valid loopback HTTP URL")]
+	InvalidLoopbackUrl,
 }
 
-impl Transform<Url, (), u32> for FixtureTransform {
-	type Error = TransformFailure;
-
-	fn transform<'a>(
-		&'a self,
-		_url: &'a Url,
-		_body: BodyWithMetadata<()>,
-	) -> BoxFuture<'a, Result<u32, Self::Error>> {
-		Box::pin(async { todo!("decode the integer from the adapted body") })
-	}
+/// Reads the fixture identity from the object's name, including during alarm
+/// delivery when the stored job itself may be unreadable.
+fn object_fixture(state: &State) -> Option<Fixture> {
+	state
+		.id()
+		.name()
+		.as_deref()
+		.and_then(Fixture::from_object_name)
 }
 
-/// Classifies an uncached operation error for SQLite storage and the HTTP reply.
+/// Reads the local binding and prepares the URL before starting Trifecta.
 ///
-/// `Source` downcasts the error source to `SourceFailure`. `HttpStatus` keeps
-/// the checked status read from `worker::Response::status_code()`. Transport
-/// errors and invalid HTTP statuses become `Fetch`. `ResponseAdaptation`
-/// becomes `ReadBody`. `Transformation` downcasts to `TransformFailure` and
-/// becomes `ReadBody` or `Decode`. An unexpected source type, cache or flight
-/// stage, or future `ErrorKind` becomes `Pipeline`.
-fn classify_refresh_failure(_error: &OperationError) -> RefreshFailure {
-	todo!("classify the stage and downcast its cause where needed")
+/// # Errors
+///
+/// A missing binding or an invalid or non-loopback URL becomes a stored
+/// completed failure of kind `FixtureSetup`, with its cause logged first.
+fn prepare_fixture(_env: &Env, _fixture: Fixture) -> Result<Url, FixtureSetupFailure> {
+	todo!("validate the configured origin and append the fixture path")
+}
+
+enum RefreshDiagnostic<'a> {
+	Setup(&'a FixtureSetupFailure),
+	Operation(&'a OperationError),
 }
 
 /// Emits `worker_experiment.refresh_failed` before the alarm stores a failure.
 /// The structured event contains `fixture`, `failure` (the wire classification)
 /// and `cause` (the underlying diagnostic). Cause formatting excludes request
 /// URLs, headers and response bodies. The stored result carries the classification.
-fn record_refresh_failure(_fixture: Fixture, _failure: RefreshFailure, _cause: &OperationError) {
+fn record_refresh_failure(
+	_fixture: Fixture,
+	_failure: RefreshFailure,
+	_cause: RefreshDiagnostic<'_>,
+) {
 	todo!("emit the structured refresh failure event")
+}
+
+#[derive(Clone, Copy)]
+enum StorageOperation {
+	ReadJob,
+	WriteJob,
+	ReadOutcome,
+	WriteOutcome,
+	ReadAlarm,
+}
+
+#[derive(Clone, Copy)]
+enum StoredRecord {
+	Job,
+	Outcome,
+}
+
+enum ObjectFailure<'a> {
+	Storage {
+		operation: StorageOperation,
+		cause: &'a worker::Error,
+	},
+	ScheduleAlarm(&'a worker::Error),
+	Decode {
+		record: StoredRecord,
+		cause: &'a serde_json::Error,
+	},
+}
+
+/// Emits `worker_experiment.object_failed` before returning an object failure,
+/// including errors returned to the runtime to retry an alarm. The event has
+/// `fixture`, `operation`, `kind`, and a diagnostic `cause`. Operations are
+/// `read_job`, `write_job`, `read_outcome`, `write_outcome`, `read_alarm`,
+/// `schedule_alarm`, `decode_job`, and `decode_outcome`. Kinds are `storage`,
+/// `schedule_alarm`, and `decode_record`. Diagnostics omit stored payloads.
+fn record_object_failure(_fixture: Fixture, _failure: ObjectFailure<'_>) {
+	todo!("emit the structured object failure event")
 }

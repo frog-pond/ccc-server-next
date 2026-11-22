@@ -13,17 +13,18 @@ crate-type = ["cdylib", "rlib"]
 [lints]
 workspace = true
 
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+bytes.workspace = true
+fixture-experiment-route = { path = "../route" }
+futures-util.workspace = true
 serde_json.workspace = true
-# Draft `trifecta` branch, pinned so the compile probes keep the same bounds.
-trifecta = { git = "https://github.com/frog-pond/ccc-server-next.git", rev = "99170f075f4f5b3c357626865b5faeccc097bbb5" }
+thiserror = "2"
+trifecta.workspace = true
 worker = "=0.9.0"
 
 [dev-dependencies]
+fixture-experiment-route = { path = "../route" }
+serde = "1"
 serde_json.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]

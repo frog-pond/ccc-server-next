@@ -1,0 +1,22 @@
+name = "ccc-fixture-experiment"
+main = "build/index.js"
+compatibility_date = "2026-11-22"
+send_metrics = false
+
+[dev]
+ip = "127.0.0.1"
+port = 8787
+
+[build]
+command = "worker-build"
+
+[vars]
+EXPERIMENT_FIXTURE_ORIGIN = "http://127.0.0.1:18787"
+
+[[durable_objects.bindings]]
+name = "FIXTURES"
+class_name = "FixtureObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["FixtureObject"]

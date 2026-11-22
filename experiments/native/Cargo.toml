@@ -1,0 +1,19 @@
+[package]
+name = "fixture-experiment-native"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+# The shared route library uses the Trifecta draft, which requires Rust 1.98.
+rust-version = "1.98"
+
+[lints]
+workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+axum = "0.8"
+fixture-experiment-route = { path = "../route" }
+reqwest.workspace = true
+thiserror = "2"
+tokio.workspace = true
+trifecta.workspace = true
