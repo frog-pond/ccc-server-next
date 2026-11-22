@@ -1,9 +1,10 @@
 //! Pure cache policy for reads, refreshes, and storage failures.
 //!
-//! The cached pipeline supplies metadata, timestamps, and refresh outcomes.
-//! The decisions describe what to serve, write, fetch, or schedule. The
-//! pipeline applies it and reports failures. Each source defines its freshness
-//! and stale serving policy and supplies any epoch or per-value lifetime.
+//! The cached pipeline in `trifecta` supplies metadata, times, and refresh
+//! outcomes. This crate computes decisions and entry updates. It calls no
+//! external services or pipeline code. Its rules cover reads, background
+//! refresh, backoff, epochs, value-dependent lifetimes, and idle resources
+//! in `docs/reference/cache-semantics.md` §§4–9.
 
 #![deny(missing_docs)]
 // Temporary while the draft signatures are under review.
@@ -13,15 +14,11 @@
 	clippy::needless_pass_by_value
 )]
 
-use std::{error::Error, fmt, num::NonZeroU32};
+use std::{error::Error, num::NonZeroU32, time::Duration};
 
 /// A caller-supplied point in time, in whole milliseconds since the Unix epoch.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Timestamp(pub i64);
-
-/// A nonnegative interval at whole-millisecond precision.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Milliseconds(pub u64);
 
 /// An opaque source-defined epoch. Only equality matters.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -34,14 +31,14 @@ pub struct Epoch(pub String);
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Policy {
 	/// Default freshness interval starting at the fetch's start time.
-	pub fresh_for: Milliseconds,
-	/// Additional time after freshness when a read can request an alarm
+	pub fresh_for: Duration,
+	/// Additional time after freshness when a read can request a background
 	/// refresh and answer immediately, if the stored epoch matches. This is
 	/// the [reference's `staleIfError`][window], as described in
 	/// `docs/reference/cache-semantics.md` §6.6.
 	///
 	/// [window]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/define-source.ts#L13
-	pub stale_while_revalidate: Milliseconds,
+	pub stale_while_revalidate: Duration,
 	/// Age limit applied when the answer would otherwise be stale after an
 	/// upstream failure. The [reference returns the stored value at any age][fallback].
 	/// The optional limit was agreed to in [#439].
@@ -59,16 +56,7 @@ pub enum StaleOnError {
 	Unlimited,
 	/// Serve the last good value up to and including this age, measured from
 	/// the start of its successful fetch. This is the opt-in limit from #439.
-	MaxAge(Milliseconds),
-}
-
-impl Policy {
-	/// Set the freshness and stale-while-revalidate windows with an
-	/// unlimited stale-on-error policy.
-	#[must_use]
-	pub const fn new(fresh_for: Milliseconds, stale_while_revalidate: Milliseconds) -> Self {
-		todo!()
-	}
+	MaxAge(Duration),
 }
 
 /// The metadata a backend keeps for one resource, beside its optional value.
@@ -91,7 +79,7 @@ pub struct StoredValue {
 	pub epoch: Option<Epoch>,
 	/// The freshness interval the source computed from this value, if it
 	/// supplies a per-value override. Zero is a valid override.
-	pub fresh_for: Option<Milliseconds>,
+	pub fresh_for: Option<Duration>,
 }
 
 /// A recorded refresh failure. Backoff can expire while this record persists.
@@ -99,7 +87,7 @@ pub struct StoredValue {
 pub struct Failure<E> {
 	/// Number of consecutive failed refreshes, including this failure.
 	pub consecutive: NonZeroU32,
-	/// Reads suppress foreground fetches and immediate alarms before this time.
+	/// Reads suppress foreground fetches and immediate background refreshes before this time.
 	pub backoff_until: Timestamp,
 	/// The typed cause of the most recent failed refresh.
 	pub last_error: E,
@@ -117,7 +105,7 @@ pub enum RefreshOutcome {
 		started_at: Timestamp,
 		/// The longest parsed upstream delay, or zero when none was requested.
 		/// The decision caps this at one day.
-		retry_after: Milliseconds,
+		retry_after: Duration,
 	},
 	/// Loading stopped before an outcome could be recorded. Answer waiting
 	/// readers from the existing entry, if any, and leave scheduling alone.
@@ -146,22 +134,30 @@ pub enum WriteFailurePolicy {
 
 /// The last-read write and pending action for a read.
 #[derive(Debug, Eq, PartialEq)]
-pub struct ReadDecision {
-	/// When present, insert a missing entry or update an existing entry's
-	/// last-read time before carrying out the action. On a write failure,
-	/// apply the pipeline's [write failure policy](WriteFailurePolicy).
-	pub record_read_at: Option<Timestamp>,
-	/// Whether to answer or wait for a refresh. This action is still available
-	/// if the last-read write fails under [`WriteFailurePolicy::ReturnAnswer`].
-	pub action: ReadAction,
+pub enum ReadDecision {
+	/// Insert an entry without a stored value or failure, then start or join
+	/// a refresh and wait for its outcome. A failed insert still leads to
+	/// the refresh under [`WriteFailurePolicy::ReturnAnswer`].
+	ColdMiss {
+		/// The last-read time to set on the new entry.
+		insert_at: Timestamp,
+	},
+	/// Carry out the action for an entry that already exists.
+	ExistingEntry {
+		/// Update the entry's last-read time when this timestamp is present.
+		touch_at: Option<Timestamp>,
+		/// Continue with this action after the touch, including when the touch
+		/// fails under [`WriteFailurePolicy::ReturnAnswer`].
+		action: ReadAction,
+	},
 }
 
-/// What to do when a scheduled alarm has been consumed.
+/// Whether a scheduled background refresh that has come due should run.
 #[derive(Debug, Eq, PartialEq)]
-pub enum AlarmDecision {
+pub enum DueRefreshDecision {
 	/// Start or join a refresh through singleflight.
-	Refresh,
-	/// The entry is missing or idle. Leave it without an alarm.
+	Run,
+	/// The entry is missing or idle. Schedule no new refresh.
 	LeaveDormant,
 }
 
@@ -174,19 +170,19 @@ pub enum ReadAction {
 		fetched_at: Timestamp,
 	},
 	/// Return the stored value within the stale window before any failure,
-	/// and request an immediate refresh through the alarm.
+	/// and request an immediate refresh in the background.
 	Stale {
 		/// The start time of the fetch that populated the value.
 		fetched_at: Timestamp,
-		/// Replace the pending alarm with this deadline.
+		/// Replace the pending background refresh with this deadline.
 		refresh_at: Timestamp,
 	},
 	/// A previous failure affects the answer. The source's stale-on-error
 	/// policy determines whether to serve the stored value.
 	AfterFailure {
 		/// The stored value or error to return immediately.
-		answer: FailureAnswer,
-		/// Replace the pending alarm with this deadline when within the
+		answer: FailureAnswer<StoredRefreshError>,
+		/// Replace the pending background refresh with this deadline when within the
 		/// stale window and past backoff. Otherwise leave scheduling alone.
 		refresh_at: Option<Timestamp>,
 	},
@@ -196,77 +192,109 @@ pub enum ReadAction {
 
 /// What a read can return when it relies on upstream failure handling.
 #[derive(Debug, Eq, PartialEq)]
-pub enum FailureAnswer {
+pub enum FailureAnswer<Cause> {
 	/// Serve the last good value as stale due to an upstream failure.
 	ServeStored {
 		/// The start time of the successful fetch, possibly in another epoch.
 		fetched_at: Timestamp,
 	},
 	/// No stored value can be served under the source's policy.
-	Error(ReadError),
+	Error(Cause),
 }
 
-/// Why a read affected by upstream failure could not return a value.
+/// Report the error from the refresh that just failed.
 #[derive(Debug, Eq, PartialEq)]
-pub enum ReadError {
-	/// A refresh failed and there is no usable stored value. Use the error
-	/// from this refresh if it just failed, or the stored error when answering
-	/// during backoff or after an aborted refresh.
-	UpstreamFailed,
-	/// No usable value or recorded upstream cause exists after an aborted load.
+pub struct CurrentRefreshError;
+
+/// Report the error recorded on the existing entry.
+#[derive(Debug, Eq, PartialEq)]
+pub struct StoredRefreshError;
+
+/// The error to report after an abort leaves no usable stored value.
+#[derive(Debug, Eq, PartialEq)]
+pub enum AbortedRefreshError {
+	/// Report the stored error from an earlier failed refresh.
+	Stored(StoredRefreshError),
+	/// No failure was recorded. Show exactly `upstream unavailable`.
+	///
+	/// This is the fallback at the [reference's read return][fallback].
+	///
+	/// [fallback]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L130
 	UpstreamUnavailable,
 }
-
-impl fmt::Display for ReadError {
-	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-		todo!()
-	}
-}
-
-impl Error for ReadError {}
 
 /// What to write and what to give readers after a refresh.
 #[derive(Debug, Eq, PartialEq)]
 pub enum RefreshDecision {
-	/// Store the new value and metadata, reset the failure streak, and answer
-	/// waiting reads with the new value marked fresh. After a successful write,
-	/// use [`decide_next_alarm`] with the entry as written.
+	/// Write the entry from [`entry_after_success`] and mark the new value fresh
+	/// for waiting readers. After the write, use [`decide_next_background_refresh`].
 	StoreValue {
-		/// Metadata to store with the new value and use in the fresh answer.
+		/// Metadata for the loaded value to store and serve.
 		stored: StoredValue,
 	},
 	/// A refresh succeeded without an entry to update. Give waiting readers
-	/// the new value marked fresh, with no storage or alarm change.
+	/// the new value marked fresh and leave storage and scheduling alone.
 	ReturnFresh {
 		/// The start time of the successful fetch.
 		fetched_at: Timestamp,
 	},
-	/// Record a failed refresh without replacing the last good value or its
-	/// metadata. The caller supplies and reports the error. After a successful
-	/// write, use [`decide_next_alarm`] with the entry as written.
+	/// Write the entry from [`entry_after_failure`]. After the write, use
+	/// [`decide_next_background_refresh`].
 	RecordFailure {
-		/// The new count of consecutive failed refreshes.
-		consecutive: NonZeroU32,
-		/// Reads suppress foreground fetches and immediate alarms before this time.
-		backoff_until: Timestamp,
-		/// How to answer waiting reads using the stored value or current error.
-		answer: FailureAnswer,
+		/// The computed update to persist with the current error.
+		update: FailureUpdate,
+		/// Serve a stored value or report the current refresh's error.
+		answer: FailureAnswer<CurrentRefreshError>,
 	},
-	/// Leave storage and the alarm alone when a refresh was aborted or when
-	/// it failed without an entry to update.
-	LeaveUnchanged {
-		/// How to answer waiting reads from the existing entry or error outcome.
-		answer: FailureAnswer,
+	/// A refresh failed without an entry to update. Report the current
+	/// refresh's error and leave storage and scheduling alone.
+	ReturnCurrentError,
+	/// A refresh aborted. Leave storage and scheduling alone.
+	Aborted {
+		/// Serve a stored value, report a stored error, or report unavailable
+		/// when no failure was recorded.
+		answer: FailureAnswer<AbortedRefreshError>,
 	},
 }
 
-/// What to do with the pending alarm after recording a refresh.
+/// Failure metadata computed at refresh completion for the next cache write.
+#[derive(Debug, Eq, PartialEq)]
+pub struct FailureUpdate {
+	/// The new count of consecutive failed refreshes.
+	pub consecutive: NonZeroU32,
+	/// Reads suppress foreground fetches and immediate refreshes before this time.
+	pub backoff_until: Timestamp,
+}
+
+/// Build the entry to write after a successful refresh.
+///
+/// Keep the last-read time, store the supplied metadata, and clear any
+/// failure. After writing it with the value, use the written entry to
+/// [compute the next background refresh](decide_next_background_refresh).
+#[must_use]
+pub fn entry_after_success<E>(entry: Entry<E>, stored: StoredValue) -> Entry<E> {
+	todo!()
+}
+
+/// Build the entry to write after a failed refresh.
+///
+/// Keep the last-read time and the last successful value's metadata. Store
+/// the computed failure update with the caller's current error. After writing
+/// it, use the written entry to
+/// [compute the next background refresh](decide_next_background_refresh).
+#[must_use]
+pub fn entry_after_failure<E>(entry: Entry<E>, update: FailureUpdate, error: E) -> Entry<E> {
+	todo!()
+}
+
+/// When to refresh a resource in the background after recording a load outcome.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NextAlarm {
-	/// Replace the pending alarm. A time already due requests immediate work.
-	Set(Timestamp),
-	/// Clear the pending alarm because the resource has gone idle.
-	Clear,
+pub enum NextBackgroundRefresh {
+	/// Replace the pending refresh with this deadline. A deadline already due
+	/// requests immediate work.
+	ScheduleAt(Timestamp),
+	/// Cancel the pending refresh because the resource has gone idle.
+	Stop,
 }
 
 /// Decide how to answer a read for a registered source.
@@ -284,11 +312,14 @@ pub fn decide_read<E: Error>(
 	todo!()
 }
 
-/// Decide whether a consumed alarm should request a refresh.
+/// Decide whether a scheduled background refresh that has come due should run.
 ///
-/// Pass the entry as read when the alarm fires and the time of that read.
+/// Pass the entry as read when the refresh comes due and the time of that read.
 #[must_use]
-pub fn decide_alarm<E: Error>(now: Timestamp, entry: Option<&Entry<E>>) -> AlarmDecision {
+pub fn decide_due_refresh<E: Error>(
+	now: Timestamp,
+	entry: Option<&Entry<E>>,
+) -> DueRefreshDecision {
 	todo!()
 }
 
@@ -308,14 +339,18 @@ pub fn decide_refresh_finished<E: Error>(
 	todo!()
 }
 
-/// Decide the next alarm after writing either a successful value or a failure.
+/// Decide when to next refresh in the background after writing a value or failure.
 ///
 /// Pass the entry as written and a fresh timestamp sampled after the write.
-/// Clear the alarm if the entry has gone idle. Otherwise, schedule at the end
+/// Cancel the pending refresh if the entry has gone idle. Otherwise, schedule at the end
 /// of an active backoff or at the value's expiration. If there is no stored
 /// value and backoff has elapsed, schedule one default freshness interval
 /// after the supplied time.
 #[must_use]
-pub fn decide_next_alarm<E: Error>(policy: Policy, now: Timestamp, entry: &Entry<E>) -> NextAlarm {
+pub fn decide_next_background_refresh<E: Error>(
+	policy: Policy,
+	now: Timestamp,
+	entry: &Entry<E>,
+) -> NextBackgroundRefresh {
 	todo!()
 }
