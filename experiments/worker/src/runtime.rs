@@ -2,14 +2,17 @@
 //! and completed reply in SQLite and invokes the shared Trifecta operation from
 //! its alarm.
 
-use std::{cell::Cell, error::Error, future::Future, rc::Rc};
+use std::{cell::Cell, error::Error, future::Future, pin::pin, rc::Rc, time::Duration};
 
 use bytes::Bytes;
 use fixture_experiment_route::{
 	buffered_fixture_body, fixture_operation, Fixture, FixtureSourceError, NonSuccessStatus,
-	ObjectReply, RefreshFailure, RefreshFailureEvent, RefreshJob, RefreshOutcome,
+	ObjectReply, RefreshFailure, RefreshFailureEvent, RefreshJob, RefreshOutcome, UnknownFixture,
 };
-use futures_util::FutureExt;
+use futures_util::{
+	future::{select, Either},
+	FutureExt,
+};
 use serde::Serialize;
 use trifecta::{
 	body::{AdaptResponse, BodyWithMetadata},
@@ -17,9 +20,9 @@ use trifecta::{
 	source::Source,
 };
 use worker::{
-	durable_object, event, send::SendFuture, wasm_bindgen, Context, Date, DurableObject, Env, Fetch,
-	Headers, Method, Request, RequestInit, RequestRedirect, Response, SqlStorage, SqlStorageValue,
-	State, Storage,
+	durable_object, event, send::SendFuture, wasm_bindgen, AbortController, AbortSignal, Context,
+	Date, Delay, DurableObject, Env, Fetch, Headers, Method, Request, RequestInit, RequestRedirect,
+	Response, SqlStorage, SqlStorageValue, State, Storage,
 };
 
 use address::LoopbackUrl;
@@ -27,6 +30,7 @@ use address::LoopbackUrl;
 const FIXTURES: &str = "FIXTURES";
 const ALARM_DELAY_MS: i64 = 3_000;
 const OUTCOME_LIFETIME_MS: i64 = 5_000;
+const REFRESH_TIMEOUT: Duration = Duration::from_secs(5);
 
 type SourceFailure = FixtureSourceError<worker::Error>;
 
@@ -95,12 +99,13 @@ impl DurableObject for FixtureObject {
 	}
 
 	async fn fetch(&self, request: Request) -> worker::Result<Response> {
-		let Some(owner) = self.owner() else {
+		let Ok(owner) = self.owner() else {
 			return reply(ObjectReply::StoredRecordInvalid);
 		};
 		let Ok(requested) = Fixture::from_route_path(&request.path()) else {
 			return Response::empty().map(|response| response.with_status(404));
 		};
+		let owner = owner.unwrap_or(requested);
 		let storage = self.state.storage();
 		let alarm_running = Rc::clone(&self.alarm_running);
 		// Keep the storage/alarm lookup and re-arm together. Return routine
@@ -124,54 +129,69 @@ impl DurableObject for FixtureObject {
 	/// logged as an invalid record and a later fetch returns that failure.
 	async fn alarm(&self) -> worker::Result<Response> {
 		let _running = RunningAlarm::start(&self.alarm_running);
-		let Some(owner) = self.owner() else {
+		let Ok(owner) = self.owner() else {
 			return Response::empty();
 		};
-		match self.refresh(owner).await {
+		let storage = self.state.storage();
+		let loaded = Records::open(storage.sql()).and_then(|records| {
+			let job = records.read_job(owner)?;
+			Ok((records, job))
+		});
+		let (records, requested) = match loaded {
+			Ok((records, Some(requested))) => (records, requested),
+			Ok((_, None)) => return Response::empty(),
+			Err(failure) => return alarm_failure(owner, failure),
+		};
+		match self.refresh(&storage, &records, requested).await {
 			Ok(()) => Response::empty(),
-			Err(failure) => {
-				record_object_failure(owner, &failure);
-				match failure {
-					ObjectFailure::Storage { cause, .. } | ObjectFailure::ScheduleAlarm(cause) => Err(cause),
-					_ => Response::empty(),
-				}
-			}
+			Err(failure) => alarm_failure(Some(requested), failure),
 		}
 	}
 }
 
+fn alarm_failure(fixture: Option<Fixture>, failure: ObjectFailure) -> worker::Result<Response> {
+	record_object_failure(fixture.map_or("unknown", Fixture::segment), &failure);
+	match failure {
+		ObjectFailure::Storage { cause, .. } | ObjectFailure::ScheduleAlarm(cause) => Err(cause),
+		_ => Response::empty(),
+	}
+}
+
 impl FixtureObject {
-	fn owner(&self) -> Option<Fixture> {
-		let name = self.state.id().name();
-		let owner = name
+	fn owner(&self) -> Result<Option<Fixture>, UnknownFixture> {
+		self
+			.state
+			.id()
+			.name()
 			.as_deref()
-			.and_then(|name| Fixture::from_object_name(name).ok());
-		if owner.is_none() {
-			log_object_failure(
-				name.as_deref().unwrap_or("unknown"),
-				"identify_object",
-				"invalid_object",
-				"object has no recognized fixture name",
-			);
-		}
-		owner
+			.map(|name| {
+				Fixture::from_object_name(name).inspect_err(|_| {
+					log_object_failure(
+						name,
+						"identify_object",
+						"invalid_object",
+						"object has an unrecognized fixture name",
+					);
+				})
+			})
+			.transpose()
 	}
 
-	async fn refresh(&self, owner: Fixture) -> Result<(), ObjectFailure> {
-		let storage = self.state.storage();
-		let records = Records::open(storage.sql())?;
-		let Some(requested) = records.read_job(owner)? else {
-			return Ok(());
-		};
+	async fn refresh(
+		&self,
+		storage: &Storage,
+		records: &Records,
+		requested: Fixture,
+	) -> Result<(), ObjectFailure> {
 		if let Some(deadline) = records.refresh_deadline()? {
 			if deadline > now_ms() {
-				return schedule_refresh(&storage, deadline).await;
+				return schedule_refresh(storage, deadline).await;
 			}
 		}
 		let result = run_refresh(&self.env, requested).await;
 		let deadline = now_ms().saturating_add(OUTCOME_LIFETIME_MS);
 		records.write_outcome(result, deadline)?;
-		schedule_refresh(&storage, deadline).await
+		schedule_refresh(storage, deadline).await
 	}
 }
 
@@ -202,13 +222,13 @@ async fn read_or_schedule(
 	alarm_running: &Cell<bool>,
 ) -> Result<ReadReply, ObjectFailure> {
 	let records = Records::open(storage.sql())?;
-	if records.read_job(owner)?.is_none() {
+	if records.read_job(Some(owner))?.is_none() {
 		check_owner(owner, requested)?;
 		records.write(Record::Job, &RefreshJob::ReadFixture(requested))?;
 	}
 	if let Some(cached) = records.read_outcome()? {
 		if let Err(failure) = ensure_alarm(storage, alarm_running, cached.refresh_after_ms).await {
-			record_object_failure(owner, &failure);
+			record_object_failure(owner.segment(), &failure);
 		}
 		return Ok(cached.for_read(owner));
 	}
@@ -336,13 +356,15 @@ impl Records {
 		}
 	}
 
-	fn read_job(&self, owner: Fixture) -> Result<Option<Fixture>, ObjectFailure> {
+	fn read_job(&self, owner: Option<Fixture>) -> Result<Option<Fixture>, ObjectFailure> {
 		let Some(payload) = self.read(Record::Job)? else {
 			return Ok(None);
 		};
 		let RefreshJob::ReadFixture(requested) =
 			serde_json::from_str(&payload).map_err(ObjectFailure::DecodeJob)?;
-		check_owner(owner, requested)?;
+		if let Some(owner) = owner {
+			check_owner(owner, requested)?;
+		}
 		Ok(Some(requested))
 	}
 
@@ -472,7 +494,7 @@ fn reply(reply: ObjectReply) -> worker::Result<Response> {
 }
 
 fn log_and_reply(fixture: Fixture, failure: &ObjectFailure) -> worker::Result<Response> {
-	record_object_failure(fixture, failure);
+	record_object_failure(fixture.segment(), failure);
 	reply(failure.reply())
 }
 
@@ -534,14 +556,23 @@ async fn run_refresh(env: &Env, fixture: Fixture) -> RefreshOutcome {
 		Ok(url) => url,
 		Err(error) => return failed_refresh(fixture, RefreshFailure::FixtureSetup, &error),
 	};
-	match fixture_operation(FixtureSource, FixtureAdapter)
-		.perform(url)
-		.await
-	{
-		Ok(value) => RefreshOutcome::Value { value },
-		Err(error) => failed_refresh(fixture, error.failure, &error.cause),
+	let controller = AbortController::default();
+	let operation = fixture_operation(FixtureSource(controller.signal()), FixtureAdapter);
+	let transfer = pin!(operation.perform(url));
+	let deadline = pin!(Delay::from(REFRESH_TIMEOUT));
+	match select(transfer, deadline).await {
+		Either::Left((Ok(value), _)) => RefreshOutcome::Value { value },
+		Either::Left((Err(error), _)) => failed_refresh(fixture, error.failure, &error.cause),
+		Either::Right(((), _)) => {
+			controller.abort();
+			failed_refresh(fixture, RefreshFailure::Timeout, &DeadlineElapsed)
+		}
 	}
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("fixture transfer exceeded its deadline")]
+struct DeadlineElapsed;
 
 fn failed_refresh(
 	fixture: Fixture,
@@ -566,7 +597,7 @@ fn failed_refresh(
 	RefreshOutcome::Failed { failure }
 }
 
-struct FixtureSource;
+struct FixtureSource(AbortSignal);
 
 impl Source<LoopbackUrl> for FixtureSource {
 	type Response = Response;
@@ -576,22 +607,23 @@ impl Source<LoopbackUrl> for FixtureSource {
 		&'a self,
 		url: &'a LoopbackUrl,
 	) -> BoxFuture<'a, Result<Self::Response, Self::Error>> {
-		Box::pin(fetch_fixture(url))
+		Box::pin(fetch_fixture(url, &self.0))
 	}
 }
 
 /// The SDK wrapper supplies Trifecta's `Send` bound with an unchecked unsafe
 /// impl. These futures must stay on the single-threaded Worker executor.
 /// The SDK response already satisfies `Send`.
-fn fetch_fixture(
-	url: &LoopbackUrl,
-) -> SendFuture<impl Future<Output = Result<Response, SourceFailure>> + '_> {
+fn fetch_fixture<'a>(
+	url: &'a LoopbackUrl,
+	signal: &'a AbortSignal,
+) -> SendFuture<impl Future<Output = Result<Response, SourceFailure>> + 'a> {
 	SendFuture::new(async move {
 		let mut init = RequestInit::new();
 		init.with_redirect(RequestRedirect::Manual);
 		let request = Request::new_with_init(url.as_str(), &init).map_err(SourceFailure::Fetch)?;
 		let response = Fetch::Request(request)
-			.send()
+			.send_with_signal(signal)
 			.await
 			.map_err(SourceFailure::Fetch)?;
 		let status = response.status_code();
@@ -693,8 +725,7 @@ struct ObjectFailureEvent<'a> {
 
 /// Records the fixture and operation before reporting a failed reply or
 /// propagating a storage error to the alarm runtime for retry.
-fn record_object_failure(fixture: Fixture, failure: &ObjectFailure) {
-	let fixture = fixture.segment();
+fn record_object_failure(fixture: &str, failure: &ObjectFailure) {
 	match failure {
 		ObjectFailure::Storage { operation, cause } => {
 			log_object_failure(fixture, operation.name(), "storage", cause.into());

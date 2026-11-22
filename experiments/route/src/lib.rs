@@ -186,6 +186,9 @@ pub enum RefreshFailure {
 	/// The transport failed before it yielded a response.
 	#[serde(rename = "fetch")]
 	Fetch,
+	/// Fetching the headers and reading the body exceeded the refresh deadline.
+	#[serde(rename = "timeout")]
+	Timeout,
 	/// The transport returned a response without a valid HTTP status, such as
 	/// status zero on an opaque redirect.
 	#[serde(rename = "invalid_status")]

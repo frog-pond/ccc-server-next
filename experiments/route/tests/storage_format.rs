@@ -49,6 +49,7 @@ fn refresh_outcome_json_is_stable() {
 	let status = NonSuccessStatus::try_from(302).unwrap();
 	for (failure, json) in [
 		(RefreshFailure::Fetch, r#"{"kind":"fetch"}"#),
+		(RefreshFailure::Timeout, r#"{"kind":"timeout"}"#),
 		(
 			RefreshFailure::InvalidStatus,
 			r#"{"kind":"invalid_status"}"#,
