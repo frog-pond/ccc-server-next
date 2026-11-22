@@ -31,6 +31,8 @@ When an approved issue is split into pieces that add no new argument, such as on
 - `## Changes`, as a short list;
 - `## Done when`.
 
+After filing a piece, link it as a sub-issue of the issue it splits, and copy that issue's blocked-by links to it (`gh api -X POST repos/frog-pond/ccc-server-next/issues/<piece>/dependencies/blocked_by -F issue_id=<the blocker's numeric id>`), so `tools/board` does not show it as ready too early.
+
 Anything that makes a new argument, changes a goal or records a decision is a full issue and is drafted first.
 
 ## Voice

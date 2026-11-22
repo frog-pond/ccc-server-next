@@ -182,16 +182,16 @@ otherwise the reader joins the existing one. "Answer" is the `state` returned.
 | R0 | no | – | – | – | – | – | – | `error` "unknown source: name" | no | no | none (no row inserted, `last_read` not touched) | `source-do.ts:88-89` |
 | R1 | yes | yes | yes | yes | (yes) | any | any | `fresh` (stored value) | no | no | only the §4.1 step 3 insert/touch | `source-do.ts:112` |
 | R2 | yes | yes | yes | no | yes | no | any | `stale` if `f = 0`, `stale-error` if `f > 0` | no, not from the read. The alarm is set to now_r, and when it fires it loads (§5). | no (awaits only the `setAlarm`) | `setAlarm(now_r)`, replacing any pending alarm | `source-do.ts:115-118` |
-| R3 | yes | yes | yes | no | yes | yes | any | `stale-error` (B implies `f > 0`, §4.4) | no | no | none (the pending alarm, normally at `backoff_until`, is kept) | `source-do.ts:115-118` |
+| R3 | yes | yes | yes | no | yes | yes | any | `stale-error` (B implies `f > 0`, §4.4) | no | no | none beyond §4.1 step 3 (the pending alarm, normally at `backoff_until`, is kept) | `source-do.ts:115-118` |
 | R4 | yes | yes | yes | no | no | no | no | success: `fresh` with the new value; failure: `stale-error` with the stored value | yes | yes | load writes (§6, §4.5) | `source-do.ts:122-129` |
 | R5 | yes | yes | yes | no | no | no | yes | as R4, with the outcome of the joined load | no (joins) | yes | those of the joined load | `source-do.ts:124`, `:182-186` |
-| R6 | yes | yes | yes | no | no | yes | any | `stale-error` (stored value) | no | no | none | `source-do.ts:122`, `:129` |
+| R6 | yes | yes | yes | no | no | yes | any | `stale-error` (stored value) | no | no | none beyond §4.1 step 3 | `source-do.ts:122`, `:129` |
 | R7 | yes | yes | no | any | any | no | no | success: `fresh` (new value); failure: `stale-error` (stored, earlier-epoch value). Age is not considered. | yes | yes | load writes | `source-do.ts:108`, `:112`, `:115`, `:122-129` |
 | R8 | yes | yes | no | any | any | no | yes | as R7, with the outcome of the joined load | no (joins) | yes | those of the joined load | as R7 |
-| R9 | yes | yes | no | any | any | yes | any | `stale-error` (stored, earlier-epoch value) | no | no | none | `source-do.ts:122`, `:129` |
+| R9 | yes | yes | no | any | any | yes | any | `stale-error` (stored, earlier-epoch value) | no | no | none beyond §4.1 step 3 | `source-do.ts:122`, `:129` |
 | R10 | yes | no | n/a | n/a | n/a | no | no | success: `fresh`; failure: `error` with `last_error` (or `"upstream unavailable"` if null) | yes | yes | load writes | `source-do.ts:122-130` |
 | R11 | yes | no | n/a | n/a | n/a | no | yes | as R10, with the outcome of the joined load | no (joins) | yes | those of the joined load | as R10 |
-| R12 | yes | no | n/a | n/a | n/a | yes | any | `error` with `last_error ?? "upstream unavailable"` | no | no | none | `source-do.ts:130` |
+| R12 | yes | no | n/a | n/a | n/a | yes | any | `error` with `last_error ?? "upstream unavailable"` | no | no | none beyond §4.1 step 3 | `source-do.ts:130` |
 
 Notes on the table:
 

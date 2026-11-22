@@ -5,7 +5,7 @@ description: Port one route or one upstream source from the reference ccc-server
 
 # Bring one route over from the reference
 
-One entry of `docs/reference/routes.toml` per branch and pull request. The pull request starts as a draft holding the types and signatures, and the bodies are added to the same pull request once the types are approved. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
+One conversion per branch and pull request: one shape function in the reference and its source, with every entry of `docs/reference/routes.toml` that uses it (often the same path for both colleges). An issue for an upstream may hold several conversions; each is its own pull request. The pull request starts as a draft holding the types and signatures, and the bodies are added to the same pull request once the types are approved. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
 
 This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. The types follow `design-types`.
 
@@ -13,7 +13,7 @@ This procedure was written before any route had been brought over. Steps marked 
 
 ## 1. Understand the route before writing code
 
-1. Find the entry by its `id`. If there is none, or its `kind` is `board`, stop and say so: how the job and organisation lists are stored has not been designed yet.
+1. Find the entries by their `id`. What to do depends on `kind` (the legend is at the top of `routes.toml`). If an entry's `kind` is `board`, stop and say so: those are designed in #435. If it is `ops`, port it only if the issue says to.
 2. Run `tools/reference-path` and read, in the reference, every file the entry names: where the route is registered, how its data is fetched, the functions that convert it, and their tests and fixtures. Read the tests. They state what must happen more exactly than the README does.
 3. Read "How the server is built" in `AGENTS.md`, and the parts of `docs/reference/cache-semantics.md` and `docs/reference/upstreams.md` about this route's data.
 4. Write a summary in the issue or the pull request description, not in a file:
@@ -55,4 +55,4 @@ This procedure was written before any route had been brought over. Steps marked 
 
 - Copy how the old crates are written (`ccc-types`, `ccc-upstream-handlers`, `ccc-upstream-proxy`, `ccc-server-routes`).
 - Loosen a type to make a test pass. If a fixture does not fit your type, either the type is wrong or the fixture shows a case the error enum should name.
-- Bring over two routes in one pull request because they looked alike.
+- Bring over two conversions in one pull request because they looked alike.

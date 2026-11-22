@@ -4,12 +4,15 @@ with its status, size, pull request, what it is waiting on and, when it is
 ready to start, the branch to start it from. Then the open pull requests whose
 branches follow the naming rule.
 
-Usage: tools/board [--json]
+Usage:
+  tools/board [--json]
+  tools/board status <issue> <status>   set an issue's status on the project board
 
-An issue is ready when it is open, has no pull request of its own, has a
-status of "Backlog" or "Ready", and every issue that blocks it is either
-closed or has open pull requests that are not drafts and that lie on one chain
-of branches. The branch to start from is then the highest of those pull
+An issue is ready when it is open, has no sub-issues and no pull request of
+its own, has a status of "Backlog" or "Ready", and every issue that blocks it
+is closed, has merged its pull request into `rearchitecture`, or has one open
+pull request that is not a draft, with all such pull requests on one chain of
+branches. The branch to start from is then the highest of those pull
 requests' branches, or `rearchitecture` when every blocker is closed.
 
 Only branches named `rearch/<issue>-<name>` are considered, and only pull
@@ -55,21 +58,47 @@ def checks(pull):
 	states = {c.get("conclusion") or c.get("status") or c.get("state") for c in pull.get("statusCheckRollup") or []}
 	if not states:
 		return "none"
-	if states & {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED"}:
+	if states & {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}:
 		return "failing"
 	if states <= {"SUCCESS", "NEUTRAL", "SKIPPED"}:
 		return "passing"
 	return "running"
 
 
+def set_status(number, status):
+	"""Sets `number`'s Status field on the project board."""
+	project = gh("project", "view", str(PROJECT), "--owner", OWNER, "--format", "json")["id"]
+	fields = gh("project", "field-list", str(PROJECT), "--owner", OWNER, "--format", "json")["fields"]
+	field = next((f for f in fields if f["name"] == "Status"), None)
+	if field is None:
+		sys.exit("the project has no Status field")
+	options = {o["name"]: o["id"] for o in field.get("options", [])}
+	if status not in options:
+		sys.exit(f"unknown status {status!r}; one of: {', '.join(options)}")
+	items = gh("project", "item-list", str(PROJECT), "--owner", OWNER, "--limit", "500", "--format", "json")["items"]
+	item = next((i for i in items if i.get("content", {}).get("number") == number
+		and i.get("content", {}).get("repository") == REPO), None)
+	if item is None:
+		sys.exit(f"#{number} is not on the project board")
+	subprocess.run(["gh", "project", "item-edit", "--project-id", project, "--id", item["id"],
+		"--field-id", field["id"], "--single-select-option-id", options[status]], check=True,
+		capture_output=True)
+	print(f"#{number}: {status}")
+
+
 def main():
+	if sys.argv[1:2] == ["status"]:
+		if len(sys.argv) != 4 or not sys.argv[2].lstrip("#").isdigit():
+			sys.exit('usage: tools/board status <issue> "<status>"')
+		set_status(int(sys.argv[2].lstrip("#")), sys.argv[3])
+		return
 	as_json = "--json" in sys.argv[1:]
 
 	board = {}
 	for item in gh("project", "item-list", str(PROJECT), "--owner", OWNER, "--limit", "500", "--format", "json")["items"]:
-		number = item.get("content", {}).get("number")
-		if number:
-			board[number] = item
+		content = item.get("content", {})
+		if content.get("number") and content.get("repository") == REPO:
+			board[content["number"]] = item
 
 	pulls = gh(
 		"pr", "list", "-R", REPO, "--state", "open", "--limit", "200",
@@ -79,6 +108,11 @@ def main():
 		p for p in pulls
 		if BRANCH.match(p["headRefName"]) and (p["baseRefName"] == BASE or BRANCH.match(p["baseRefName"]))
 	]
+	merged = gh(
+		"pr", "list", "-R", REPO, "--state", "merged", "--base", BASE, "--limit", "500",
+		"--json", "number,headRefName",
+	)
+	merged_issues = {int(BRANCH.match(p["headRefName"]).group(1)) for p in merged if BRANCH.match(p["headRefName"])}
 	by_head = {p["headRefName"]: p for p in stack}
 	by_issue = {}
 	for pull in stack:
@@ -102,6 +136,8 @@ def main():
 			if blocker["state"] != "open":
 				continue
 			own = by_issue.get(blocker["number"], [])
+			if not own and blocker["number"] in merged_issues:
+				continue
 			if not own:
 				return None, f"#{blocker['number']} has no pull request"
 			if len(own) > 1:
@@ -128,8 +164,12 @@ def main():
 		status = item.get("status") or "-"
 		base, reason = base_for(blockers)
 		open_blockers = [b["number"] for b in blockers if b["state"] == "open"]
+		has_children = (issue.get("sub_issues_summary") or {}).get("total", 0) > 0
+		if has_children and reason is None:
+			reason = "has sub-issues; work those"
 		ready = (
 			issue["state"] == "open"
+			and not has_children
 			and number not in by_issue
 			and status in ("-", "Backlog", "Ready")
 			and base is not None

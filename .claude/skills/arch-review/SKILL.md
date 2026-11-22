@@ -1,6 +1,6 @@
 ---
 name: arch-review
-description: Review a change in this repository against its architecture rubric, choosing a light single-reviewer pass or a heavy two-model review from what the diff touches. Use on a pull request here before it is marked ready or merged, or when asked to review a branch, diff or pull request in this repository.
+description: Review a change in this repository against its architecture rubric, choosing a light single-reviewer pass or a heavy two-model review from what the diff touches. Use on a pull request here before it merges, and on the types in a draft, or when asked to review a branch, diff or pull request in this repository.
 ---
 
 # Review a change
@@ -9,13 +9,13 @@ The rules are in `docs/review/rubric.md`, and how the server is meant to be buil
 
 ## 1. Decide how thorough the review is
 
-Run `git diff --stat rearchitecture...HEAD` (or against the pull request's base). The change gets the **thorough** review if it does any of these:
+Run `git diff --stat <base>...HEAD`, where `<base>` is the pull request's base branch (for a stacked pull request, not `rearchitecture`). The change gets the **thorough** review if it does any of these:
 
 - changes something public in `trifecta/`: a trait, a public type or a signature;
 - adds a crate, adds an outside dependency, or changes which workspace crate depends on which;
 - touches a cache backend, the freshness rules, or code specific to the Docker build or the Worker build;
 - changes an error enum used by more than one crate, or the name of a recorded event or one of its fields;
-- touches `AGENTS.md` or `docs/review/rubric.md`;
+- touches `AGENTS.md`, `docs/review/rubric.md`, anything under `.claude/` or `tools/`;
 - adds the types for the first route that reads from a given upstream.
 
 Otherwise it gets the **quick** review. If you are unsure, it is thorough.
@@ -56,6 +56,6 @@ For a route, add its `id` from `docs/reference/routes.toml` and ask the reviewer
 3. Where the two reviewers disagree about structure, or you disagree with a finding that holds, take it to the maintainer. The author does not settle it alone.
 4. Write in the pull request: which kind of review it was, which models reviewed, the commit they reviewed, each finding and what was done about it.
 
-A review covers the commit it read. Types reviewed in a draft are reviewed again, with their bodies, before the pull request is marked ready.
+A review covers the commit it read. Types reviewed in a draft are reviewed again, with their bodies, before the pull request merges.
 
 Review again after fixing only if a fix changed a public type, a dependency between crates, or how the server is built. A second review is a new reviewer starting from nothing, not a follow-up message to the first.

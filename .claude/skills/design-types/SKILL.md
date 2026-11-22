@@ -7,6 +7,10 @@ description: Design Rust types for an upstream's data and for what the apps rece
 
 The maintainer's primary objective for this project is to use Rust for what it is good at: the type system and performance. A type that permits a state the data can never be in is a defect here, even when every test passes. Types and their documentation are reviewed before any body is written.
 
+## The reference decides what is accepted
+
+Accept every input the reference accepts and produce the same output for it (rule P0). A more exact type is about how an accepted input is represented. It never rejects something the reference accepts, adds an error the reference does not have, or changes what is sent. When exactness and the reference conflict, follow the reference and make the type fit it.
+
 ## Read before designing
 
 In the reference (`tools/reference-path`):
@@ -19,14 +23,14 @@ Model the fields the reference's schema models. Serde ignores the rest, and each
 
 ## Questions to ask of every field
 
-- **Can the upstream leave it out, or send null?** Only then is it an `Option`. If the reference treats absent and null differently, so do we.
+- **Can the upstream leave it out, or send null?** Only then is it an `Option`. A derived `Option` accepts both; if the reference accepts only one, say so in the documentation and test it. Use `#[serde(default)]` only where the reference substitutes the same default.
 - **Is it one of a fixed set of values?** Then it is an enum. Add a catch-all variant only if the reference accepts values it does not know.
-- **Does it identify something from an open set?** A café id or a posting id is a newtype, not a `String` or `u32`. An identifier from a closed set, such as a campus, is an enum.
-- **Does it have a format or a unit?** A URL is a `Url`. A time is a time type with its zone made explicit, not a `String`. A duration says its unit in its type or its name.
-- **Can the upstream put something else in its place?** WordPress embeds an error object where an author would be. That is an enum with one variant per case.
+- **Does it identify something from an open set?** A posting id is a newtype, not a `String` or `u32`. An identifier from a closed set, such as a campus, or anything the reference checks against a fixed table, such as its cafés, is an enum.
+- **Does it have a format or a unit?** A URL is a `Url`, unless the reference passes it on unchanged: `Url` normalizes what it parses, so check it with `Url` and keep the original string. A time is a time type with its zone made explicit, not a `String`. A duration says its unit in its type or its name.
+- **Can the upstream put something else in its place?** WordPress embeds an error object where an author would be. That is an enum with one variant per case. Prefer a tag the upstream sends to choose the variant; use `#[serde(untagged)]` only when there is none.
 - **Do two fields only make sense together?** Then they are one struct, and an `Option` of that struct if the pair can be absent.
 - **Do two fields exclude each other?** Then they are one enum, not two `Option`s or a `bool` beside an `Option`.
-- **Is there a rule about the value** (not empty, within a range)? Then the field is private and a constructor checks the rule, or the conversion rejects the value with a named error.
+- **Is there a rule about the value** (not empty, within a range)? Then the field is private and a constructor checks the rule, deserializing through it with `#[serde(try_from = "...")]`. Reject a value only if the reference rejects it.
 
 ## Struct or enum
 
@@ -38,8 +42,9 @@ Add a trait when more than one type provides the same capability, such as a cach
 
 ## The conversion
 
-- `impl TryFrom<Upstream> for Ccc`, with its own error enum. One variant per way the upstream's data can be unusable, each carrying what a person needs to find the bad record.
-- `#[non_exhaustive]` on the error enum.
+- `From` when it cannot fail, `TryFrom` with its own error enum when it can fail and needs nothing else, and a named function when it needs another input such as the campus date (rule T2).
+- The error enum has one variant per way the upstream's data can be unusable that the reference also treats as a failure, each carrying what a person needs to find the bad record.
+- No `#[non_exhaustive]` inside the workspace: a new error case should break the `match` that turns errors into responses.
 - No I/O, clock or environment. A step that loses information, such as turning HTML into text, is its own function with its own tests.
 - Take the upstream value by value and move its parts. Do not clone to convert.
 
@@ -129,7 +134,6 @@ pub struct Departure {
 
 /// Why a [`Stop`] has no [`Departure`].
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
-#[non_exhaustive]
 pub enum StopError {
 	/// Shuttles are not calling at the stop, so there is no departure to show.
 	#[error("stop {stop:?} is suspended: {reason}")]

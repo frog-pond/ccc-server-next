@@ -10,7 +10,7 @@ The repository is being rebuilt. Read this file before changing anything.
 - **Where the work happens:** the `rearchitecture` branch, not `main`. Issue #424 describes the effort and lists its parts.
 - **Removed:** `ccc-server`, `ccc-server-routes`, `ccc-types`, `ccc-upstream-handlers` and `ccc-upstream-proxy`, the previous attempt. They still exist on `main`. Do not bring them back or copy how they were written.
 - **Kept:** `e2e`, which compares this server's responses with a running reference.
-- **Not built yet:** the Worker build, cache backends, and tests that compare conversions with the reference's output. If a document or skill mentions one of these, check that it exists before relying on it.
+- **Not built yet:** `trifecta` (its first cut is on the `trifecta` branch and comes in with #425), the Worker build, cache backends, and tests that compare conversions with the reference's output. If a document or skill mentions one of these, check that it exists before relying on it.
 
 ## The reference implementation
 
@@ -21,7 +21,7 @@ The repository is being rebuilt. Read this file before changing anything.
 
 ## How the server is built
 
-- **What it serves.** The routes the reference's Worker serves, under `/edu.stolaf/` and `/edu.carleton/`, plus the older `/v1` addresses that released apps still call. The Node server's routes that take an arbitrary URL are not carried over.
+- **What it serves.** Everything in `docs/reference/routes.toml` except where an issue defers it: `/previews` and `POST /sentry/telegram` are deferred (#434), and the job and organisation boards are designed separately (#435). That is the routes the reference's Worker serves, under `/edu.stolaf/` and `/edu.carleton/`, plus the older `/v1` addresses that released apps still call. The Node server's routes that take an arbitrary URL are not carried over.
 - **Two builds from one set of libraries.** A native program for Docker and a Cloudflare Worker compiled to WebAssembly. Each has its own small crate containing the entry point, and which one you build decides the target. There is no Cargo feature that switches between them: Cargo turns on every feature at once in a whole-workspace build, so two features that exclude each other cannot be linted or tested together.
 - **Each outside resource is described once.** A description has a name that never changes, the parameters that pick out one resource (one café, one feed), and how long its value stays fresh. Parameters and values can be serialized.
 - **A background refresh is a name plus parameters.** It is never a closure or a spawned task, because a Cloudflare Durable Object wakes up with nothing but what it stored.
@@ -32,7 +32,7 @@ The repository is being rebuilt. Read this file before changing anything.
 
 ## Rules
 
-The point of writing this server in Rust is its type system and its performance. That is the maintainer's primary objective for the project, and the rules below serve it. When a type could be made more exact, make it more exact.
+Matching the reference comes first: accept what it accepts and send what it sends (rule P0). Within that, the point of writing this server in Rust is its type system and its performance. That is the maintainer's primary objective for the project, and the rules below serve it. When a type could be made more exact, make it more exact.
 
 Full wording and reasons are in `docs/review/rubric.md`. Reviews check against that file.
 
@@ -58,7 +58,8 @@ Full wording and reasons are in `docs/review/rubric.md`. Reviews check against t
 | How the server works | `docs/` and this file | Facts about how things are, not history. |
 | What the reference serves | `docs/reference/routes.toml` | Facts about the reference only. Nothing about progress here. |
 | Who is working on what | GitHub issues, one per piece of work | The pull request links the issue. |
-| Whether a route is finished | Worked out from merged pull requests | Never keep a status list by hand. |
+| Whether a route is finished | Worked out from merged pull requests | Never keep a list of finished routes in a file. |
+| What is in progress | The project board "@rye's Rearchitecting Push" | `tools/board` reads it. |
 | Discussion and exploration | The conversation | Not a record. Anything someone else needs goes in a row above. |
 
 The design of `trifecta` is described in #425 and its sub-issues. The maintainer also keeps working notes locally. They are not in the repository, so do not assume they are present, and do not guess their contents.

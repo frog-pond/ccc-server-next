@@ -7,6 +7,17 @@
 #
 # Completion / porting status is deliberately NOT recorded in this file.
 #
+# What `kind` means:
+# - source: answered from a cached upstream source (a SourceDO, read with fetchSource).
+# - board: answered from a Durable Object that stores rows in SQLite (student work,
+#   student orgs). Designed separately in ccc-server-next #435.
+# - redirect: a 307 to a published file. Nothing is fetched.
+# - notice: a fixed answer. Nothing is fetched.
+# - passthrough: an upstream's own response passed on, after checking the request.
+# - ops: not part of the apps' API (the campus list, ping, route listings, the
+#   preview listing, the Sentry webhook, the BonApp debug view). Ported only where
+#   an issue says so; /previews and /sentry/telegram are deferred (#434).
+#
 # Conventions:
 # - One [[route]] per (campus, path). campus = "" for routes not under a campus.
 # - `path` is as the Worker matches it, without the /<campus> prefix.

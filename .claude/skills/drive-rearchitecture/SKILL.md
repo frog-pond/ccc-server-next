@@ -30,10 +30,10 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 
 ## Each time round
 
-1. **Look.** Run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too; if the reference has moved, follow `sync-reference` before starting route work.
+1. **Look.** Run `tools/board`. It lists every issue under #424 with its status, size, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs him (`sync-reference`).
 2. **Tend what is in flight first.** For each open pull request on the stack:
-   - checks failing: send it back to a worker with the failure;
-   - not yet reviewed: run `arch-review`;
+   - checks failing: send it back to a worker with the failure, using the follow-up request below;
+   - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the record in its description or in a comment naming the commit; GitHub's review decision is separate and is the maintainer's;
    - findings outstanding: send them to a worker;
    - a draft: leave it, unless its types are waiting for review;
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
@@ -42,7 +42,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 5. **Record.** Set statuses on the board. If you learned something another worker needs, put it in a comment on the issue or in the documentation, not in your conversation.
 6. **Stop** when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
 
-## The request to a worker
+## The requests to a worker
 
 ```
 Work issue #<N> in frog-pond/ccc-server-next, following the work-issue skill.
@@ -51,14 +51,22 @@ Report: the pull request URL, the head commit, what you checked for each
 "Done when" item, and any question for the maintainer.
 ```
 
+To send a pull request back:
+
+```
+Continue issue #<N> in frog-pond/ccc-server-next on branch <branch>, following the
+work-issue skill. Pull request #<P> needs: <the failing check, or the findings
+to fix, each with file:line>. Report the new head commit and what you changed.
+```
+
 Add nothing about how to do the work. If the issue is not enough to work from, fix the issue.
 
 ## The stack
 
 - Foundation work is a stack of pull requests: each is based on the branch before it, and the bottom one is based on `rearchitecture`.
 - Routes are not stacked on each other. Each branches from the base the board prints for it.
-- Nothing pushed is rewritten. When a lower branch gains commits, merge it into each branch above it, bottom to top, and push. No rebase, no force-push.
-- Merge pull requests with a merge commit, not a squash, so the branches above already contain the merged commits. GitHub then points the next pull request at `rearchitecture` by itself.
+- Nothing pushed is rewritten. When a lower branch gains commits, you merge it into each branch above it, bottom to top, and push, or send a worker to. No rebase, no force-push.
+- Merge pull requests with a merge commit, not a squash, so the branches above already contain the merged commits. The repository deletes a branch when its pull request merges, and GitHub then points the pull requests that were based on it at `rearchitecture`. Check that it did.
 
 ## Merging
 

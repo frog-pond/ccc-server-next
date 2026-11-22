@@ -43,7 +43,6 @@
 		"ask": [
 			"Bash(gh pr merge *)",
 			"Bash(mise run e2e *)",
-			"Bash(mise run start *)",
 			"Edit(.notes/**)",
 			"Edit(docs/review/**)",
 			"Edit(TRIFECTA_SPEC.md)",
