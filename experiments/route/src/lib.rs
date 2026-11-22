@@ -4,7 +4,7 @@
 //! handler produces [`ObjectReply`] for the Worker to forward. Its `alarm`
 //! reads a [`RefreshJob`] and persists the operation's [`RefreshOutcome`].
 
-use std::{error::Error as StdError, marker::PhantomData, str::FromStr};
+use std::{error::Error as StdError, marker::PhantomData, str::FromStr, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use futures_util::{future, stream, TryStreamExt};
@@ -18,6 +18,9 @@ use trifecta::{
 	transform::Transform,
 	uncached::Pipeline,
 };
+
+/// Time budget for a complete fixture operation in either entry point.
+pub const REFRESH_DEADLINE: Duration = Duration::from_secs(5);
 
 /// Which response the experiment requests from the loopback fixture server.
 /// Each fixture has its own Durable Object and owns its job, alarm and result.
@@ -186,7 +189,8 @@ pub enum RefreshFailure {
 	/// The transport failed before it yielded a response.
 	#[serde(rename = "fetch")]
 	Fetch,
-	/// Fetching the headers and reading the body exceeded the refresh deadline.
+	/// Either build exceeded the five-second [`REFRESH_DEADLINE`] for the full
+	/// operation, including the source, response adapter, and transform.
 	#[serde(rename = "timeout")]
 	Timeout,
 	/// The transport returned a response without a valid HTTP status, such as
@@ -424,5 +428,17 @@ impl<'a> RefreshFailureEvent<'a> {
 			failure,
 			cause,
 		}
+	}
+}
+
+impl RefreshFailureEvent<'static> {
+	/// Records expiry of the shared deadline with the same diagnostic in both builds.
+	#[must_use]
+	pub const fn timeout(fixture: Fixture) -> Self {
+		Self::new(
+			fixture,
+			RefreshFailure::Timeout,
+			"fixture operation exceeded its deadline",
+		)
 	}
 }

@@ -2,12 +2,13 @@
 //! and completed reply in SQLite and invokes the shared Trifecta operation from
 //! its alarm.
 
-use std::{cell::Cell, error::Error, future::Future, pin::pin, rc::Rc, time::Duration};
+use std::{cell::Cell, error::Error, future::Future, pin::pin, rc::Rc};
 
 use bytes::Bytes;
 use fixture_experiment_route::{
 	buffered_fixture_body, fixture_operation, Fixture, FixtureSourceError, NonSuccessStatus,
 	ObjectReply, RefreshFailure, RefreshFailureEvent, RefreshJob, RefreshOutcome, UnknownFixture,
+	REFRESH_DEADLINE,
 };
 use futures_util::{
 	future::{select, Either},
@@ -30,7 +31,6 @@ use address::LoopbackUrl;
 const FIXTURES: &str = "FIXTURES";
 const ALARM_DELAY_MS: i64 = 3_000;
 const OUTCOME_LIFETIME_MS: i64 = 5_000;
-const REFRESH_TIMEOUT: Duration = Duration::from_secs(5);
 
 type SourceFailure = FixtureSourceError<worker::Error>;
 
@@ -53,7 +53,8 @@ pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Res
 		Err((operation, cause)) => {
 			log_event(&ObjectFailureEvent {
 				event: "worker_experiment.object_call_failed",
-				fixture: fixture.segment(),
+				fixture: Some(fixture),
+				object_name: None,
 				operation,
 				kind: "object_call",
 				cause: (&cause).into(),
@@ -99,13 +100,12 @@ impl DurableObject for FixtureObject {
 	}
 
 	async fn fetch(&self, request: Request) -> worker::Result<Response> {
-		let Ok(owner) = self.owner() else {
+		let Some(owner) = self.fetch_owner() else {
 			return reply(ObjectReply::StoredRecordInvalid);
 		};
 		let Ok(requested) = Fixture::from_route_path(&request.path()) else {
 			return Response::empty().map(|response| response.with_status(404));
 		};
-		let owner = owner.unwrap_or(requested);
 		let storage = self.state.storage();
 		let alarm_running = Rc::clone(&self.alarm_running);
 		// Keep the storage/alarm lookup and re-arm together. Return routine
@@ -124,9 +124,9 @@ impl DurableObject for FixtureObject {
 		}
 	}
 
-	/// Runs the stored parameters. The object name identifies the fixture in
-	/// logs and guards against a job from another object. A mismatch is
-	/// logged as an invalid record and a later fetch returns that failure.
+	/// Runs the stored parameters. A nameless alarm trusts the stored job.
+	/// When present, the object name identifies the fixture and guards against
+	/// a job from another object. A mismatch is logged as an invalid record.
 	async fn alarm(&self) -> worker::Result<Response> {
 		let _running = RunningAlarm::start(&self.alarm_running);
 		let Ok(owner) = self.owner() else {
@@ -150,7 +150,7 @@ impl DurableObject for FixtureObject {
 }
 
 fn alarm_failure(fixture: Option<Fixture>, failure: ObjectFailure) -> worker::Result<Response> {
-	record_object_failure(fixture.map_or("unknown", Fixture::segment), &failure);
+	record_object_failure(fixture, &failure);
 	match failure {
 		ObjectFailure::Storage { cause, .. } | ObjectFailure::ScheduleAlarm(cause) => Err(cause),
 		_ => Response::empty(),
@@ -158,6 +158,19 @@ fn alarm_failure(fixture: Option<Fixture>, failure: ObjectFailure) -> worker::Re
 }
 
 impl FixtureObject {
+	fn fetch_owner(&self) -> Option<Fixture> {
+		let owner = self.owner().ok()?;
+		if owner.is_none() {
+			log_object_failure(
+				None,
+				"identify_object",
+				"invalid_object",
+				"fetch reached an unnamed object",
+			);
+		}
+		owner
+	}
+
 	fn owner(&self) -> Result<Option<Fixture>, UnknownFixture> {
 		self
 			.state
@@ -166,12 +179,14 @@ impl FixtureObject {
 			.as_deref()
 			.map(|name| {
 				Fixture::from_object_name(name).inspect_err(|_| {
-					log_object_failure(
-						name,
-						"identify_object",
-						"invalid_object",
-						"object has an unrecognized fixture name",
-					);
+					log_event(&ObjectFailureEvent {
+						event: "worker_experiment.object_failed",
+						fixture: None,
+						object_name: Some(name),
+						operation: "identify_object",
+						kind: "invalid_object",
+						cause: "object has an unrecognized fixture name",
+					});
 				})
 			})
 			.transpose()
@@ -228,7 +243,7 @@ async fn read_or_schedule(
 	}
 	if let Some(cached) = records.read_outcome()? {
 		if let Err(failure) = ensure_alarm(storage, alarm_running, cached.refresh_after_ms).await {
-			record_object_failure(owner.segment(), &failure);
+			record_object_failure(Some(owner), &failure);
 		}
 		return Ok(cached.for_read(owner));
 	}
@@ -494,7 +509,7 @@ fn reply(reply: ObjectReply) -> worker::Result<Response> {
 }
 
 fn log_and_reply(fixture: Fixture, failure: &ObjectFailure) -> worker::Result<Response> {
-	record_object_failure(fixture.segment(), failure);
+	record_object_failure(Some(fixture), failure);
 	reply(failure.reply())
 }
 
@@ -559,20 +574,19 @@ async fn run_refresh(env: &Env, fixture: Fixture) -> RefreshOutcome {
 	let controller = AbortController::default();
 	let operation = fixture_operation(FixtureSource(controller.signal()), FixtureAdapter);
 	let transfer = pin!(operation.perform(url));
-	let deadline = pin!(Delay::from(REFRESH_TIMEOUT));
+	let deadline = pin!(Delay::from(REFRESH_DEADLINE));
 	match select(transfer, deadline).await {
 		Either::Left((Ok(value), _)) => RefreshOutcome::Value { value },
 		Either::Left((Err(error), _)) => failed_refresh(fixture, error.failure, &error.cause),
 		Either::Right(((), _)) => {
 			controller.abort();
-			failed_refresh(fixture, RefreshFailure::Timeout, &DeadlineElapsed)
+			log_event(&RefreshFailureEvent::timeout(fixture));
+			RefreshOutcome::Failed {
+				failure: RefreshFailure::Timeout,
+			}
 		}
 	}
 }
-
-#[derive(Debug, thiserror::Error)]
-#[error("fixture transfer exceeded its deadline")]
-struct DeadlineElapsed;
 
 fn failed_refresh(
 	fixture: Fixture,
@@ -717,7 +731,9 @@ impl ObjectFailure {
 #[derive(Serialize)]
 struct ObjectFailureEvent<'a> {
 	event: &'static str,
-	fixture: &'a str,
+	fixture: Option<Fixture>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	object_name: Option<&'a str>,
 	operation: &'static str,
 	kind: &'static str,
 	cause: &'a str,
@@ -725,7 +741,7 @@ struct ObjectFailureEvent<'a> {
 
 /// Records the fixture and operation before reporting a failed reply or
 /// propagating a storage error to the alarm runtime for retry.
-fn record_object_failure(fixture: &str, failure: &ObjectFailure) {
+fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
 	match failure {
 		ObjectFailure::Storage { operation, cause } => {
 			log_object_failure(fixture, operation.name(), "storage", cause.into());
@@ -754,10 +770,16 @@ fn record_object_failure(fixture: &str, failure: &ObjectFailure) {
 	}
 }
 
-fn log_object_failure(fixture: &str, operation: &'static str, kind: &'static str, cause: &str) {
+fn log_object_failure(
+	fixture: Option<Fixture>,
+	operation: &'static str,
+	kind: &'static str,
+	cause: &str,
+) {
 	log_event(&ObjectFailureEvent {
 		event: "worker_experiment.object_failed",
 		fixture,
+		object_name: None,
 		operation,
 		kind,
 		cause,

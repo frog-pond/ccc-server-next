@@ -1,6 +1,6 @@
 //! Tokio listens on loopback and Axum runs the shared fixture operation.
 
-use std::{error::Error, sync::Arc, time::Duration};
+use std::{error::Error, sync::Arc};
 
 use axum::{
 	extract::State,
@@ -10,8 +10,9 @@ use axum::{
 	Json, Router,
 };
 use fixture_experiment_route::{
-	buffered_fixture_body, fixture_operation, Fixture, FixtureOperation, FixtureSourceError,
-	NonSuccessStatus, ObjectReply, RefreshFailureEvent, RefreshOutcome,
+	buffered_fixture_body, fixture_operation, FailedRefresh, Fixture, FixtureOperation,
+	FixtureSourceError, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshFailureEvent,
+	RefreshOutcome, REFRESH_DEADLINE,
 };
 use reqwest::{Client, Url};
 use trifecta::{
@@ -65,24 +66,39 @@ async fn serve_fixture(State(state): State<RouteState>, method: Method, uri: Uri
 
 	let mut url = state.origin.clone();
 	url.set_path(fixture.segment());
-	let result = match state.operation.perform(url).await {
-		Ok(value) => RefreshOutcome::Value { value },
-		Err(error) => {
-			let diagnostic = match error.cause.source().and_then(Error::source) {
-				Some(source) => format!("{}: {source}", error.cause),
-				None => error.cause.to_string(),
-			};
-			let event = RefreshFailureEvent::new(fixture, error.failure, &diagnostic);
-			match serde_json::to_string(&event) {
-				Ok(json) => eprintln!("{json}"),
-				Err(cause) => eprintln!("could not encode fixture failure event: {cause}"),
-			}
+	let result = match tokio::time::timeout(REFRESH_DEADLINE, state.operation.perform(url)).await {
+		Ok(Ok(value)) => RefreshOutcome::Value { value },
+		Ok(Err(error)) => failed_operation(fixture, &error),
+		Err(_) => {
+			log_refresh_failure(&RefreshFailureEvent::timeout(fixture));
 			RefreshOutcome::Failed {
-				failure: error.failure,
+				failure: RefreshFailure::Timeout,
 			}
 		}
 	};
 	Json(ObjectReply::from(result)).into_response()
+}
+
+fn failed_operation(fixture: Fixture, error: &FailedRefresh) -> RefreshOutcome {
+	let diagnostic = match error.cause.source().and_then(Error::source) {
+		Some(source) => format!("{}: {source}", error.cause),
+		None => error.cause.to_string(),
+	};
+	log_refresh_failure(&RefreshFailureEvent::new(
+		fixture,
+		error.failure,
+		&diagnostic,
+	));
+	RefreshOutcome::Failed {
+		failure: error.failure,
+	}
+}
+
+fn log_refresh_failure(event: &RefreshFailureEvent<'_>) {
+	match serde_json::to_string(event) {
+		Ok(json) => eprintln!("{json}"),
+		Err(cause) => eprintln!("could not encode fixture failure event: {cause}"),
+	}
 }
 
 struct NativeSource {
@@ -95,7 +111,6 @@ impl NativeSource {
 		Client::builder()
 			.redirect(reqwest::redirect::Policy::none())
 			.no_proxy()
-			.timeout(Duration::from_secs(5))
 			.build()
 			.map(|client| Self { client })
 	}
