@@ -7,7 +7,7 @@ description: Port one route or one upstream source from the reference ccc-server
 
 One conversion per branch and pull request: one shape function in the reference and its source, with every entry of `docs/reference/routes.toml` that uses it (often the same path for both colleges). An issue for an upstream may hold several conversions; each is its own pull request. The pull request starts as a draft holding the types and signatures, and the bodies are added to the same pull request once the types are approved. The reference decides what is correct. `AGENTS.md` and `docs/review/rubric.md` decide how it is written here.
 
-This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. The types follow `design-types`.
+This is the part of `work-issue` that is specific to a route: branching, the pull request and handing over are described there. Follow `design-types` and use [the type layout](../../../docs/types.md) to place schemas, conversions and errors.
 
 This procedure was written before any route had been brought over. Steps marked *provisional* describe the intent, and should be replaced with what was actually done once the first few routes are approved.
 
@@ -26,9 +26,8 @@ This procedure was written before any route had been brought over. Steps marked 
 ## 2. Types and signatures first
 
 5. Write the types and signatures only, with `todo!()` bodies:
-   - types for what the site sends, deriving `Deserialize` only, starting from the reference's schema for that site;
-   - types for what the apps receive;
-   - `impl TryFrom` from one to the other and its error enum, with one case per way the site's data can be unusable;
+   - types for what the site sends and what the apps receive, starting from the reference's schema and following [T1](../../../docs/review/rubric.md#t-types);
+   - the conversion signature and any error types, following [T2](../../../docs/review/rubric.md#t-types);
    - the description of the resource: its name, parameters and how long its value stays fresh.
 
    Write the documentation with the types, not afterwards: every public type, field, variant and function says what it represents, any rule about its contents, and for a site's type where its shape comes from in the reference. The reviewer reads the documentation to judge the types. For each type, ask whether a struct or an enum fits the data, and whether an `Option` or a `String` could be something more exact.

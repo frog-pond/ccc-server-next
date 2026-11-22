@@ -5,6 +5,8 @@ description: Design Rust types for an upstream's data and for what the apps rece
 
 # Design types
 
+Follow [the type layout](../../../docs/types.md) for where schemas, conversions and errors live.
+
 The maintainer's primary objective for this project is to use Rust for what it is good at: the type system and performance. A type that permits a state the data can never be in is a defect here, even when every test passes. Types and their documentation are reviewed before any body is written.
 
 ## The reference decides what is accepted
