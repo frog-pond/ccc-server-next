@@ -10,17 +10,11 @@ depends = ["clippy", "fmt-check", "test"]
 [tasks.clippy]
 run = "cargo clippy --workspace --all-features --all-targets"
 
-[tasks.diff]
-run = "git diff --exit-code -- ccc-types/bindings/index.d.ts"
-
 [tasks.fmt]
 run = "cargo fmt --all"
 
 [tasks.fmt-check]
 run = "cargo fmt --all -- --check"
-
-[tasks.start]
-run = "cargo run --bin ccc-server -- ${@}"
 
 [tasks.test]
 run = "cargo test --workspace --all-features --all-targets --no-fail-fast"

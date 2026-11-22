@@ -46,6 +46,3 @@ jobs:
       - name: Run cargo test
         run: |
           mise run test
-      - name: Ensure index.d.ts is up-to-date after tests were run
-        run: |
-          mise run diff
