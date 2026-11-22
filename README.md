@@ -33,7 +33,7 @@ mise trust
 ```
 
 ```sh
-mise run check             # clippy, fmt-check and test
+mise run check             # clippy, fmt-check, test and test:tools
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
 ```

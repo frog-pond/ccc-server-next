@@ -88,10 +88,11 @@ Work is tracked in GitHub issues under #424. `tools/board` shows their state and
 ```sh
 tools/board         # every issue under #424, what blocks it, and the open pull requests
 tools/board maintain [--apply]   # the board moves the rules call for (see the board-maintenance skill)
-mise run check      # clippy, fmt-check and test; this is what "passing" means
+mise run check      # clippy, fmt-check, test and test:tools; this is what "passing" means
 mise run clippy
 mise run fmt
 mise run test
+mise run test:tools # offline tests of the rules in tools/board
 tools/reference-path    # where the reference is checked out
 tools/reference-drift   # what changed in the reference since the recorded commit
 ```
