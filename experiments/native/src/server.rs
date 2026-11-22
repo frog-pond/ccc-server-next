@@ -14,12 +14,13 @@ use fixture_experiment_route::{
 	FixtureSourceError, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshFailureEvent,
 	RefreshOutcome, REFRESH_DEADLINE,
 };
-use reqwest::{Client, Url};
+use reqwest::Client;
 use trifecta::{
 	body::{AdaptResponse, BodyWithMetadata},
 	future::BoxFuture,
 	source::Source,
 };
+use url::Url;
 
 const FIXTURE_ORIGIN: &str = "http://127.0.0.1:18787";
 const LISTEN_ADDRESS: &str = "127.0.0.1:18788";
@@ -30,21 +31,31 @@ struct RouteState {
 	operation: Arc<FixtureOperation<Url, reqwest::Error>>,
 }
 
+/// A failure before or during the native server's loopback listener.
 #[derive(Debug, thiserror::Error)]
 pub(super) enum NativeError {
+	/// The redirect-disabled HTTP client could not be constructed.
 	#[error("could not configure the fixture HTTP client")]
 	Client(#[source] reqwest::Error),
+	/// The configured fixture address failed URL parsing.
 	#[error("invalid loopback fixture origin")]
-	Origin,
+	Origin(#[source] url::ParseError),
+	/// The loopback listener failed to bind or serve the router.
 	#[error("the loopback listener could not start or stopped with an error")]
 	Listener(#[from] std::io::Error),
 }
 
+/// Starts the fixture server and runs the Axum router on loopback.
+///
+/// # Errors
+///
+/// Returns a [`NativeError`] if the HTTP client, fixture URL, or listener
+/// cannot be initialized, or if the listener fails while serving.
 #[tokio::main]
 pub(super) async fn run() -> Result<(), NativeError> {
 	let source = NativeSource::new().map_err(NativeError::Client)?;
 	let state = RouteState {
-		origin: Url::parse(FIXTURE_ORIGIN).map_err(|_| NativeError::Origin)?,
+		origin: Url::parse(FIXTURE_ORIGIN).map_err(NativeError::Origin)?,
 		operation: Arc::new(fixture_operation(source, NativeAdapter)),
 	};
 	let listener = tokio::net::TcpListener::bind(LISTEN_ADDRESS).await?;

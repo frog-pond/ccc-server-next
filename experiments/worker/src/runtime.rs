@@ -21,9 +21,9 @@ use trifecta::{
 	source::Source,
 };
 use worker::{
-	durable_object, event, send::SendFuture, wasm_bindgen, AbortController, AbortSignal, Context,
-	Date, Delay, DurableObject, Env, Fetch, Headers, Method, Request, RequestInit, RequestRedirect,
-	Response, SqlStorage, SqlStorageValue, State, Storage,
+	durable_object, event, send::SendFuture, wasm_bindgen, web_sys::AbortController, AbortSignal,
+	Context, Date, Delay, DurableObject, Env, Fetch, Headers, Method, Request, RequestInit,
+	RequestRedirect, Response, SqlStorage, SqlStorageValue, State, Storage,
 };
 
 use address::LoopbackUrl;
@@ -37,6 +37,11 @@ type SourceFailure = FixtureSourceError<worker::Error>;
 /// Forwards a known GET to its fixture object. Unknown fixtures return the
 /// native route's 404 and other methods return its 405 with `Allow: GET`, without
 /// contacting an object.
+///
+/// # Errors
+///
+/// Returns a Workers SDK error if a local response or its headers cannot be
+/// constructed. Object call failures are logged and become a JSON 503.
 #[event(fetch)]
 pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Result<Response> {
 	let Ok(fixture) = Fixture::from_route_path(&request.path()) else {
@@ -50,14 +55,14 @@ pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Res
 
 	match call_fixture_object(request, &env, fixture).await {
 		Ok(response) => Ok(response),
-		Err((operation, cause)) => {
+		Err(failure) => {
 			log_event(&ObjectFailureEvent {
 				event: "worker_experiment.object_call_failed",
 				fixture: Some(fixture),
 				object_name: None,
-				operation,
+				operation: failure.operation.name(),
 				kind: "object_call",
-				cause: (&cause).into(),
+				cause: (&failure.cause).into(),
 			});
 			reply(ObjectReply::ObjectCallFailed)
 		}
@@ -68,17 +73,49 @@ async fn call_fixture_object(
 	request: Request,
 	env: &Env,
 	fixture: Fixture,
-) -> Result<Response, (&'static str, worker::Error)> {
+) -> Result<Response, ObjectCallFailure> {
 	let namespace = env
 		.durable_object(FIXTURES)
-		.map_err(|cause| ("resolve_binding", cause))?;
+		.map_err(|cause| ObjectCallOperation::ResolveBinding.failure(cause))?;
 	let object = namespace
 		.get_by_name(fixture.object_name())
-		.map_err(|cause| ("get_by_name", cause))?;
+		.map_err(|cause| ObjectCallOperation::GetByName.failure(cause))?;
 	object
 		.fetch_with_request(request)
 		.await
-		.map_err(|cause| ("fetch_with_request", cause))
+		.map_err(|cause| ObjectCallOperation::FetchWithRequest.failure(cause))
+}
+
+#[derive(Clone, Copy, Debug)]
+enum ObjectCallOperation {
+	ResolveBinding,
+	GetByName,
+	FetchWithRequest,
+}
+
+impl ObjectCallOperation {
+	const fn name(self) -> &'static str {
+		match self {
+			Self::ResolveBinding => "resolve_binding",
+			Self::GetByName => "get_by_name",
+			Self::FetchWithRequest => "fetch_with_request",
+		}
+	}
+
+	const fn failure(self, cause: worker::Error) -> ObjectCallFailure {
+		ObjectCallFailure {
+			operation: self,
+			cause,
+		}
+	}
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("fixture object call failed during {operation:?}")]
+struct ObjectCallFailure {
+	operation: ObjectCallOperation,
+	#[source]
+	cause: worker::Error,
 }
 
 /// Owns the SQLite storage and alarm for one fixture.
@@ -293,12 +330,12 @@ struct StaleValueEvent {
 struct CachedOutcome {
 	payload: String,
 	refresh_after_ms: i64,
-	stale_after_failure: bool,
+	state: CacheState,
 }
 
 impl CachedOutcome {
 	fn for_read(self, fixture: Fixture) -> ReadReply {
-		if self.stale_after_failure {
+		if self.state == CacheState::Stale {
 			log_event(&StaleValueEvent {
 				event: "worker_experiment.stale_value_served",
 				fixture,
@@ -310,7 +347,35 @@ impl CachedOutcome {
 	}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CacheState {
+	Value,
+	Failed,
+	Stale,
+}
+
+impl CacheState {
+	const fn name(self) -> &'static str {
+		match self {
+			Self::Value => "value",
+			Self::Failed => "failed",
+			Self::Stale => "stale",
+		}
+	}
+}
+
+impl TryFrom<&str> for CacheState {
+	type Error = ObjectFailure;
+
+	fn try_from(state: &str) -> Result<Self, Self::Error> {
+		[Self::Value, Self::Failed, Self::Stale]
+			.into_iter()
+			.find(|entry| entry.name() == state)
+			.ok_or(ObjectFailure::InvalidCacheState)
+	}
+}
+
+#[derive(Clone, Copy, Debug)]
 enum Record {
 	Job,
 	Outcome,
@@ -411,7 +476,7 @@ impl Records {
 			) => Ok(Some(CachedOutcome {
 				payload,
 				refresh_after_ms,
-				stale_after_failure: state == "stale",
+				state: CacheState::try_from(state.as_str())?,
 			})),
 			_ => Err(ObjectFailure::RecordType(Record::Outcome)),
 		}
@@ -442,12 +507,12 @@ impl Records {
 	fn write_outcome(&self, outcome: RefreshOutcome, deadline: i64) -> Result<(), ObjectFailure> {
 		let on_error = |cause| StorageOperation::Write(Record::Outcome).failure(cause);
 		let state = match outcome {
-			RefreshOutcome::Value { .. } => "value",
+			RefreshOutcome::Value { .. } => CacheState::Value,
 			RefreshOutcome::Failed { .. } => {
 				if self.retain_value(deadline)? {
 					return Ok(());
 				}
-				"failed"
+				CacheState::Failed
 			}
 		};
 		let payload = serde_json::to_string(&ObjectReply::from(outcome)).map_err(|cause| {
@@ -462,7 +527,7 @@ impl Records {
 				"INSERT INTO fixture_cache (id, payload, refresh_after_ms, state) VALUES (1, ?, ?, ?)
 			 ON CONFLICT(id) DO UPDATE SET payload = excluded.payload,
 			 refresh_after_ms = excluded.refresh_after_ms, state = excluded.state",
-				vec![payload.into(), deadline.into(), state.into()],
+				vec![payload.into(), deadline.into(), state.name().into()],
 			)
 			.map_err(on_error)?;
 		Ok(())
@@ -516,15 +581,22 @@ fn log_and_reply(fixture: Fixture, failure: &ObjectFailure) -> worker::Result<Re
 mod address {
 	use fixture_experiment_route::Fixture;
 	use std::net::IpAddr;
-	use worker::Url;
+	use url::Url;
 
 	use super::FixtureSetupFailure;
+
 	/// The checked URL is only constructed from a numeric HTTP loopback origin.
 	pub(super) struct LoopbackUrl(Url);
 
 	impl LoopbackUrl {
+		/// Appends the fixture path to a checked loopback origin.
+		///
+		/// # Errors
+		///
+		/// Returns a setup failure when the origin cannot be parsed or violates
+		/// the loopback HTTP restriction.
 		pub(super) fn for_fixture(origin: &str, fixture: Fixture) -> Result<Self, FixtureSetupFailure> {
-			let mut url = Url::parse(origin).map_err(|_| FixtureSetupFailure::InvalidLoopbackUrl)?;
+			let mut url = Url::parse(origin).map_err(FixtureSetupFailure::ParseOrigin)?;
 			let host = url.host_str().unwrap_or_default();
 			let loopback = host
 				.trim_start_matches('[')
@@ -545,6 +617,7 @@ mod address {
 			Ok(Self(url))
 		}
 
+		/// Returns the checked request URL for Workers Fetch.
 		pub(super) fn as_str(&self) -> &str {
 			self.0.as_str()
 		}
@@ -555,8 +628,12 @@ mod address {
 enum FixtureSetupFailure {
 	#[error("EXPERIMENT_FIXTURE_ORIGIN binding is missing or unreadable")]
 	Binding(#[source] worker::Error),
+	#[error("fixture origin is not a URL")]
+	ParseOrigin(#[source] url::ParseError),
 	#[error("fixture origin must be a valid loopback HTTP URL")]
 	InvalidLoopbackUrl,
+	#[error("Workers could not initialize the request cancellation controller")]
+	CancellationController(#[source] worker::Error),
 }
 
 fn prepare_fixture(env: &Env, fixture: Fixture) -> Result<LoopbackUrl, FixtureSetupFailure> {
@@ -571,8 +648,18 @@ async fn run_refresh(env: &Env, fixture: Fixture) -> RefreshOutcome {
 		Ok(url) => url,
 		Err(error) => return failed_refresh(fixture, RefreshFailure::FixtureSetup, &error),
 	};
-	let controller = AbortController::default();
-	let operation = fixture_operation(FixtureSource(controller.signal()), FixtureAdapter);
+	let controller = match AbortController::new() {
+		Ok(controller) => controller,
+		Err(cause) => {
+			return failed_refresh(
+				fixture,
+				RefreshFailure::FixtureSetup,
+				&FixtureSetupFailure::CancellationController(cause.into()),
+			)
+		}
+	};
+	let source = FixtureSource(AbortSignal::from(controller.signal()));
+	let operation = fixture_operation(source, FixtureAdapter);
 	let transfer = pin!(operation.perform(url));
 	let deadline = pin!(Delay::from(REFRESH_DEADLINE));
 	match select(transfer, deadline).await {
@@ -671,7 +758,7 @@ fn read_fixture_body(
 	SendFuture::new(async move { response.bytes().await.map(Bytes::from) })
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum StorageOperation {
 	Open,
 	Read(Record),
@@ -701,17 +788,28 @@ impl StorageOperation {
 	}
 }
 
+#[derive(Debug, thiserror::Error)]
 enum ObjectFailure {
+	#[error("fixture storage operation {operation:?} failed")]
 	Storage {
 		operation: StorageOperation,
+		#[source]
 		cause: worker::Error,
 	},
-	ScheduleAlarm(worker::Error),
-	DecodeJob(serde_json::Error),
+	#[error("could not schedule the fixture alarm")]
+	ScheduleAlarm(#[source] worker::Error),
+	#[error("could not decode the stored fixture job")]
+	DecodeJob(#[source] serde_json::Error),
+	#[error("stored {0:?} record has unexpected column types")]
 	RecordType(Record),
+	#[error("stored outcome has an unrecognized cache state")]
+	InvalidCacheState,
+	#[error("stored job for {0:?} is in another fixture's object")]
 	JobFixtureMismatch(Fixture),
+	#[error("could not encode the fixture {record:?} record")]
 	Encode {
 		record: Record,
+		#[source]
 		cause: serde_json::Error,
 	},
 }
@@ -721,9 +819,10 @@ impl ObjectFailure {
 		match self {
 			Self::Storage { .. } | Self::Encode { .. } => ObjectReply::StorageUnavailable,
 			Self::ScheduleAlarm(_) => ObjectReply::AlarmSchedulingFailed,
-			Self::DecodeJob(_) | Self::RecordType(_) | Self::JobFixtureMismatch(_) => {
-				ObjectReply::StoredRecordInvalid
-			}
+			Self::DecodeJob(_)
+			| Self::RecordType(_)
+			| Self::InvalidCacheState
+			| Self::JobFixtureMismatch(_) => ObjectReply::StoredRecordInvalid,
 		}
 	}
 }
@@ -757,6 +856,12 @@ fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
 			StorageOperation::Read(*record).name(),
 			"decode_record",
 			"stored record has unexpected column types",
+		),
+		ObjectFailure::InvalidCacheState => log_object_failure(
+			fixture,
+			StorageOperation::Read(Record::Outcome).name(),
+			"decode_record",
+			"stored outcome has an unrecognized cache state",
 		),
 		ObjectFailure::JobFixtureMismatch(job) => {
 			log_object_failure(fixture, "validate_job", "decode_record", job.segment());

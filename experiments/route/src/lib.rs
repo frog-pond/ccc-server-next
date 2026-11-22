@@ -4,6 +4,8 @@
 //! handler produces [`ObjectReply`] for the Worker to forward. Its `alarm`
 //! reads a [`RefreshJob`] and persists the operation's [`RefreshOutcome`].
 
+#![deny(missing_docs)]
+
 use std::{error::Error as StdError, marker::PhantomData, str::FromStr, time::Duration};
 
 use bytes::{Bytes, BytesMut};
@@ -193,11 +195,11 @@ pub enum RefreshFailure {
 	/// operation, including the source, response adapter, and transform.
 	#[serde(rename = "timeout")]
 	Timeout,
-	/// The transport returned a response without a valid HTTP status, such as
-	/// status zero on an opaque redirect.
+	/// The transport returned a status outside the supported HTTP status ranges.
 	#[serde(rename = "invalid_status")]
 	InvalidStatus,
-	/// The local fixture address was missing or could not be used as a loopback URL.
+	/// The local fixture address was unusable or the Worker could not initialize
+	/// its request cancellation controller.
 	#[serde(rename = "fixture_setup")]
 	FixtureSetup,
 	/// The upstream sent a response outside the success range.

@@ -1,6 +1,9 @@
 //! Compile probes for the draft Trifecta future bound and redirect policy.
+//! The opt-in example checks types at compile time. The default probe passes,
+//! and each documented `worker_experiment_probe` setting must fail separately.
 
 #[cfg(target_arch = "wasm32")]
+/// Compile-time variants of the Worker SDK and reqwest transport calls.
 pub mod probes {
 	use trifecta::future::BoxFuture;
 	use worker::{send::SendFuture, Fetch, Request, RequestInit, RequestRedirect, Response, Url};

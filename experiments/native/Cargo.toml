@@ -18,3 +18,4 @@ serde_json.workspace = true
 thiserror = "2"
 tokio = { workspace = true, features = ["time"] }
 trifecta.workspace = true
+url.workspace = true

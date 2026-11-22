@@ -224,10 +224,12 @@ its own. The first GET after the write should return 42.
 ## Compile probes
 
 From the repository root, check manual redirect setup and both wrapped futures
-against the pinned Trifecta draft's actual `BoxFuture` type.
+against the pinned Trifecta draft's actual `BoxFuture` type. The probes are an
+opt-in example behind `toolchain-probes`. Normal Worker builds and CI build the
+library. The explicit compiler selectors below intentionally fail one at a time.
 
 ```sh
-cargo check --locked --target wasm32-unknown-unknown -p worker-experiment --example wasm_probes
+cargo check --locked --target wasm32-unknown-unknown -p worker-experiment --features toolchain-probes --example wasm_probes
 ```
 
 Run each of the following commands independently. The first two must fail to
@@ -235,9 +237,9 @@ compile with E0277 because the SDK futures are not `Send`. The third must fail
 with E0433 and E0599 because reqwest's WASM client lacks the redirect-policy API.
 
 ```sh
-cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --example wasm_probes -- --cfg 'worker_experiment_probe="bare_fetch"'
-cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --example wasm_probes -- --cfg 'worker_experiment_probe="bare_body"'
-cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --example wasm_probes -- --cfg 'worker_experiment_probe="reqwest_redirect"'
+cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --features toolchain-probes --example wasm_probes -- --cfg 'worker_experiment_probe="bare_fetch"'
+cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --features toolchain-probes --example wasm_probes -- --cfg 'worker_experiment_probe="bare_body"'
+cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --features toolchain-probes --example wasm_probes -- --cfg 'worker_experiment_probe="reqwest_redirect"'
 ```
 
 ## Test and lint coverage
@@ -245,10 +247,15 @@ cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --exam
 `mise run check` checks workspace formatting and runs host Clippy, Rust tests,
 and board tool tests. The shared route tests check fixture naming, stable JSON,
 status construction, body decoding, failure classification, and the common
-event fields. Lint the WASM-only runtime and compile probes separately:
+event fields. On pull requests, GitHub Actions builds and tests the native
+server and checks its value and redirect replies against the loopback fixture.
+A separate job builds the Worker with pinned worker-build and lints its WASM
+library. It runs without Wrangler and needs no Cloudflare resources.
+
+Lint the WASM-only runtime separately:
 
 ```sh
-cargo clippy --locked --target wasm32-unknown-unknown -p worker-experiment --all-targets
+cargo clippy --locked --target wasm32-unknown-unknown -p worker-experiment -p fixture-experiment-route --lib
 ```
 
 Actual redirect handling, SQLite persistence, and alarm delivery require
