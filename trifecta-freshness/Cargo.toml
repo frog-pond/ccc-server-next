@@ -12,3 +12,9 @@ categories = ["caching"]
 
 [lints]
 workspace = true
+
+[features]
+jiff = ["dep:jiff"]
+
+[dependencies]
+jiff = { version = "0.2", optional = true, default-features = false }

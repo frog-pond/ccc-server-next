@@ -1,9 +1,9 @@
 //! Pure cache policy for reads, refreshes, and storage failures.
 //!
-//! The cached pipeline in `trifecta` supplies metadata, times, and refresh
+//! The cached pipeline in `trifecta` supplies metadata, times, and fetch
 //! outcomes. This crate computes decisions and entry updates. It calls no
-//! external services or pipeline code. Its rules cover reads, background
-//! refresh, backoff, epochs, value-dependent lifetimes, and idle resources
+//! external services or pipeline code. Its rules cover reads, refreshes, backoff,
+//! validity periods, value-dependent lifetimes, and idle resources
 //! in `docs/reference/cache-semantics.md` §§4–9.
 
 #![deny(missing_docs)]
@@ -14,7 +14,11 @@
 	clippy::needless_pass_by_value
 )]
 
-use std::{error::Error, num::NonZeroU32, time::Duration};
+use std::{
+	error::Error,
+	num::NonZeroU32,
+	time::{Duration, SystemTime},
+};
 
 /// A read rewrites the last-read time only after more than this interval.
 ///
@@ -22,7 +26,7 @@ use std::{error::Error, num::NonZeroU32, time::Duration};
 pub const TOUCH_EVERY: Duration = Duration::from_secs(60 * 10);
 
 /// An entry is idle only when more than this interval has passed since its
-/// recorded last read. Both background-refresh decisions use this rule.
+/// recorded last read. Both refresh decisions use this rule.
 ///
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L18).
 pub const IDLE_AFTER: Duration = Duration::from_secs(2 * 24 * 60 * 60);
@@ -42,429 +46,443 @@ pub const MAX_BACKOFF: Duration = Duration::from_secs(60 * 60);
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/conditional.ts#L53).
 pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// A caller-supplied point in time, in whole milliseconds since the Unix epoch.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Timestamp(pub i64);
-
-impl Timestamp {
-	/// Add a nonnegative interval to this timestamp.
-	///
-	/// Round a fractional millisecond up to the next whole millisecond so a
-	/// deadline never fires early. Clamp a deadline above the timestamp range
-	/// to `Timestamp(i64::MAX)`.
+/// A point in time supplied by the caller.
+pub trait Timestamp: Copy + Ord {
+	/// Add a duration, clamping at the latest representable time.
 	#[must_use]
-	pub fn saturating_add(self, duration: Duration) -> Self {
+	fn saturating_add(self, duration: Duration) -> Self;
+
+	/// Return the signed difference from `other`, at the type's precision.
+	fn elapsed_since(self, other: Self) -> SignedElapsed;
+}
+
+/// An elapsed time that preserves the order of the two timestamps.
+#[derive(Debug, Eq, PartialEq)]
+pub enum SignedElapsed {
+	/// A negative elapsed time, carrying the magnitude.
+	Before(Duration),
+	/// Zero or a positive elapsed time.
+	AtOrAfter(Duration),
+}
+
+/// Whole milliseconds since the Unix epoch, from `i64::MIN` to `i64::MAX`.
+///
+/// Deadline addition rounds partial milliseconds up and clamps at `i64::MAX`.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct UnixMillis(i64);
+
+impl UnixMillis {
+	/// Construct a timestamp from any signed Unix millisecond count.
+	#[must_use]
+	pub const fn from_unix_millis(millis: i64) -> Self {
 		todo!()
 	}
 
-	/// Return the elapsed time since an earlier timestamp at whole-millisecond
-	/// precision. If `earlier` is later than this timestamp, return zero. Even
-	/// the difference between the earliest and latest timestamps fits in a
-	/// `Duration`.
+	/// Return the signed Unix millisecond count.
 	#[must_use]
-	pub fn saturating_duration_since(self, earlier: Self) -> Duration {
+	pub const fn as_unix_millis(self) -> i64 {
 		todo!()
 	}
 }
 
-/// A source-defined label for the period a value belongs to, such as a campus
-/// day. A value with a different label can only be served as an upstream
-/// failure fallback. Only equality matters.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Epoch(pub String);
+impl Timestamp for UnixMillis {
+	fn saturating_add(self, duration: Duration) -> Self {
+		todo!()
+	}
 
-/// Freshness and stale serving rules for one source.
-///
-/// A source computes its current epoch and any per-value lifetime. Those enter
-/// the decision separately as read and refresh inputs.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FreshnessPolicy {
-	/// Default freshness interval starting at the fetch's start time.
+	fn elapsed_since(self, other: Self) -> SignedElapsed {
+		todo!()
+	}
+}
+
+impl Timestamp for SystemTime {
+	fn saturating_add(self, duration: Duration) -> Self {
+		todo!()
+	}
+
+	fn elapsed_since(self, other: Self) -> SignedElapsed {
+		todo!()
+	}
+}
+
+#[cfg(feature = "jiff")]
+impl Timestamp for jiff::Timestamp {
+	fn saturating_add(self, duration: Duration) -> Self {
+		todo!()
+	}
+
+	fn elapsed_since(self, other: Self) -> SignedElapsed {
+		todo!()
+	}
+}
+
+/// A source-defined label for the period a value belongs to. A cached value
+/// with a different label can only be served after a fetch failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidityPeriod(pub String);
+
+/// The policy for one source, using caller-supplied timestamps.
+#[derive(Clone, Copy, Debug)]
+pub struct FreshnessPolicy<T> {
+	/// Default freshness interval measured from fetch start.
 	pub fresh_for: Duration,
-	/// Additional time after freshness when a read can request a background
-	/// refresh and answer immediately, if the stored epoch matches. This is
-	/// the [reference's `staleIfError`][window], as described in
-	/// `docs/reference/cache-semantics.md` §6.6.
+	/// Additional time after freshness when a read can answer immediately and
+	/// request a refresh, if the period matches. This is the reference's
+	/// [`staleIfError`][window], described in `docs/reference/cache-semantics.md` §6.6.
 	///
 	/// [window]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/define-source.ts#L13
 	pub stale_window: Duration,
-	/// Age limit applied when the answer would otherwise be stale after an
-	/// upstream failure. The [reference returns the stored value at any age][fallback].
-	/// The optional limit was agreed to in [#439].
+	/// Age limit for serving a cached value after a fetch failure.
+	pub serve_cached_after_failure: CachedAgeLimit,
+	/// Function that labels a timestamp. Reads use the label for the read time
+	/// and successful fetches cache the label for the fetch start. Without a
+	/// function, any cached value matches. With one, a missing label cannot match.
+	///
+	/// The reference uses this only for `BonApp`'s campus day. The campus-day
+	/// function will live in `ccc-freshness`.
+	pub period_of: Option<fn(T) -> ValidityPeriod>,
+}
+
+/// How old a cached value may be when used after a fetch failure.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CachedAgeLimit {
+	/// Serve at any age, as the [reference does][fallback].
 	///
 	/// [fallback]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L129
-	/// [#439]: https://github.com/frog-pond/ccc-server-next/issues/439
-	pub stale_on_error: StaleOnError,
-}
-
-/// How old the last good value may be when an upstream failure affects a read.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum StaleOnError {
-	/// Serve the last good value at any age, matching the reference.
 	#[default]
 	Unlimited,
-	/// Serve the last good value up to and including this age, measured from
-	/// the start of its successful fetch. This is the opt-in limit from #439.
-	/// If a read needs a fallback and the value is past the limit, report the
-	/// stored error during backoff. Once backoff ends, wait for a refresh even
-	/// if the value is still in the stale window.
-	MaxAge(Duration),
+	/// Serve up to and including this age measured from fetch start, an opt-in
+	/// limit from #439. Beyond it, report the cached error during backoff.
+	/// Once backoff ends, wait for a fetch even within the stale window.
+	UpTo(Duration),
 }
 
-/// The metadata a backend keeps for one resource, beside its optional value.
+/// The metadata a backend keeps for one resource beside its optional cached value.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Entry<E> {
-	/// Time recorded on insertion or a read more than [`TOUCH_EVERY`] later.
-	pub last_read: Timestamp,
-	/// Metadata present exactly when the backend holds a last good value.
-	pub stored: Option<CachedValueMetadata>,
-	/// The unsuccessful refresh streak since the last success, if any.
-	pub failure: Option<Failure<E>>,
+pub struct Entry<T, E> {
+	/// Time recorded at insertion or on a read more than [`TOUCH_EVERY`] later.
+	pub last_read: T,
+	/// Metadata present exactly when the cache holds a value.
+	pub cached: Option<CachedValueMetadata<T>>,
+	/// The failure streak since the last successful fetch, if any.
+	pub failure: Option<Failure<T, E>>,
 }
 
-/// Metadata for the last successful fetch, stored together with its value.
+impl<T, E> Entry<T, E> {
+	/// Build an entry for a cold read at `t`, with no cached value or failure.
+	#[must_use]
+	pub fn new_unread(t: T) -> Self {
+		todo!()
+	}
+
+	/// Build the entry to write after a failed fetch. Preserve the last-read
+	/// time and cached metadata, and replace the failure record.
+	#[must_use]
+	pub fn record_failure<F>(&self, update: FailureUpdate<T>, error: F) -> Entry<T, F>
+	where
+		T: Clone,
+	{
+		todo!()
+	}
+}
+
+/// Metadata for the cached value.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CachedValueMetadata {
-	/// When the fetch began, even if it completed after an epoch change.
-	pub fetch_started_at: Timestamp,
-	/// The source's epoch at fetch start, absent for a source without epochs.
-	pub epoch: Option<Epoch>,
-	/// The freshness interval the source computed from this value, if it
-	/// supplies a per-value override. Zero is a valid override.
+pub struct CachedValueMetadata<T> {
+	/// When the successful fetch began.
+	pub fetch_started_at: T,
+	/// The label at fetch start, absent when the source has no validity periods.
+	pub period: Option<ValidityPeriod>,
+	/// A source-computed freshness interval for this value, including zero
+	/// when it expires immediately. Absence uses the default freshness interval.
 	pub fresh_for: Option<Duration>,
 }
 
-/// A recorded refresh failure. Backoff can expire while this record persists.
+/// A recorded fetch failure. Backoff can expire while the record persists.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Failure<E> {
-	/// Number of consecutive failed refreshes, including this failure.
-	pub consecutive: NonZeroU32,
-	/// Reads are backed off when this is strictly later than the read time.
-	pub backoff_until: Timestamp,
-	/// The typed cause of the most recent failed refresh.
+pub struct Failure<T, E> {
+	/// Consecutive failed fetches, including this one, clamped at `u32::MAX`.
+	pub consecutive_failures: NonZeroU32,
+	/// The fetch is held off while this timestamp is strictly later than now.
+	pub backoff_until: T,
+	/// The most recent fetch error.
 	pub last_error: E,
 }
 
-/// Facts supplied by the refresh owner. The loaded value or actual error
-/// stays with the caller.
+/// The upstream outcome or the reason the fetch could not start.
 #[derive(Debug)]
-pub enum RefreshOutcome {
-	/// A value was loaded successfully with this metadata.
-	Succeeded(CachedValueMetadata),
-	/// A refresh failed.
+pub enum FetchOutcome<'a, T, E> {
+	/// The caller has a new value to serve or cache.
+	Succeeded {
+		/// When the fetch began.
+		fetch_started_at: T,
+		/// The source-computed freshness override for the new value, if any.
+		fresh_for: Option<Duration>,
+	},
+	/// The upstream fetch failed. The caller keeps the error.
 	Failed {
-		/// When the fetch started. Backoff is measured from this point.
-		fetch_started_at: Timestamp,
-		/// The longest parsed upstream delay, or zero when none was requested.
-		/// Cap it at [`MAX_RETRY_AFTER`] before comparing it with exponential backoff.
+		/// When the fetch began. Backoff is measured from this time.
+		fetch_started_at: T,
+		/// The current fetch's error held by the caller.
+		error: &'a E,
+		/// The longest `Retry-After` from this fetch, or zero if absent.
+		/// Any value is accepted. The decision caps it at [`MAX_RETRY_AFTER`].
 		retry_after: Duration,
 	},
-	/// Loading stopped before an outcome could be recorded. Answer waiting
-	/// readers from the existing entry, if any, and leave scheduling alone.
+	/// A required storage read failed before the fetch could start. A failed
+	/// write after success follows [`StorageWriteFailurePolicy`].
 	Aborted,
 }
 
-/// What the pipeline does after reporting a cache storage read failure.
+/// What to do after reporting a storage read failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StorageReadFailurePolicy {
-	/// Return the cache error to the caller.
+	/// Return the storage error.
 	Propagate,
-	/// Fetch directly from the source, wait for it, and return that outcome.
+	/// Fetch directly from the source and return its outcome.
 	FetchFromSource,
 }
 
-/// What the pipeline does after reporting a cache storage write failure.
+/// What to do after reporting a storage write failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StorageWriteFailurePolicy {
-	/// End the operation and return the cache error to the caller.
+	/// Return the storage error.
 	Propagate,
-	/// Keep the outcome of the operation. If the failed write was an insert
-	/// or touch before a read action, continue with that same action. If it
-	/// was a write after a refresh, return the answer without rescheduling.
+	/// Continue the read action after a failed insert or touch. After a
+	/// failed write at fetch completion, return the answer without scheduling.
 	ContinueWithoutWrite,
 }
 
-/// The last-read write and pending action for a read.
+/// What to write and how to answer a read.
 #[derive(Debug, Eq, PartialEq)]
-pub enum ReadDecision<'a, E> {
-	/// Insert an entry without a stored value or failure, then start or join
-	/// a refresh and wait for its outcome. A failed insert still leads to
-	/// the refresh under [`StorageWriteFailurePolicy::ContinueWithoutWrite`].
-	ColdMiss {
-		/// The last-read time to set on the new entry.
-		insert_at: Timestamp,
+pub enum ReadDecision<'a, T, E> {
+	/// Insert an empty entry, then start a fetch or wait for the one already
+	/// running. After an insert failure, follow the storage write policy.
+	InsertAndWaitForFetch {
+		/// The time to pass to [`Entry::new_unread`].
+		insert_at: T,
 	},
-	/// Carry out the action for an entry that already exists.
-	ExistingEntry {
-		/// Update the entry's last-read time when this timestamp is present.
-		touch_at: Option<Timestamp>,
-		/// Continue with this action after the touch, including when the touch
-		/// fails under [`StorageWriteFailurePolicy::ContinueWithoutWrite`].
-		action: ReadAction<'a, E>,
+	/// Answer using the entry and the requested action.
+	UseExistingEntry {
+		/// Update the last-read time first when this timestamp is present.
+		touch_at: Option<T>,
+		/// The action to carry out, including if a failed touch is ignored.
+		action: ReadAction<'a, T, E>,
 	},
 }
 
-/// Whether a scheduled background refresh that has come due should run.
+/// What to do with a read after any last-read write.
 #[derive(Debug, Eq, PartialEq)]
-pub enum DueRefreshDecision {
-	/// Start a refresh, or wait for the one already running.
-	Run,
-	/// The entry is missing or idle. Schedule no new refresh.
-	Idle,
-}
-
-/// What a read does after any last-read write.
-#[derive(Debug, Eq, PartialEq)]
-pub enum ReadAction<'a, E> {
-	/// Return the stored value within its freshness interval and epoch.
+pub enum ReadAction<'a, T, E> {
+	/// Serve the cached value as fresh.
 	ServeFresh {
-		/// The start time of the fetch that populated the value.
-		fetch_started_at: Timestamp,
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
 	},
-	/// Return the stored value within the stale window before any failure,
-	/// and request an immediate refresh in the background.
-	ServeStaleAndRefresh {
-		/// The start time of the fetch that populated the value.
-		fetch_started_at: Timestamp,
-		/// Replace the pending background refresh with this deadline.
-		refresh_at: Timestamp,
+	/// Serve the cached value as stale and request a refresh without waiting.
+	ServeStaleAndFetch {
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
+		/// When the refresh should run.
+		fetch_at: T,
 	},
-	/// A previous failure affects the answer. The source's stale-on-error
-	/// policy determines whether to serve the stored value. An expired
-	/// fallback limit can only produce this action during backoff.
-	AnswerFromLastFailure {
-		/// Serve the stored value or report its entry's recorded error immediately.
-		answer: FailureAnswer<&'a E>,
-		/// Request an immediate background refresh only when the stored epoch
-		/// matches, the value is within the stale window, and backoff has ended.
-		/// Otherwise leave scheduling alone.
-		refresh_at: Option<Timestamp>,
+	/// Serve the cached value after a failed fetch.
+	ServeCachedAfterFailure {
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
+		/// Whether to request a refresh or report that backoff is active.
+		fetch: FetchAfterFailure<T>,
 	},
-	/// Start a refresh, or wait for the one already running, and use its
-	/// outcome. This includes a value past the stale-on-error limit once
-	/// backoff has ended, even inside the stale window.
-	WaitForRefresh,
+	/// Report the cached fetch error immediately during backoff.
+	ReportCachedError(&'a E),
+	/// Start a fetch or wait for the one already running. This includes an
+	/// over-age cached fallback after backoff ends, even within the stale window.
+	WaitForFetch,
 }
 
-/// What a read can return when it relies on upstream failure handling.
+/// Timing of the next fetch when a cached value is served after a failure.
 #[derive(Debug, Eq, PartialEq)]
-pub enum FailureAnswer<Cause> {
-	/// Serve the last good value as stale due to an upstream failure.
-	ServeStored {
-		/// The start time of the successful fetch, possibly in another epoch.
-		fetch_started_at: Timestamp,
-	},
-	/// No stored value can be served under the source's policy.
-	ReportError(Cause),
+pub enum FetchAfterFailure<T> {
+	/// Request a refresh at this time without waiting.
+	FetchAt(T),
+	/// A fetch is held off until this time. Keep the existing schedule.
+	HeldOffUntil(T),
 }
 
-/// What to give a waiting reader when the refresh just failed.
+/// What to give a reader after a failed or aborted fetch.
 #[derive(Debug, Eq, PartialEq)]
-pub enum FailedRefreshAnswer {
-	/// Serve the last good value as stale, possibly from a different epoch.
-	ServeStored {
-		/// The start time of the fetch that produced the stored value.
-		fetch_started_at: Timestamp,
+pub enum FailureAnswer<T, Report> {
+	/// Serve the cached value, which may belong to a different period.
+	ServeCached {
+		/// When the fetch that produced the cached value began.
+		fetch_started_at: T,
 	},
-	/// Report the error from the refresh that just failed.
-	ReportThisRefreshError,
+	/// The error to report when there is no eligible cached value.
+	ReportError(Report),
 }
 
-/// The error to report after an abort leaves no usable stored value.
+/// Instruct the caller to report this fetch's error, which it already holds.
 #[derive(Debug, Eq, PartialEq)]
-pub enum AbortedRefreshError<'a, E> {
-	/// Report the stored error from an earlier failed refresh.
-	Stored(&'a E),
-	/// No failure was recorded. Show exactly `upstream unavailable`.
-	///
-	/// This is the fallback at the [reference's read return][fallback].
-	///
-	/// [fallback]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L130
+pub struct ThisFetchError;
+
+/// What to report if there is no cached value after an aborted fetch.
+#[derive(Debug, Eq, PartialEq)]
+pub enum AbortedFetchReport<'a, E> {
+	/// Report the cached error.
+	CachedError(&'a E),
+	/// Report exactly `upstream unavailable`, as in the
+	/// [reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L130).
 	UpstreamUnavailable,
 }
 
-/// The entry state when a refresh finishes.
+/// The entry state when the fetch ended.
 #[derive(Debug)]
-pub enum RefreshEntry<'a, E> {
-	/// Use the latest entry, including any last-read update during the fetch.
-	Present(&'a Entry<E>),
-	/// The entry is missing without an intentional purge. A successful fetch
-	/// can recreate it. The [reference throws][missing] on a missing entry.
+pub enum EntryAtFetchEnd<'a, T, E> {
+	/// The latest entry, including any read made during the fetch.
+	Present(&'a Entry<T, E>),
+	/// The entry is missing without a purge. A successful fetch recreates it.
+	/// This differs from the [reference, which throws][missing].
 	///
 	/// [missing]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L242
 	Missing {
-		/// The last known read time, including the original read if its insert
-		/// failed. Preserve this time when recreating the entry.
-		last_read: Timestamp,
+		/// Last known read time, including the original read if its insert failed.
+		last_read: T,
 	},
-	/// The source was intentionally purged during this fetch. Do not recreate
-	/// its entry. Give waiting readers the outcome even though the
-	/// [reference throws][purged] on the missing entry.
+	/// This fetch was invalidated by a purge, even if a read recreated the entry.
+	/// The caller must preserve this fact through the write. Waiting readers get
+	/// the outcome and the fetch writes nothing, unlike the [reference][missing].
 	///
-	/// [purged]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L242
+	/// [missing]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L242
 	Purged,
 }
 
-/// What to write and what to give readers after a refresh.
+/// What to write and how to answer waiting readers when a fetch ends.
 #[derive(Debug, Eq, PartialEq)]
-pub enum RefreshDecision<'a, E> {
-	/// Write the entry from [`entry_after_success`] and mark the new value fresh
-	/// for waiting readers. After the write, use [`decide_next_background_refresh`].
+pub enum FetchDecision<'entry, 'fetch, T, E> {
+	/// Cache the new value, serve it as fresh, and use the written entry to
+	/// decide the next refresh.
 	StoreValue {
-		/// Last-read time to preserve when replacing or recreating the entry.
-		last_read: Timestamp,
-		/// Metadata for the loaded value to store and serve.
-		stored: CachedValueMetadata,
+		/// The entry with the new metadata and no failure record.
+		entry: Entry<T, E>,
 	},
-	/// A refresh succeeded after a purge. Give waiting readers the new value
-	/// marked fresh and leave storage and scheduling alone.
-	ReturnFreshWithoutEntry {
-		/// The start time of the successful fetch.
-		fetch_started_at: Timestamp,
+	/// Serve the fresh value without caching it because a purge invalidated
+	/// this fetch.
+	ServeWithoutCaching {
+		/// When the successful fetch began.
+		fetch_started_at: T,
 	},
-	/// Write the entry from [`entry_after_failure`]. After the write, use
-	/// [`decide_next_background_refresh`].
+	/// Write the failure record, then use the written entry to decide the
+	/// next refresh. The caller retains ownership of the error.
 	RecordFailure {
-		/// The computed update to persist with the current error.
-		update: FailureUpdate,
-		/// Serve a stored value or report the current refresh's error.
-		answer: FailedRefreshAnswer,
+		/// The entry to write, borrowing the error from the completed fetch.
+		entry: Entry<T, &'fetch E>,
+		/// Serve the cached value or report this fetch's error.
+		answer: FailureAnswer<T, ThisFetchError>,
 	},
-	/// A refresh failed without an entry to update. Report the current
-	/// refresh's error and leave storage and scheduling alone.
-	ReportThisRefreshErrorWithoutEntry,
-	/// A refresh aborted. Leave storage and scheduling alone.
+	/// Report this fetch's error and leave caching and scheduling alone because
+	/// the entry is missing or a purge invalidated the fetch.
+	ReportErrorWithoutCaching,
+	/// Answer readers after an aborted fetch without updating storage or scheduling.
 	Aborted {
-		/// Serve a stored value, report a stored error, or report unavailable
-		/// when no failure was recorded.
-		answer: FailureAnswer<AbortedRefreshError<'a, E>>,
+		/// Serve the cached value, report the cached error, or report unavailable.
+		answer: FailureAnswer<T, AbortedFetchReport<'entry, E>>,
 	},
 }
 
-/// Failure metadata computed at refresh completion for the next cache write.
+/// A failure update to record with this fetch's error.
 #[derive(Debug, Eq, PartialEq)]
-pub struct FailureUpdate {
-	/// The new count of consecutive failed refreshes.
-	pub consecutive: NonZeroU32,
-	/// Reads suppress foreground fetches and immediate refreshes before this time.
-	pub backoff_until: Timestamp,
+pub struct FailureUpdate<T> {
+	/// The new failure count, clamped at `u32::MAX`.
+	pub consecutive_failures: NonZeroU32,
+	/// The time at which backoff ends.
+	pub backoff_until: T,
 }
 
-/// Build the entry to write after a successful refresh.
-///
-/// Use the supplied last-read time and value metadata and clear any failure.
-/// After writing the entry with the value,
-/// [compute the next background refresh](decide_next_background_refresh).
-#[must_use]
-pub fn entry_after_success<E>(last_read: Timestamp, stored: CachedValueMetadata) -> Entry<E> {
-	todo!()
+/// Whether to run a refresh at its scheduled time.
+#[derive(Debug, Eq, PartialEq)]
+pub enum Refresh {
+	/// Start a fetch or wait for the one already running.
+	Run,
+	/// Leave a missing or idle entry alone.
+	Skip,
 }
 
-/// Build the entry to write after a failed refresh.
-///
-/// Keep the last-read time and the last successful value's metadata. Store
-/// the computed failure update with the caller's current error. After writing
-/// it, use the written entry to
-/// [compute the next background refresh](decide_next_background_refresh).
-#[must_use]
-pub fn entry_after_failure<E>(entry: Entry<E>, update: FailureUpdate, error: E) -> Entry<E> {
-	todo!()
-}
-
-/// When to refresh a resource in the background after recording a load outcome.
+/// When to refresh after writing a fetch outcome.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NextBackgroundRefresh {
-	/// Replace the pending refresh with this deadline. A deadline already due
-	/// requests immediate work.
-	ScheduleAt(Timestamp),
-	/// Cancel the pending refresh because the resource has gone idle.
-	Idle,
+pub enum NextRefresh<T> {
+	/// Replace the pending refresh. A time already due requests it immediately.
+	At(T),
+	/// Cancel the pending refresh because the entry is idle.
+	None,
 }
 
-/// Decide how to answer a read for a registered source.
-///
-/// Insert a cold miss at `now` and wait for a refresh. For an existing entry,
-/// touch `last_read` only when more than [`TOUCH_EVERY`] has passed. Use the
-/// value's freshness override when present, including zero. With no current
-/// epoch every value matches. Otherwise the stored epoch must be present and
-/// equal to the current one (`docs/reference/cache-semantics.md` §7).
-///
-/// In order:
-///
-/// 1. Serve fresh if the epoch matches and `age < fresh_for`, regardless of
-///    any recorded failure or active backoff.
-/// 2. If the epoch matches and `age < fresh_for + stale_window`, serve stale
-///    and request an immediate background refresh when no failure is recorded.
-///    With a recorded failure, use an eligible fallback and request an
-///    immediate background refresh only if backoff has ended. An ineligible
-///    fallback proceeds to the next check.
-/// 3. If `backoff_until > now`, serve an eligible last good value or report
-///    the stored error, without scheduling. Otherwise wait for a refresh.
-///
-/// The freshness, stale window, and backoff cutoffs are strict. The
-/// stale-on-error age limit is inclusive.
-#[must_use]
-pub fn decide_read<'a, E: Error>(
-	policy: FreshnessPolicy,
-	now: Timestamp,
-	entry: Option<&'a Entry<E>>,
-	epoch: Option<&Epoch>,
-) -> ReadDecision<'a, E> {
-	todo!()
-}
+impl<T: Timestamp> FreshnessPolicy<T> {
+	/// Decide how to answer a read for a registered source.
+	///
+	/// A cold read inserts at `now` and waits for a fetch. Otherwise touch
+	/// only after more than [`TOUCH_EVERY`]. Use the cached freshness override
+	/// when present, including zero. Compare age signed. A fetch started one
+	/// millisecond after `now` has negative age and can be fresh even with
+	/// zero freshness.
+	///
+	/// First serve fresh when the period matches and `age < fresh_for`, even
+	/// during backoff. Next, if the period matches and
+	/// `age < fresh_for + stale_window` (with saturating duration addition),
+	/// serve stale and request a refresh before any failure. After a failure,
+	/// serve an eligible cached value and request a refresh only if backoff
+	/// has ended. If the cached value is ineligible, proceed to the next check.
+	/// Then, if `backoff_until > now`, serve an eligible cached value or report
+	/// the cached error. Otherwise wait for a fetch. An eligibility limit for
+	/// serving a cached value after failure is inclusive.
+	#[must_use]
+	pub fn on_read<'a, E: Error>(
+		&self,
+		now: T,
+		entry: Option<&'a Entry<T, E>>,
+	) -> ReadDecision<'a, T, E> {
+		todo!()
+	}
 
-/// Decide whether a scheduled background refresh that has come due should run.
-///
-/// Run for any present entry that is not idle under [`IDLE_AFTER`], regardless
-/// of freshness, epoch, or backoff (`docs/reference/cache-semantics.md` §5.2).
-/// A missing or idle entry leaves the resource idle.
-#[must_use]
-pub fn decide_due_refresh<E: Error>(
-	now: Timestamp,
-	entry: Option<&Entry<E>>,
-) -> DueRefreshDecision {
-	todo!()
-}
+	/// Decide whether a refresh should run. Run for any present entry that is
+	/// not idle under [`IDLE_AFTER`], regardless of freshness, period, or backoff.
+	#[must_use]
+	pub fn on_refresh<E: Error>(&self, now: T, entry: Option<&Entry<T, E>>) -> Refresh {
+		todo!()
+	}
 
-/// Decide what to write and how to answer waiting readers when a refresh ends.
-///
-/// Use `finished_at` to check the age of a possible fallback on failure or
-/// abort. On success mark the newly loaded value fresh for waiting readers
-/// and write it unless the source was purged. On failure write the next
-/// failure count and backoff deadline only if an entry is present, then
-/// serve an eligible fallback or report the current refresh's error. On abort
-/// leave storage unchanged and use an eligible fallback, a stored error, or
-/// the unavailable message in that order.
-///
-/// Measure backoff from the fetch start. Use the greater of [`MIN_BACKOFF`]
-/// doubled for each additional consecutive failure up to [`MAX_BACKOFF`],
-/// and the supplied `Retry-After` delay capped at [`MAX_RETRY_AFTER`].
-/// See `docs/reference/cache-semantics.md` §6.3 and the [reference calculation].
-///
-/// [reference calculation]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L219-L232
-#[must_use]
-pub fn decide_refresh_finished<E: Error>(
-	policy: FreshnessPolicy,
-	finished_at: Timestamp,
-	entry: RefreshEntry<'_, E>,
-	outcome: RefreshOutcome,
-) -> RefreshDecision<'_, E> {
-	todo!()
-}
+	/// Decide what to cache and what to tell waiting readers.
+	///
+	/// On success, compute the validity period at fetch start, serve the new
+	/// value, and write an entry unless a purge invalidated this fetch. A
+	/// successful fetch for a missing entry preserves the last known read time.
+	/// Use `finished_at` to evaluate cached age after failure. Record a failure
+	/// only on a present entry. A purge suppresses writes even if the entry was
+	/// recreated. On abort, serve the cached value if present, otherwise report
+	/// the cached error or exactly `upstream unavailable`, in that order.
+	///
+	/// Backoff starts at fetch start. Take the greater of the exponential delay
+	/// and the supplied `Retry-After` capped at [`MAX_RETRY_AFTER`]. Start at
+	/// [`MIN_BACKOFF`] and double per additional failure, stopping at
+	/// [`MAX_BACKOFF`] before a multiplication could exceed it. Clamp the count
+	/// at `u32::MAX` and saturate deadline addition.
+	#[must_use]
+	pub fn on_fetch_finished<'entry, 'fetch, E: Error>(
+		&self,
+		finished_at: T,
+		entry: EntryAtFetchEnd<'entry, T, E>,
+		outcome: FetchOutcome<'fetch, T, E>,
+	) -> FetchDecision<'entry, 'fetch, T, E> {
+		todo!()
+	}
 
-/// Decide when to next refresh in the background after writing a value or failure.
-///
-/// Pass the entry as written and a fresh timestamp sampled after the write.
-/// Cancel the pending refresh if the entry is idle under [`IDLE_AFTER`].
-/// Otherwise, schedule at the end of backoff when `backoff_until > now`,
-/// or at the value's fetch start plus its effective freshness interval. If there is no stored
-/// value and backoff has elapsed, schedule one default freshness interval
-/// after the supplied time.
-#[must_use]
-pub fn decide_next_background_refresh<E: Error>(
-	policy: FreshnessPolicy,
-	now: Timestamp,
-	entry: &Entry<E>,
-) -> NextBackgroundRefresh {
-	todo!()
+	/// Decide the next refresh using the written entry and a fresh timestamp.
+	///
+	/// Cancel if the entry is idle under [`IDLE_AFTER`]. Otherwise use active
+	/// backoff's end, or fetch start plus the effective freshness interval.
+	/// Without a cached value or active backoff, use now plus the default
+	/// freshness interval. Deadline addition saturates.
+	#[must_use]
+	pub fn next_refresh<E: Error>(&self, now: T, entry: &Entry<T, E>) -> NextRefresh<T> {
+		todo!()
+	}
 }
