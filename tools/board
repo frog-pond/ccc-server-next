@@ -9,7 +9,7 @@ Usage:
   tools/board status <issue> <status>   set an issue's status on the project board
 
 An issue is ready when it is open, has no sub-issues and no pull request of
-its own, has a status of "Backlog" or "Ready", and every issue that blocks it
+its own, has a status of "Backlog", "Ready" or none, and every issue that blocks it
 is closed, has merged its pull request into `rearchitecture`, or has one open
 pull request that is not a draft, with all such pull requests on one chain of
 branches. The branch to start from is then the highest of those pull
@@ -37,7 +37,12 @@ BRANCH = re.compile(r"^rearch/(\d+)-")
 def gh(*args):
 	result = subprocess.run(["gh", *args], capture_output=True, text=True)
 	if result.returncode != 0:
-		sys.exit(f"gh {' '.join(args[:3])} failed: {result.stderr.strip()}")
+		err = result.stderr.strip()
+		hint = ""
+		if "unknown owner type" in err or "connect" in err.lower() or "resolve" in err.lower():
+			hint = ("\n`gh` could not reach GitHub. In a sandbox, give this command network access;"
+				" otherwise check `gh auth status` (the `project` scope is needed).")
+		sys.exit(f"gh {' '.join(args[:3])} failed: {err}{hint}")
 	return json.loads(result.stdout) if result.stdout.strip() else None
 
 

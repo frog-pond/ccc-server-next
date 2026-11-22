@@ -80,7 +80,7 @@ Work is tracked in GitHub issues under #424. `tools/board` shows their state and
 4. Nothing pushed is rewritten: no rebase and no force-push. When a branch you built on changes, merge it into yours.
 5. A pull request is opened as a draft. Types and signatures are reviewed in the draft before the bodies are written, and the bodies are added to the same pull request (`design-types`, `port-route`). A draft is never merged.
 6. `mise run check` passes before review. Review follows the `arch-review` skill, which decides how thorough the review is from what the change touches.
-7. You may push `rearchitecture` and `rearch/*` branches and open pull requests between them without asking. Never push to `main`, open a pull request against it, or merge into it. `main` is also protected on GitHub: it accepts only pull requests with passing checks. Merging a pull request asks the maintainer.
+7. You may push `rearchitecture` and `rearch/*` branches and open pull requests between them without asking. Never push to `main`, open a pull request against it, or merge into it. `main` is also protected on GitHub: it accepts only pull requests with passing checks. Merging a pull request is the maintainer's, unless he has granted level 5 for that work (`docs/delegation-levels.md`).
 
 ## Commands
 

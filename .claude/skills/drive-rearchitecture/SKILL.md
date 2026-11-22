@@ -11,9 +11,9 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 
 ## Starting a session
 
-1. Run from a worktree, not the main checkout, which holds the maintainer's own work. `git fetch origin`, then use a worktree of `origin/rearchitecture`. While the scaffolding has not merged into it (`tools/board` is missing there), use the highest open pull request's branch instead.
+1. Run from a worktree, not the main checkout, which holds the maintainer's own work. `git fetch origin`, then use a worktree of `origin/rearchitecture`. If `tools/board` is missing there because the scaffolding has not merged yet, use the branch of the open pull request based on `rearchitecture` that contains it (`gh pr list --base rearchitecture`).
 2. Name this session `Driver: <the work>` if the host lets you. Find the previous driver session and read its last message: it says what was left in flight and what is waiting on the maintainer. `docs/agent-hosts.md` says how on each host; if yours cannot, ask the maintainer for it.
-3. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this session, or pointed you to a session whose grant still covers the work, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. State the grant back in one line. With no answer, you are at level 1.
+3. Reading needs no grant: the board, issues, pull requests, the reference and earlier sessions. Find your level in `docs/delegation-levels.md`. If the maintainer granted one in this session, or pointed you to a session whose grant still covers the work, use it. Otherwise run `tools/board`, choose the work, recommend a level with its signals in one line, and ask "What level can I run at?" with options written for that work. State the grant back in one line. With no answer, you are at level 1.
 4. Before every action, check it is within your level and not on the list escalated at every level. If it is not, bring it to the maintainer as options with a recommendation.
 5. Hand each issue to its own worker in its own worktree, using whatever your host offers for starting an agent with its own checkout (`docs/agent-hosts.md`). For the second reviewer of a thorough review, use a model from another vendor where one is available.
 
@@ -42,7 +42,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
    - findings outstanding: send them to a worker;
    - a draft: leave it, unless its types are waiting for review;
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
-3. **Start what is ready.** An issue is ready when `tools/board` marks it and prints a base for it: everything that blocks it is closed, or is in open pull requests that are not drafts and lie on one chain. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
+3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Start at most three at once, and never two that touch the same crate's public types. Prefer what unblocks the most other issues.
 4. **Hand over.** Give each worker the request below. A worker for a different issue is a new worker, not a follow-up message to an old one.
 5. **Record.** Set statuses on the board. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
 6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
@@ -75,9 +75,9 @@ Add nothing about how to do the work. If the issue is not enough to work from, f
 
 ## Merging
 
-- Merge from the bottom of the stack upward, only when checks pass and the review of the current head is recorded in the pull request. A draft is never merged.
+- Merge from the bottom of the stack upward, only when checks pass and the review is current: its "Review" section names the commit reviewed and accounts for every commit after it (see `arch-review`). A draft is never merged.
 - A change that got the thorough review also needs the maintainer's approval on GitHub before it merges. He reviews types and structure himself.
-- Below level 5, do not merge: queue what is ready to merge and tell the maintainer. At level 5, merge what is ready within your grant's scope. Merging may still ask him for confirmation; that is the tool's check, and does not change your level.
+- Below level 5, do not merge: queue what is ready to merge and tell the maintainer. At level 5, his grant is his permission to merge what is ready within its scope; `AGENTS.md`'s "merging asks the maintainer" is met by the grant. The host may still ask him to confirm a merge; that is the host's check and does not change your level.
 - After a merge, close the issue if every "Done when" item is met, and set it to "Done". Add the pull request's number to the parent issue where it lists the change.
 
 ## Splitting an issue

@@ -54,10 +54,10 @@ For a route, add its `id` from `docs/reference/routes.toml` and ask the reviewer
 ## 4. Act on the findings
 
 1. Check each finding in the code yourself. Drop any you cannot reproduce, and say why.
-2. Fix the ones that hold.
-3. Where the two reviewers disagree about structure, or you disagree with a finding that holds, take it to the maintainer. The author does not settle it alone.
+2. Get the ones that hold fixed. A driver sends them to a worker with its follow-up request; an author fixes them itself.
+3. Rulings follow the driver's level (`docs/delegation-levels.md`): below level 4, every finding goes to the maintainer as options with a recommendation. At every level, the two reviewers disagreeing about structure, or a finding that holds and that you disagree with, goes to him. The author does not settle it alone.
 4. Record the review in the "Review" section of the pull request's description, replacing what the last round wrote: which kind of review it was, which models reviewed, the commit they reviewed, and one line per finding with what was done (the commit that fixed it, or why it was dropped). Do not add a comment for a review round. If an earlier round left comments, minimize them as outdated.
 
-A review covers the commit it read. Types reviewed in a draft are reviewed again, with their bodies, before the pull request merges.
+A review covers the commit it read. It stays current through later commits only if the "Review" section lists each one with the finding it fixes, and none of them changes a public type, a dependency between crates, or how the server is built. Otherwise a new reviewer reviews the new head. Types reviewed in a draft are reviewed again, with their bodies, before the pull request merges.
 
 Review again after fixing only if a fix changed a public type, a dependency between crates, or how the server is built. A second review is a new reviewer starting from nothing, not a follow-up message to the first.
