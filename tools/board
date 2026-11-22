@@ -63,12 +63,19 @@ def gh(*args):
 	result = subprocess.run(["gh", *args], capture_output=True, text=True)
 	if result.returncode != 0:
 		err = result.stderr.strip()
-		hint = ""
-		if "unknown owner type" in err or "connect" in err.lower() or "resolve" in err.lower():
-			hint = ("\n`gh` could not reach GitHub. In a sandbox, give this command network access;"
-				" otherwise check `gh auth status` (the `project` scope is needed).")
+		hint = network_hint(err, "check `gh auth status` (the `project` scope is needed)")
 		sys.exit(f"gh {' '.join(args[:3])} failed: {err}{hint}")
 	return json.loads(result.stdout) if result.stdout.strip() else None
+
+
+def network_hint(err, otherwise):
+	"""A line to add to an error from `gh` or `git` when it looks like GitHub
+	could not be reached, which in a sandbox usually means no network access."""
+	lowered = err.lower()
+	if "unknown owner type" in err or "connect" in lowered or "resolve" in lowered:
+		return ("\nGitHub could not be reached. In a sandbox, give this command network access;"
+			f" otherwise {otherwise}.")
+	return ""
 
 
 def sub_issues(number, depth=0, seen=None):
@@ -301,6 +308,10 @@ def collect():
 def remote_branches():
 	"""Issue numbers that have a `rearch/<issue>-…` branch on GitHub."""
 	out = subprocess.run(["git", "ls-remote", "--heads", "origin", "rearch/*"], capture_output=True, text=True)
+	if out.returncode != 0:
+		# An empty set here would make every in-progress issue look abandoned.
+		err = out.stderr.strip()
+		sys.exit(f"git ls-remote failed: {err}{network_hint(err, 'check that `origin` is reachable and you can read it')}")
 	found = set()
 	for line in out.stdout.splitlines():
 		ref = line.split("refs/heads/")[-1]
@@ -395,6 +406,8 @@ def maintain(apply):
 			continue
 		if kind == "add":
 			added = gh("project", "item-add", str(PROJECT), "--owner", OWNER, "--url", r["url"], "--format", "json")
+			# Later moves for this issue in the same run (such as its iteration) edit this item.
+			r["item_id"] = added["id"]
 			edit_status(fields, added["id"], value)
 		elif kind == "status":
 			edit_status(fields, r["item_id"], value)
