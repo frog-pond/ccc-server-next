@@ -96,13 +96,15 @@ def priorities(numbers):
 
 	Priority is an issue field set for the whole organisation, not a field of
 	the project, so `gh project item-list` does not return it. Issues without
-	one are left out."""
+	one are left out. GitHub allows at most 25 fields on an issue, so one page
+	of 25 holds them all. Like the rest of this tool, it assumes every issue
+	under the parent is in `REPO`."""
 	found = {}
 	numbers = sorted(set(numbers))
 	for start in range(0, len(numbers), 50):
 		chunk = numbers[start:start + 50]
 		aliases = " ".join(
-			f"i{n}:issue(number:{n}){{issueFieldValues(first:20){{nodes{{"
+			f"i{n}:issue(number:{n}){{issueFieldValues(first:25){{nodes{{"
 			"... on IssueFieldSingleSelectValue{name field{... on IssueFieldSingleSelect{name}}}}}}"
 			for n in chunk
 		)
@@ -451,8 +453,13 @@ def show(as_json):
 			line += f"  [{r['waiting_reason']}]"
 		print(line)
 	print("\n→ ready to start   ✓ closed   est: the maintainer's estimate in hours")
-	remaining = sum(r["estimate"] or 0 for r in rows if r["state"] == "open" and not r["has_children"])
-	print(f"Estimated hours left on open issues without sub-issues: {remaining:g}")
+	leaves = [r for r in rows if r["state"] == "open" and not r["has_children"]]
+	estimated = [r for r in leaves if r["estimate"] is not None]
+	remaining = sum(r["estimate"] for r in estimated)
+	line = f"Estimated hours left: {remaining:g}, over {len(estimated)} of the {len(leaves)} open issues without sub-issues"
+	if len(estimated) < len(leaves):
+		line += f"; {len(leaves) - len(estimated)} have no estimate"
+	print(line)
 
 	print("\nOpen pull requests\n")
 	if not summary:
