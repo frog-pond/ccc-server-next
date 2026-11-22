@@ -1,7 +1,7 @@
 //! Pure cache policy for reads, refreshes, and storage failures.
 //!
 //! The cached pipeline supplies metadata, timestamps, and refresh outcomes.
-//! The decision describes what to serve, write, fetch, or schedule. The
+//! The decisions describe what to serve, write, fetch, or schedule. The
 //! pipeline applies it and reports failures. Each source defines its freshness
 //! and stale serving policy and supplies any epoch or per-value lifetime.
 
@@ -36,21 +36,29 @@ pub struct Policy {
 	/// Default freshness interval starting at the fetch's start time.
 	pub fresh_for: Milliseconds,
 	/// Additional time after freshness when a read can request an alarm
-	/// refresh and answer immediately, if the stored epoch matches.
+	/// refresh and answer immediately, if the stored epoch matches. This is
+	/// the [reference's `staleIfError`][window], as described in
+	/// `docs/reference/cache-semantics.md` §6.6.
+	///
+	/// [window]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/define-source.ts#L13
 	pub stale_while_revalidate: Milliseconds,
 	/// Age limit applied when the answer would otherwise be stale after an
-	/// upstream failure.
+	/// upstream failure. The [reference returns the stored value at any age][fallback].
+	/// The optional limit was agreed to in [#439].
+	///
+	/// [fallback]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L129
+	/// [#439]: https://github.com/frog-pond/ccc-server-next/issues/439
 	pub stale_on_error: StaleOnError,
 }
 
 /// How old the last good value may be when an upstream failure affects a read.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum StaleOnError {
-	/// Serve the last good value at any age.
+	/// Serve the last good value at any age, matching the reference.
 	#[default]
 	Unlimited,
 	/// Serve the last good value up to and including this age, measured from
-	/// the start of its successful fetch.
+	/// the start of its successful fetch. This is the opt-in limit from #439.
 	MaxAge(Milliseconds),
 }
 
@@ -97,103 +105,69 @@ pub struct Failure<E> {
 	pub last_error: E,
 }
 
-/// What just happened for the resource.
+/// Facts supplied by the refresh owner. The loaded value or actual error
+/// stays with the caller.
 #[derive(Debug)]
-pub enum Event<'a, E> {
-	/// A caller wants an answer. Source registration has already been checked.
-	Read {
-		/// The entry as read from cache, absent on a cold miss.
-		entry: Option<&'a Entry<E>>,
-		/// The epoch at read time, absent if the source has no epoch rule.
-		epoch: Option<&'a Epoch>,
-	},
-	/// A scheduled refresh fired and has been consumed.
-	Alarm {
-		/// The entry as read from cache, absent if it has been removed.
-		entry: Option<&'a Entry<E>>,
-	},
-	/// The refresh owner has an outcome to apply. Pass the latest entry so a
-	/// read that touched it during the fetch counts toward its idle deadline.
-	RefreshFinished {
-		/// The entry immediately before applying the refresh outcome.
-		entry: &'a Entry<E>,
-		/// Success metadata, the recorded failure, or an abort before loading.
-		outcome: RefreshOutcome<'a, E>,
-	},
-	/// A read of cache storage failed. The pipeline reports the underlying error.
-	CacheReadFailed(ReadFailurePolicy),
-	/// A write to cache storage failed. The pipeline reports the underlying error.
-	CacheWriteFailed(WriteFailurePolicy),
-}
-
-/// Facts supplied by the refresh owner. The value stays with the caller.
-#[derive(Debug)]
-pub enum RefreshOutcome<'a, E> {
-	/// Replace the stored value and reset the failure streak.
+pub enum RefreshOutcome {
+	/// A value was loaded successfully with this metadata.
 	Succeeded(StoredValue),
-	/// Keep the stored value and record a failed refresh.
+	/// A refresh failed.
 	Failed {
 		/// When the fetch started. Backoff is measured from this point.
 		started_at: Timestamp,
-		/// The typed refresh failure.
-		error: &'a E,
 		/// The longest parsed upstream delay, or zero when none was requested.
 		/// The decision caps this at one day.
 		retry_after: Milliseconds,
 	},
 	/// Loading stopped before an outcome could be recorded. Answer waiting
-	/// readers from the existing entry and leave scheduling alone.
+	/// readers from the existing entry, if any, and leave scheduling alone.
 	Aborted,
 }
 
-/// How the pipeline responds to a cache storage read failure.
+/// What the pipeline does after reporting a cache storage read failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReadFailurePolicy {
-	/// Return the cache error.
+	/// Return the cache error to the caller.
 	Propagate,
-	/// Fetch directly from the source without relying on cached data.
+	/// Fetch directly from the source, wait for it, and return that outcome.
 	FetchFromSource,
 }
 
-/// How the pipeline responds to a cache storage write failure.
+/// What the pipeline does after reporting a cache storage write failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WriteFailurePolicy {
-	/// Return the cache error.
+	/// Stop and return the cache error to the caller.
 	Propagate,
-	/// Keep the answer produced by the pipeline despite the failed write.
+	/// Keep the outcome of the operation. If the failed write was an insert
+	/// or touch before a read action, continue with that same action. If it
+	/// was a write after a refresh, return the answer without rescheduling.
 	ReturnAnswer,
 }
 
-/// Cache actions for the supplied event.
+/// The last-read write and pending action for a read.
 #[derive(Debug, Eq, PartialEq)]
-pub enum Decision<'a, E> {
-	/// Changes initiated by a read.
-	Read {
-		/// When present, insert a missing entry or update an existing entry's
-		/// last-read time. Apply this before carrying out the read action.
-		record_read_at: Option<Timestamp>,
-		/// Whether the caller can answer or must wait for a refresh.
-		action: ReadAction<'a, E>,
-	},
-	/// Refresh from the consumed alarm. The pipeline starts or joins the
-	/// fetch through singleflight. There is no read to answer here.
-	RefreshFromAlarm,
-	/// A consumed alarm had no active entry to refresh.
+pub struct ReadDecision {
+	/// When present, insert a missing entry or update an existing entry's
+	/// last-read time before carrying out the action. On a write failure,
+	/// apply the pipeline's [write failure policy](WriteFailurePolicy).
+	pub record_read_at: Option<Timestamp>,
+	/// Whether to answer or wait for a refresh. This action is still available
+	/// if the last-read write fails under [`WriteFailurePolicy::ReturnAnswer`].
+	pub action: ReadAction,
+}
+
+/// What to do when a scheduled alarm has been consumed.
+#[derive(Debug, Eq, PartialEq)]
+pub enum AlarmDecision {
+	/// Start or join a refresh through singleflight.
+	Refresh,
+	/// The entry is missing or idle. Leave it without an alarm.
 	LeaveDormant,
-	/// Apply a completed refresh once and give any waiting readers the recorded
-	/// outcome.
-	RefreshFinished(RefreshDecision<'a, E>),
-	/// Propagate the cache error from this event.
-	PropagateCacheFailure,
-	/// On cache read failure, fetch directly from the source and wait for it.
-	FetchFromSource,
-	/// On cache write failure, keep the existing answer.
-	ReturnAnswer,
 }
 
 /// What a read does after any last-read write.
 #[derive(Debug, Eq, PartialEq)]
-pub enum ReadAction<'a, E> {
+pub enum ReadAction {
 	/// Return the stored value within its freshness interval and epoch.
 	Fresh {
 		/// The start time of the fetch that populated the value.
@@ -211,7 +185,7 @@ pub enum ReadAction<'a, E> {
 	/// policy determines whether to serve the stored value.
 	AfterFailure {
 		/// The stored value or error to return immediately.
-		answer: FailureAnswer<'a, E>,
+		answer: FailureAnswer,
 		/// Replace the pending alarm with this deadline when within the
 		/// stale window and past backoff. Otherwise leave scheduling alone.
 		refresh_at: Option<Timestamp>,
@@ -222,62 +196,67 @@ pub enum ReadAction<'a, E> {
 
 /// What a read can return when it relies on upstream failure handling.
 #[derive(Debug, Eq, PartialEq)]
-pub enum FailureAnswer<'a, E> {
+pub enum FailureAnswer {
 	/// Serve the last good value as stale due to an upstream failure.
 	ServeStored {
 		/// The start time of the successful fetch, possibly in another epoch.
 		fetched_at: Timestamp,
 	},
 	/// No stored value can be served under the source's policy.
-	Error(ReadError<'a, E>),
+	Error(ReadError),
 }
 
 /// Why a read affected by upstream failure could not return a value.
 #[derive(Debug, Eq, PartialEq)]
-pub enum ReadError<'a, E> {
-	/// A refresh failed and there is no usable stored value.
-	UpstreamFailed(&'a E),
+pub enum ReadError {
+	/// A refresh failed and there is no usable stored value. Use the error
+	/// from this refresh if it just failed, or the stored error when answering
+	/// during backoff or after an aborted refresh.
+	UpstreamFailed,
 	/// No usable value or recorded upstream cause exists after an aborted load.
 	UpstreamUnavailable,
 }
 
-impl<E: fmt::Display> fmt::Display for ReadError<'_, E> {
+impl fmt::Display for ReadError {
 	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
 		todo!()
 	}
 }
 
-impl<E: Error + 'static> Error for ReadError<'_, E> {
-	fn source(&self) -> Option<&(dyn Error + 'static)> {
-		todo!()
-	}
-}
+impl Error for ReadError {}
 
-/// What to write and what to give readers after the owner completes a refresh.
+/// What to write and what to give readers after a refresh.
 #[derive(Debug, Eq, PartialEq)]
-pub enum RefreshDecision<'a, E> {
+pub enum RefreshDecision {
 	/// Store the new value and metadata, reset the failure streak, and answer
-	/// any waiting reads with the new value marked fresh.
+	/// waiting reads with the new value marked fresh. After a successful write,
+	/// use [`decide_next_alarm`] with the entry as written.
 	StoreValue {
 		/// Metadata to store with the new value and use in the fresh answer.
 		stored: StoredValue,
-		/// Replace or clear the pending alarm after the write.
-		alarm: NextAlarm,
+	},
+	/// A refresh succeeded without an entry to update. Give waiting readers
+	/// the new value marked fresh, with no storage or alarm change.
+	ReturnFresh {
+		/// The start time of the successful fetch.
+		fetched_at: Timestamp,
 	},
 	/// Record a failed refresh without replacing the last good value or its
-	/// metadata. The failure can also be reported from this outcome.
+	/// metadata. The caller supplies and reports the error. After a successful
+	/// write, use [`decide_next_alarm`] with the entry as written.
 	RecordFailure {
-		/// Failure record to persist alongside the existing value, if any.
-		failure: Failure<&'a E>,
-		/// How to answer waiting reads using the last good value or error.
-		answer: FailureAnswer<'a, E>,
-		/// Replace or clear the pending alarm after the write.
-		alarm: NextAlarm,
+		/// The new count of consecutive failed refreshes.
+		consecutive: NonZeroU32,
+		/// Reads suppress foreground fetches and immediate alarms before this time.
+		backoff_until: Timestamp,
+		/// How to answer waiting reads using the stored value or current error.
+		answer: FailureAnswer,
 	},
-	/// Leave the entry and alarm alone. The pipeline handles the abort itself.
+	/// Leave storage and the alarm alone when a refresh was aborted or when
+	/// it failed without an entry to update.
 	LeaveUnchanged {
-		/// How to answer waiting reads using the existing entry.
-		answer: FailureAnswer<'a, E>,
+		/// How to answer waiting reads from the existing entry or error outcome.
+		answer: FailureAnswer,
 	},
 }
 
@@ -290,13 +269,53 @@ pub enum NextAlarm {
 	Clear,
 }
 
-/// Decide how to handle one cache event.
+/// Decide how to answer a read for a registered source.
 ///
-/// Supply the time at which the read, alarm, or refresh scheduling decision is
-/// made. A completed refresh separately carries the time at which it began.
-/// The pipeline applies storage and alarm writes, handles singleflight and
-/// registration, and reports failures. This function only describes actions.
+/// Pass the cache entry if present, the time of the read, and the source's
+/// current epoch if it has an epoch rule. The pipeline applies the last-read
+/// write and carries out the pending action.
 #[must_use]
-pub fn decide<E: Error>(policy: Policy, now: Timestamp, event: Event<'_, E>) -> Decision<'_, E> {
+pub fn decide_read<E: Error>(
+	policy: Policy,
+	now: Timestamp,
+	entry: Option<&Entry<E>>,
+	epoch: Option<&Epoch>,
+) -> ReadDecision {
+	todo!()
+}
+
+/// Decide whether a consumed alarm should request a refresh.
+///
+/// Pass the entry as read when the alarm fires and the time of that read.
+#[must_use]
+pub fn decide_alarm<E: Error>(now: Timestamp, entry: Option<&Entry<E>>) -> AlarmDecision {
+	todo!()
+}
+
+/// Decide what to write and how to answer waiting readers when a refresh ends.
+///
+/// Pass the latest entry so a read that touched it during the refresh counts.
+/// If the entry is missing, leave storage and scheduling alone. Waiting
+/// readers get the newly loaded value on success, the current error on
+/// failure, or an unavailable error on abort.
+#[must_use]
+pub fn decide_refresh_finished<E: Error>(
+	policy: Policy,
+	now: Timestamp,
+	entry: Option<&Entry<E>>,
+	outcome: RefreshOutcome,
+) -> RefreshDecision {
+	todo!()
+}
+
+/// Decide the next alarm after writing either a successful value or a failure.
+///
+/// Pass the entry as written and a fresh timestamp sampled after the write.
+/// Clear the alarm if the entry has gone idle. Otherwise, schedule at the end
+/// of an active backoff or at the value's expiration. If there is no stored
+/// value and backoff has elapsed, schedule one default freshness interval
+/// after the supplied time.
+#[must_use]
+pub fn decide_next_alarm<E: Error>(policy: Policy, now: Timestamp, entry: &Entry<E>) -> NextAlarm {
 	todo!()
 }
