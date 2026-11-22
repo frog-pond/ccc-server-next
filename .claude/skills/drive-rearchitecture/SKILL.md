@@ -35,7 +35,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 
 ## Each time round
 
-1. **Look.** Follow `board-maintenance` first, so the board matches the issues and pull requests. Then run `tools/board`. It lists every issue under #424 with its status, priority, size, estimate, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs him (`sync-reference`).
+1. **Look.** Follow `board-maintenance` first, so the board matches the issues and pull requests. Then run `tools/board`. It lists every issue under #424 with its status, priority, size, estimate, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs the maintainer (`sync-reference`).
 2. **Tend what is in flight first.** For each open pull request on the stack:
    - checks failing: send it back to a worker with the failure, using the follow-up request below;
    - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the "Review" section of its description, naming the commit it covers; GitHub's review decision is separate and is the maintainer's;
@@ -45,7 +45,7 @@ Then tell the maintainer the "Waiting on the maintainer" list.
 3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Start at most three at once, and never two that touch the same crate's public types. Among ready issues, take higher Priority first (Urgent, then High, then Medium, then Low), and within the same priority, what unblocks the most other issues. An issue with no Priority comes after Low; list it for the maintainer, as `board-maintenance` says.
 4. **Hand over.** Give each worker the request below. A worker for a different issue is a new worker, not a follow-up message to an old one.
 5. **Record.** Set statuses on the board, and follow `board-maintenance` again after pull requests open or merge. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
-6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on him, one line per item, with the issue number.
+6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Say exactly what is waiting on the maintainer, one line per item, with the issue number.
 
 ## The requests to a worker
 
@@ -76,8 +76,8 @@ Add nothing about how to do the work. If the issue is not enough to work from, f
 ## Merging
 
 - Merge from the bottom of the stack upward, only when checks pass and the review is current: its "Review" section names the commit reviewed and accounts for every commit after it (see `arch-review`). A draft is never merged.
-- A change that got the thorough review also needs the maintainer's approval on GitHub before it merges. He reviews types and structure himself.
-- Below level 5, do not merge: queue what is ready to merge and tell the maintainer. At level 5, his grant is his permission to merge what is ready within its scope; `AGENTS.md`'s "merging asks the maintainer" is met by the grant. The host may still ask him to confirm a merge; that is the host's check and does not change your level.
+- A change that got the thorough review also needs the maintainer's approval on GitHub before it merges. The maintainer reviews types and structure in person.
+- Below level 5, do not merge: queue what is ready to merge and tell the maintainer. At level 5, the maintainer's grant is permission to merge what is ready within its scope; `AGENTS.md`'s "merging asks the maintainer" is met by the grant. The host may still ask the maintainer to confirm a merge; that is the host's check and does not change your level.
 - After a merge, close the issue if every "Done when" item is met, and set it to "Done". Add the pull request's number to the parent issue where it lists the change.
 
 ## Splitting an issue
@@ -88,7 +88,7 @@ Some issues are too large for one pull request, such as #434. Split along the li
 
 Do not guess, and do not let it stop unrelated work. Ask in this session, with the options you see and a recommendation, leave the issue's status as it is, move on to other ready work, and list the question again when you stop. Questions from workers come to you in their reports; answer what your level allows and bring the rest here.
 
-What goes to him depends on your level, and the list in `docs/delegation-levels.md` goes to him at every level.
+What goes to the maintainer depends on your level, and the list in `docs/delegation-levels.md` goes to them at every level.
 
 ## Never
 

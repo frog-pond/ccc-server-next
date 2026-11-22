@@ -34,7 +34,7 @@ The board shows each issue under #424 with a Status (Backlog, Ready, In progress
 | In progress or In review, with no branch and no pull request | Someone may have stopped without pushing. A driver checks its own workers; otherwise ask the maintainer. Do not reset the status. |
 | In review, with a branch but no open pull request | The pull request was closed or never opened. Find out which before moving the issue. |
 | Open, but marked Done | It was reopened, or closed by mistake. Ask. |
-| No size, no priority or no estimate | These are the maintainer's judgment. List the issue for him; do not guess. |
+| No size, no priority or no estimate | These are the maintainer's judgment. List the issue for the maintainer; do not guess. |
 | On the board but not under #424 | Either link it as a sub-issue of the right issue, or it belongs to other work. Ask. |
 | A pull request, or another repository's issue, on the board | The board tracks this repository's issues. Ask whether it belongs there; do not remove it. |
 | A sub-issue in another repository | It counts toward its parent's status, but the tool does not follow it. Ask whether it belongs under #424. |
