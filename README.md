@@ -1,12 +1,16 @@
 # ccc-server-next
 
-next generation of cautious-computing-context
+A Rust reimplementation of [ccc-server](https://github.com/frog-pond/ccc-server), the cautious-computing-context backend.
+
+## Status
+
+The server is being rebuilt on the `rearchitecture` branch, and this is that branch. [#424](https://github.com/frog-pond/ccc-server-next/issues/424) describes the effort and lists its parts.
+
+The previous attempt's crates have been removed from this branch, so there is no server to run here yet. They are still on `main`, where the old server can be built and run.
 
 ## Environment
 
-Config is managed with [mise](https://mise.jdx.dev)
-
-Install
+Tooling is managed with [mise](https://mise.jdx.dev).
 
 ```sh
 brew install mise
@@ -15,34 +19,6 @@ source ~/.zshrc
 mise trust
 ```
 
-Build and run
-
 ```sh
-mise use -g rust
-mise run build
-mise run start
-```
-
-**`Bonappetit`**: You'll need to have authorization setup to get bonappetit requests working. Copy `.env.sample` to `.env` and set the token to get this working.
-
-### Logging and Tracing
-
-You can configure the logging level using the `RUST_LOG` environment variable:
-
-```sh
-# logging level: error, warn, info, debug, and trace
-RUST_LOG=debug mise run start
-```
-
-The server also supports different tracing formats which can be set using the `-t` or `--tracing` flag:
-
-```sh
-# tracing formats: default, debug, json, pretty
-mise run start -- -t json
-```
-
-Combine log level and tracing for different levels of output and formats:
-
-```sh
-RUST_LOG=trace mise run start -- -t pretty
+mise run check   # clippy, fmt-check and test
 ```
