@@ -59,7 +59,7 @@ The end points to offer, from narrowest to widest:
 
 The driver recommends a narrower end point when it recommends level 3 or lower, when the work is the first of its kind (the first route for an upstream, a new crate), or when the session follows a grant that ended early. It recommends a wider one for work it would run at level 4 or 5. The recommendation names its reason in one line, as the level's does.
 
-An end point never raises the level. If the two disagree, for example "until merged" with level 4, the driver says so and stops at the narrower of the two. With no answer about the end point, the driver stops after one round.
+An end point never raises the level. If the two disagree, the driver says so and stops at what the level allows: for example, **When chosen pull requests are ready**, taken to mean merged, with level 4 stops when they are ready to merge. With no answer about the end point, the driver stops after one round.
 
 ## Recording
 
