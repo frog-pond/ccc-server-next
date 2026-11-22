@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Reports how the reference checkout differs from the commit that
+# docs/reference/ describes. Exits 0 when the reference is clean and at the
+# pinned commit, 1 when it has moved or has local modifications, 2 when the
+# pinned commit cannot be found.
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+ref=$("$here/reference-path")
+pin=$(tr -d '[:space:]' <"$here/../docs/reference/REFERENCE_COMMIT")
+status=0
+
+if [[ -n "$(git -C "$ref" status --porcelain)" ]]; then
+	echo "The reference checkout has local modifications. It must stay read-only:"
+	git -C "$ref" status --short
+	echo
+	status=1
+fi
+
+if ! git -C "$ref" cat-file -e "$pin^{commit}" 2>/dev/null; then
+	echo "pinned commit $pin is not in the reference checkout" >&2
+	exit 2
+fi
+
+head=$(git -C "$ref" rev-parse HEAD)
+if [[ "$head" == "$pin" ]]; then
+	echo "reference is at the pinned commit $pin"
+	exit $status
+fi
+
+# Only code the Worker serves from matters; fixtures and tooling churn do not.
+paths=(workers/src source ':(exclude)**/fixtures/**' ':(exclude)**/*.test.ts')
+
+echo "pinned: $pin"
+echo "head:   $head"
+echo
+echo "Commits touching served code since the pin:"
+git -C "$ref" log --oneline --no-merges "$pin..$head" -- "${paths[@]}"
+echo
+echo "Changed files:"
+git -C "$ref" diff --stat "$pin..$head" -- "${paths[@]}"
+exit 1

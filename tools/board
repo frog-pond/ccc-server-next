@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Prints the state of the rearchitecture: every issue under the parent issue
+with its status, size, what blocks it, its pull request and whether it is
+ready to start, followed by the open pull requests on the stack.
+
+Usage: tools/board [--json]
+
+Needs the GitHub CLI (`gh`) signed in with the `project` scope.
+"""
+
+import json
+import subprocess
+import sys
+
+REPO = "frog-pond/ccc-server-next"
+OWNER = "frog-pond"
+PROJECT = 4
+PARENT = 424
+BASE = "rearchitecture"
+
+
+def gh(*args):
+	result = subprocess.run(["gh", *args], capture_output=True, text=True)
+	if result.returncode != 0:
+		sys.exit(f"gh {' '.join(args[:3])} failed: {result.stderr.strip()}")
+	return json.loads(result.stdout) if result.stdout.strip() else None
+
+
+def sub_issues(number, depth=0, seen=None):
+	"""Every issue under `number`, depth first, with its depth."""
+	seen = set() if seen is None else seen
+	found = []
+	for child in gh("api", f"repos/{REPO}/issues/{number}/sub_issues", "--paginate") or []:
+		if child["number"] in seen:
+			continue
+		seen.add(child["number"])
+		found.append((child, depth))
+		found.extend(sub_issues(child["number"], depth + 1, seen))
+	return found
+
+
+def main():
+	as_json = "--json" in sys.argv[1:]
+
+	board = {}
+	for item in gh("project", "item-list", str(PROJECT), "--owner", OWNER, "--limit", "500", "--format", "json")["items"]:
+		number = item.get("content", {}).get("number")
+		if number:
+			board[number] = item
+
+	pulls = gh(
+		"pr", "list", "-R", REPO, "--state", "open", "--limit", "200",
+		"--json", "number,title,headRefName,baseRefName,isDraft,reviewDecision,statusCheckRollup",
+	)
+	on_stack = [p for p in pulls if p["baseRefName"] == BASE or p["baseRefName"].startswith("rearch/")]
+	by_issue = {}
+	for pull in on_stack:
+		# Branches are named rearch/<issue>-<name>.
+		head = pull["headRefName"].removeprefix("rearch/").split("-", 1)[0]
+		if head.isdigit():
+			by_issue.setdefault(int(head), []).append(pull)
+
+	rows = []
+	for issue, depth in sub_issues(PARENT):
+		number = issue["number"]
+		blockers = gh("api", f"repos/{REPO}/issues/{number}/dependencies/blocked_by") or []
+		# A blocker stops being one once it is closed or its work is on the stack.
+		waiting = [b["number"] for b in blockers if b["state"] == "open" and b["number"] not in by_issue]
+		item = board.get(number, {})
+		status = item.get("status") or "-"
+		is_open = issue["state"] == "open"
+		rows.append({
+			"number": number,
+			"depth": depth,
+			"title": issue["title"],
+			"state": issue["state"],
+			"status": status,
+			"size": item.get("size") or "-",
+			"blocked_by": [b["number"] for b in blockers],
+			"waiting_on": waiting,
+			"pulls": [p["number"] for p in by_issue.get(number, [])],
+			"ready": is_open and not waiting and number not in by_issue and status in ("-", "Backlog", "Ready"),
+		})
+
+	def checks(pull):
+		states = {c.get("conclusion") or c.get("status") or c.get("state") for c in pull.get("statusCheckRollup") or []}
+		if not states:
+			return "none"
+		if states & {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT"}:
+			return "failing"
+		if states <= {"SUCCESS", "NEUTRAL", "SKIPPED"}:
+			return "passing"
+		return "running"
+
+	stack = [{
+		"number": p["number"], "head": p["headRefName"], "base": p["baseRefName"], "title": p["title"],
+		"checks": checks(p), "review": p.get("reviewDecision") or "none", "draft": p["isDraft"],
+	} for p in on_stack]
+
+	# The top of the stack is the branch no other open pull request is based on.
+	bases = {p["base"] for p in stack}
+	chain = [p for p in stack if p["base"] == BASE or p["base"] in {q["head"] for q in stack}]
+	tops = [p["head"] for p in chain if p["head"] not in bases] or [BASE]
+
+	if as_json:
+		json.dump({"issues": rows, "pull_requests": stack, "top_of_stack": tops}, sys.stdout, indent=1)
+		print()
+		return
+
+	print(f"Issues under #{PARENT}\n")
+	print(f"{'':2}{'issue':<7}{'status':<13}{'size':<5}{'PR':<8}{'waiting on':<26}title")
+	for r in rows:
+		mark = "✓" if r["state"] == "closed" else ("→" if r["ready"] else " ")
+		waiting = ",".join(f"#{n}" for n in r["waiting_on"]) or "-"
+		prs = ",".join(f"#{n}" for n in r["pulls"]) or "-"
+		print(f"{mark:2}{'#' + str(r['number']):<7}{r['status']:<13}{r['size']:<5}{prs:<8}{waiting:<26}{'  ' * r['depth']}{r['title']}")
+	print("\n→ ready to start   ✓ closed")
+
+	print("\nOpen pull requests on the stack\n")
+	if not stack:
+		print("  none")
+	for p in sorted(stack, key=lambda p: p["number"]):
+		draft = " (draft)" if p["draft"] else ""
+		print(f"  #{p['number']} {p['head']} → {p['base']}  checks: {p['checks']}  review: {p['review']}{draft}")
+	print(f"\nTop of the stack: {', '.join(tops)}")
+
+
+if __name__ == "__main__":
+	main()

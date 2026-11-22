@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Prints the absolute path of the reference implementation checkout
+# (frog-pond/ccc-server). Works from the main checkout and from any git
+# worktree of it. Set CCC_REFERENCE_DIR to override.
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+
+if [[ -n "${CCC_REFERENCE_DIR:-}" ]]; then
+	dir=$CCC_REFERENCE_DIR
+else
+	# The common git dir belongs to the main checkout even inside a worktree,
+	# so the reference is found beside the main checkout either way.
+	common=$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)
+	dir="$(dirname "$common")/../ccc-server"
+fi
+
+if [[ ! -d "$dir/workers/src" ]]; then
+	echo "reference checkout not found at $dir" >&2
+	echo "clone frog-pond/ccc-server there, or set CCC_REFERENCE_DIR" >&2
+	exit 1
+fi
+
+cd "$dir" && pwd -P

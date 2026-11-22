@@ -21,3 +21,15 @@ run = "cargo test --workspace --all-features --all-targets --no-fail-fast"
 
 [tasks.e2e]
 run = "cargo run --bin e2e"
+
+[tasks.board]
+description = "Show every issue under the rearchitecture's parent issue and the open pull requests"
+run = "tools/board"
+
+[tasks."reference:path"]
+description = "Print where the reference ccc-server checkout lives"
+run = "tools/reference-path"
+
+[tasks."reference:drift"]
+description = "Show what changed in the reference since docs/reference/REFERENCE_COMMIT"
+run = "tools/reference-drift"
