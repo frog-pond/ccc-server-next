@@ -1,0 +1,3184 @@
+# Route inventory of the reference ccc-server Cloudflare Worker.
+#
+# Reference: frog-pond/ccc-server at commit 54cf5862e4a09917e9bdc932fa1632fd1c3e0f49
+# Generated from the reference implementation's code (workers/src/** and the
+# source/** shape functions it imports). Do not hand-edit facts here without
+# re-checking them against that commit; `cite` gives file:line proof for each row.
+#
+# Completion / porting status is deliberately NOT recorded in this file.
+#
+# What `kind` means:
+# - source: answered from a cached upstream source (a SourceDO, read with fetchSource).
+# - board: answered from a Durable Object that stores rows in SQLite (student work,
+#   student orgs). Designed separately in ccc-server-next #435.
+# - redirect: a 307 to a published file. Nothing is fetched.
+# - notice: a fixed answer. Nothing is fetched.
+# - passthrough: an upstream's own response passed on, after checking the request.
+# - ops: not part of the apps' API (the campus list, ping, route listings, the
+#   preview listing, the Sentry webhook, the BonApp debug view). Ported only where
+#   an issue says so; /previews and /sentry/telegram are deferred (#434).
+#
+# Conventions:
+# - One [[route]] per (campus, path). campus = "" for routes not under a campus.
+# - `path` is as the Worker matches it, without the /<campus> prefix.
+# - `legacy` lists the canonical Node-era address legacy.ts maps onto the route
+#   (toLegacyPath: "/v1" + path, with /news/<n> and /calendar/<n> spelled
+#   /v1/news/named/<n> and /v1/calendar/named/<n>). It is served at
+#   /<campus>/v1/... on any host and at /v1/... on that campus's Node-era hosts
+#   (first host label stolaf | xn--0s9h -> edu.stolaf, carleton | xn--vo8h ->
+#   edu.carleton). fromLegacyPath also accepts the plain "/v1" + path spelling.
+# - `tests` includes workers/test/route-listing.test.ts for every path that
+#   campusPaths() lists (it asserts each is not a 404).
+# - Cross-cutting behaviour not repeated per row:
+#   * every GET 200 gets a strong ETag (SHA-256 of the body) and If-None-Match
+#     answers 304 (workers/src/etag.ts);
+#   * any non-GET except POST /sentry/telegram is 405 {error: "method not allowed"};
+#   * an unmatched path is 404 {error: "not found"} with no Cache-Control;
+#   * with env PAGES_ORIGIN_OVERRIDE set (wrangler dev only) every response
+#     from the router gets Cache-Control: no-store (router.ts route());
+#   * "source" routes read a SourceDO via fetchSource: fresh 1 h (SOURCE_TTL).
+#     For a further day (staleIfError) a stale value is answered at once while
+#     it is refreshed behind. Past that, a read waits for the refresh, and if
+#     the refresh fails the stored value is still answered with a 200, however
+#     old it is (workers/src/source-do.ts:115-129). See
+#     docs/reference/cache-semantics.md section 4.
+
+[[route]]
+id = "/"
+campus = ""
+path = "/"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "{\"campuses\": [\"edu.stolaf\", \"edu.carleton\"]} (the CAMPUSES map keys, in order)"
+errors = "any non-GET method: 405 {error: \"method not allowed\"} (no Cache-Control)"
+cache_control = "none set (no Cache-Control header); ETag/304 still applies"
+history = false
+legacy = []
+tests = ["workers/test/etag.test.ts", "workers/test/legacy.test.ts", "workers/test/router.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:374", "workers/src/legacy.ts:92"]
+notes = "On a Node-era host (first host label stolaf, xn--0s9h, carleton or xn--vo8h; legacy.ts HOST_CAMPUSES) GET / is instead answered by legacy.ts with text/plain \"Hello world!\" and max-age 600, before the router runs."
+
+[[route]]
+id = "/ping"
+campus = ""
+path = "/ping"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "text/plain; charset=utf-8 body \"pong\""
+errors = "not served on a non-Node host or under a campus prefix: falls through to the router, 404 {error: \"not found\"}"
+cache_control = "600 s (CLIENT_MAX_AGE) on success"
+history = false
+legacy = []
+tests = ["workers/test/legacy.test.ts"]
+fixtures = []
+cite = ["workers/src/legacy.ts:93", "workers/src/legacy.ts:71"]
+notes = "Only on a Node-era host (stolaf.*, xn--0s9h.*, carleton.*, xn--vo8h.*), answered by legacy.ts outside Workers Cache. The prefixed /<campus>/v1/routes listing advertises /<campus>/ping and /<campus>/ but neither is served (404)."
+
+[[route]]
+id = "/previews"
+campus = ""
+path = "/previews"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = ["api.github.com"]
+shape = ["workers/src/previews.ts#previews", "workers/src/previews.ts#previewUrl", "workers/src/previews.ts#previewName"]
+response = "open pull requests of frog-pond/ccc-server, newest first: [{number, title, branch, prUrl, previewUrl|null}]"
+errors = "GitHub not ok or unreachable: 502 {message} max-age 60"
+cache_control = "60 s (PREVIEWS_MAX_AGE), errors 60 s; GitHub answer cached at the Cloudflare edge 15 min (cf.cacheTtl)"
+history = false
+legacy = []
+tests = ["workers/test/previews.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:375", "workers/src/previews.ts:70"]
+notes = "Fetches GitHub directly via upstream() with cf cacheEverything (not a defineSource). previewUrl is null for a fork PR or a preview name over 52 chars (63 - \"-ccc-server\".length). Preview host: <name>-ccc-server.frog-pond-d8f.workers.dev."
+
+[[route]]
+id = "/sentry/telegram"
+campus = ""
+path = "/sentry/telegram"
+methods = ["POST"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = ["api.telegram.org"]
+shape = ["workers/src/sentry-telegram.ts#messageFor", "workers/src/sentry-telegram.ts#signedBySentry"]
+response = "204 no body (message posted to Telegram, or webhook resource not posted)"
+errors = "non-POST: 405; SENTRY_CLIENT_SECRET/TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID missing: 503 {error, missing}; TELEGRAM_TOPIC_ID not digits: 503; bad Sentry-Hook-Signature: 401; body not JSON: 400; Telegram unreachable or non-ok: 502 {error}"
+cache_control = "none set"
+history = false
+legacy = []
+tests = ["workers/test/sentry-telegram.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:371", "workers/src/sentry-telegram.ts:216", "workers/src/worker.ts:24"]
+notes = "Dispatched before the router's GET-only check. A POST bypasses Workers Cache (worker.ts); a GET goes through CachedRoutes and gets the handler's own 405. Reads headers Sentry-Hook-Signature (HMAC-SHA256 hex of body under SENTRY_CLIENT_SECRET) and Sentry-Hook-Resource (issue, event_alert, error, metric_alert are posted). Secrets by name: SENTRY_CLIENT_SECRET, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, optional TELEGRAM_TOPIC_ID. Bot token goes in the Telegram URL path."
+
+[[route]]
+id = "edu.stolaf/routes"
+campus = "edu.stolaf"
+path = "/routes"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["workers/src/routes.ts#routeListing", "workers/src/routes.ts#campusPaths"]
+response = "[{path: \"/<campus><path>\", displayName, methods: [\"GET\"], params}] for every campusPaths entry, sorted by path"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = []
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:404", "workers/src/routes.ts:51"]
+notes = "/v1/routes is NOT mapped onto this route: legacy.ts intercepts it and answers its own listing (see the /v1/routes row). The listing omits /v1/routes itself, /, /previews and /sentry/telegram."
+
+[[route]]
+id = "edu.stolaf/v1/routes"
+campus = "edu.stolaf"
+path = "/v1/routes"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["workers/src/legacy.ts#legacyRouteListing", "workers/src/legacy.ts#toLegacyPath"]
+response = "Node-shaped listing: \"/\" and \"/ping\" plus toLegacyPath(each campusPaths entry), each under the mount (\"\" on a Node host, \"/<campus>\" under the prefix), sorted by path"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = []
+tests = ["workers/test/legacy.test.ts"]
+fixtures = []
+cite = ["workers/src/legacy.ts:94", "workers/src/legacy.ts:57"]
+notes = "Not in campusPaths. Served at /<campus>/v1/routes on any host, and at /v1/routes on this campus's Node-era hosts. Under the prefix it lists /<campus>/ and /<campus>/ping, which are not served there (404)."
+
+[[route]]
+id = "edu.stolaf/food/menu/:cafeId"
+campus = "edu.stolaf"
+path = "/food/menu/:cafeId"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "BonApp menu {cor_icons, items, days} for one café, dated by the campus day (America/Chicago)"
+errors = "unknown cafeId: 400 {message: \"cafeId must be one of ...\"} (no Cache-Control); days other than a single \"5\": 400 {error} (no Cache-Control); every page failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/menu/:cafeId"]
+tests = ["workers/test/cache-age.test.ts", "workers/test/food.test.ts", "workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html", "workers/test/fixtures/stav-hall.menu.json"]
+cite = ["workers/src/router.ts:473", "workers/src/router.ts:66", "workers/src/cafes.ts:4"]
+notes = "Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown. ?days=5: five dated pages fetched (cafeUrlForDate) and dated by the campus day the request started; a failing day becomes that day's own stand-in inside a 200. Closed café (null page): CafeMenuIsClosed."
+
+[[route]]
+id = "edu.stolaf/food/cafe/:cafeId"
+campus = "edu.stolaf"
+path = "/food/cafe/:cafeId"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "BonApp café info for one café, dated by the campus day"
+errors = "unknown cafeId: 400 {message} (no Cache-Control); any ?days: 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe(\"Could not load café from BonApp\") stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/cafe/:cafeId"]
+tests = ["workers/test/cache-age.test.ts", "workers/test/food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.cafe.json", "workers/test/fixtures/stav-hall.html"]
+cite = ["workers/src/router.ts:473", "workers/src/router.ts:87"]
+notes = "Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown. Undated BonApp page, dated by the clock after the fetch."
+
+[[route]]
+id = "edu.stolaf/bonapp/:cafeId"
+campus = "edu.stolaf"
+path = "/bonapp/:cafeId"
+methods = ["GET"]
+kind = "ops"
+query = ["full"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = []
+response = "debug view: {cafeId, url, state, fetchedAt, summary: {name, dayparts, itemCount}|null, page? (with ?full=1)}"
+errors = "unknown cafeId: 404 {error, known}; source error: 502 {cafeId, url, error}; none carry Cache-Control"
+cache_control = "none set"
+history = false
+legacy = ["/v1/bonapp/:cafeId"]
+tests = ["workers/test/redirects.test.ts", "workers/test/route-listing.test.ts", "workers/test/router.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html"]
+cite = ["workers/src/router.ts:508", "workers/src/router.ts:113"]
+notes = "Classed ops: the router calls it \"a look at the BonApp source while the real routes are not built yet ... Not the app's menu contract\". Reads the bonapp-page source via fetchSource. Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/stav-hall"
+campus = "edu.stolaf"
+path = "/food/named/menu/stav-hall"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the stav-hall page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/stav-hall"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html", "workers/test/fixtures/stav-hall.menu.json"]
+cite = ["workers/src/cafes.ts:17", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/stav-hall"
+campus = "edu.stolaf"
+path = "/food/named/cafe/stav-hall"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the stav-hall page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/stav-hall"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.cafe.json", "workers/test/fixtures/stav-hall.html"]
+cite = ["workers/src/cafes.ts:17", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/the-cage"
+campus = "edu.stolaf"
+path = "/food/named/menu/the-cage"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the the-cage page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/the-cage"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html", "workers/test/fixtures/stav-hall.menu.json"]
+cite = ["workers/src/cafes.ts:18", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/the-cage"
+campus = "edu.stolaf"
+path = "/food/named/cafe/the-cage"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the the-cage page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/the-cage"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:18", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/kings-room"
+campus = "edu.stolaf"
+path = "/food/named/menu/kings-room"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the kings-room page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/kings-room"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:19", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/kings-room"
+campus = "edu.stolaf"
+path = "/food/named/cafe/kings-room"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the kings-room page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/kings-room"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:19", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/the-cave"
+campus = "edu.stolaf"
+path = "/food/named/menu/the-cave"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the the-cave page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/the-cave"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:20", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/the-cave"
+campus = "edu.stolaf"
+path = "/food/named/cafe/the-cave"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the the-cave page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/the-cave"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:20", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/burton"
+campus = "edu.stolaf"
+path = "/food/named/menu/burton"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the burton page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/burton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:21", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/burton"
+campus = "edu.stolaf"
+path = "/food/named/cafe/burton"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the burton page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/burton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:21", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/ldc"
+campus = "edu.stolaf"
+path = "/food/named/menu/ldc"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the ldc page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/ldc"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:22", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/ldc"
+campus = "edu.stolaf"
+path = "/food/named/cafe/ldc"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the ldc page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/ldc"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:22", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/sayles"
+campus = "edu.stolaf"
+path = "/food/named/menu/sayles"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the sayles page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/sayles"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:23", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/sayles"
+campus = "edu.stolaf"
+path = "/food/named/cafe/sayles"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the sayles page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/sayles"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:23", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/weitz"
+campus = "edu.stolaf"
+path = "/food/named/menu/weitz"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the weitz page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/weitz"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:24", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/weitz"
+campus = "edu.stolaf"
+path = "/food/named/cafe/weitz"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the weitz page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/weitz"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:24", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/schulze"
+campus = "edu.stolaf"
+path = "/food/named/menu/schulze"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the schulze page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/schulze"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:25", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/food/named/cafe/schulze"
+campus = "edu.stolaf"
+path = "/food/named/cafe/schulze"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the schulze page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/schulze"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:25", "workers/src/router.ts:487", "workers/src/campuses.ts:139"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.stolaf/news/stolaf"
+campus = "edu.stolaf"
+path = "/news/stolaf"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["wp-news"]
+upstream_hosts = ["wp.stolaf.edu"]
+shape = ["source/feeds/wp-json-shape.ts#feedItemsFrom"]
+response = "feed items (FeedItemType[]) from the WordPress posts API"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/stolaf"]
+tests = ["workers/test/archive.test.ts", "workers/test/legacy.test.ts", "workers/test/news.test.ts", "workers/test/redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stolaf-news.json", "workers/test/fixtures/stolaf-posts.json"]
+cite = ["workers/src/campuses.ts:110", "workers/src/sources/wp-news.ts:14", "workers/src/router.ts:385", "workers/src/router.ts:138", "workers/src/campuses.ts:124"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. Upstream URL: STOLAF_NEWS_URL in workers/src/sources/wp-news.ts (per_page=10&_embed=true)."
+
+[[route]]
+id = "edu.stolaf/news/carleton-now"
+campus = "edu.stolaf"
+path = "/news/carleton-now"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["wp-news"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/feeds/wp-json-shape.ts#feedItemsFrom"]
+response = "feed items (FeedItemType[]) from the WordPress posts API"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/carleton-now"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:111", "workers/src/sources/wp-news.ts:18", "workers/src/router.ts:385", "workers/src/router.ts:138", "workers/src/campuses.ts:125"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. Upstream URL: CARLETON_NOW_URL in workers/src/sources/wp-news.ts (per_page=10&_embed=true)."
+
+[[route]]
+id = "edu.stolaf/news/carletonian"
+campus = "edu.stolaf"
+path = "/news/carletonian"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#newsDown"]
+response = "one undated feed item: newsDown(\"The Carletonian\", null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/carletonian"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:115", "workers/src/router.ts:385", "workers/src/campuses.ts:126"]
+notes = "Temporarily a notice: the fromWordPress(CARLETONIAN_URL) line is commented out (campuses.ts) because the site is down. README says this route reads WordPress and is a 502; the code answers a fixed notice. ?before= is validated but ignored (no history). Body never changes, so ETag re-checks get 304."
+
+[[route]]
+id = "edu.stolaf/news/mess"
+campus = "edu.stolaf"
+path = "/news/mess"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#newsDown"]
+response = "one undated feed item: newsDown(\"The Olaf Messenger\", null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/mess"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:118", "workers/src/router.ts:385", "workers/src/campuses.ts:127"]
+notes = "Temporarily a notice: the fromWordPress(MESSENGER_URL) line is commented out (campuses.ts) because the site is down. README says this route reads WordPress and is a 502; the code answers a fixed notice. ?before= is validated but ignored (no history). Body never changes, so ETag re-checks get 304."
+
+[[route]]
+id = "edu.stolaf/news/krlx"
+campus = "edu.stolaf"
+path = "/news/krlx"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["rss-news"]
+upstream_hosts = ["content.krlx.org"]
+shape = ["source/feeds/rss-shape.ts#feedItemsFromRss"]
+response = "feed items from the KRLX RSS feed"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is (a non-RSS body is a load error, not an empty feed); ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/krlx"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:116", "workers/src/sources/rss-news.ts:13", "workers/src/router.ts:385", "workers/src/campuses.ts:128"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. History is read from https://content.krlx.org/wp-json/wp/v2/posts (RSS_POSTS), so archived items are shaped from WordPress, not RSS."
+
+[[route]]
+id = "edu.stolaf/news/oleville"
+campus = "edu.stolaf"
+path = "/news/oleville"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#deprecatedWpJson"]
+response = "one undated feed item: deprecatedWpJson(null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/oleville"]
+tests = ["workers/test/retired-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:119", "workers/src/campuses.ts:142", "workers/src/router.ts:385"]
+notes = "Retired feed. ?before= is validated but ignored (no history). Undated, so the body and ETag never change."
+
+[[route]]
+id = "edu.stolaf/news/politicole"
+campus = "edu.stolaf"
+path = "/news/politicole"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#deprecatedWpJson"]
+response = "one undated feed item: deprecatedWpJson(null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/politicole"]
+tests = ["workers/test/retired-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:119", "workers/src/campuses.ts:143", "workers/src/router.ts:385"]
+notes = "Retired feed. ?before= is validated but ignored (no history). Undated, so the body and ETag never change."
+
+[[route]]
+id = "edu.stolaf/news/ksto"
+campus = "edu.stolaf"
+path = "/news/ksto"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#deprecatedWpJson"]
+response = "one undated feed item: deprecatedWpJson(null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/ksto"]
+tests = ["workers/test/retired-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:119", "workers/src/campuses.ts:144", "workers/src/router.ts:385"]
+notes = "Retired feed. ?before= is validated but ignored (no history). Undated, so the body and ETag never change."
+
+[[route]]
+id = "edu.stolaf/news/mess/wp/v2/:resource"
+campus = "edu.stolaf"
+path = "/news/mess/wp/v2/:resource"
+methods = ["GET"]
+kind = "passthrough"
+query = ["per_page", "page", "_embed", "_fields", "categories", "include", "staff_name", "staff_year", "hide_empty", "slug"]
+sources = ["wordpress-api"]
+upstream_hosts = ["olafmessenger.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable", "source/ccci-stolaf-college/v1/mess-shape.ts#paginationLinks"]
+response = "the paper's WordPress REST list answer as-is (status, content-type, body, x-wp-total/x-wp-totalpages), plus Link paging on lists with page"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status \"ccc-server; hit; detail=stale\"; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/mess/wp/v2/:resource"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:133", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:56"]
+notes = "Accepted :resource values and their params (RESOURCES in mess-shape.ts): posts {per_page,page,_embed,_fields,categories,include,staff_name}; categories {per_page,_fields}; media {include,per_page,_fields}; staff_profile {staff_name,staff_year,per_page,page,_embed,_fields}; staff_year {hide_empty,per_page,_fields}; pages {slug,_fields}. Every query spelling shares one stored copy (canonicalKey). Upstream base: UPSTREAM in mess-shape.ts. Same table on both campuses."
+
+[[route]]
+id = "edu.stolaf/news/mess/wp/v2/:resource/:id"
+campus = "edu.stolaf"
+path = "/news/mess/wp/v2/:resource/:id"
+methods = ["GET"]
+kind = "passthrough"
+query = ["_embed", "_fields"]
+sources = ["wordpress-api"]
+upstream_hosts = ["olafmessenger.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable"]
+response = "the paper's WordPress REST single-item answer as-is (status, content-type, body, passed headers)"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status stale; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/mess/wp/v2/:resource/:id"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:133", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:70"]
+notes = "Only resource \"posts\" has an item form; :id must match INTEGER. Same table on both campuses."
+
+[[route]]
+id = "edu.stolaf/news/carletonian/wp/v2/:resource"
+campus = "edu.stolaf"
+path = "/news/carletonian/wp/v2/:resource"
+methods = ["GET"]
+kind = "passthrough"
+query = ["per_page", "page", "_embed", "_fields", "categories", "include", "staff_name", "staff_year", "hide_empty", "slug"]
+sources = ["wordpress-api"]
+upstream_hosts = ["thecarletonian.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable", "source/ccci-stolaf-college/v1/mess-shape.ts#paginationLinks"]
+response = "the paper's WordPress REST list answer as-is (status, content-type, body, x-wp-total/x-wp-totalpages), plus Link paging on lists with page"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status \"ccc-server; hit; detail=stale\"; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/carletonian/wp/v2/:resource"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:134", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:56"]
+notes = "Accepted :resource values and their params (RESOURCES in mess-shape.ts): posts {per_page,page,_embed,_fields,categories,include,staff_name}; categories {per_page,_fields}; media {include,per_page,_fields}; staff_profile {staff_name,staff_year,per_page,page,_embed,_fields}; staff_year {hide_empty,per_page,_fields}; pages {slug,_fields}. Every query spelling shares one stored copy (canonicalKey). Upstream base: CARLETONIAN.upstream in wordpress-api.ts. Same table on both campuses."
+
+[[route]]
+id = "edu.stolaf/news/carletonian/wp/v2/:resource/:id"
+campus = "edu.stolaf"
+path = "/news/carletonian/wp/v2/:resource/:id"
+methods = ["GET"]
+kind = "passthrough"
+query = ["_embed", "_fields"]
+sources = ["wordpress-api"]
+upstream_hosts = ["thecarletonian.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable"]
+response = "the paper's WordPress REST single-item answer as-is (status, content-type, body, passed headers)"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status stale; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/carletonian/wp/v2/:resource/:id"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:134", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:70"]
+notes = "Only resource \"posts\" has an item form; :id must match INTEGER. Same table on both campuses."
+
+[[route]]
+id = "edu.stolaf/calendar/carleton"
+campus = "edu.stolaf"
+path = "/calendar/carleton"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#eventImages", "source/calendar/carleton-images-shape.ts#withEventImages", "source/calendar/carleton-images-shape.ts#carletonPage"]
+response = "events (EventType[]) for the next month from carleton.edu/calendar iCal, with page images"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/carleton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:99", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/calendar/?loadFeed=calendar&stamp=1714843628; image page failing only drops images."
+
+[[route]]
+id = "edu.stolaf/calendar/the-cave"
+campus = "edu.stolaf"
+path = "/calendar/the-cave"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/calendar/deprecated.ts#deprecatedEvents"]
+response = "one deprecated event: deprecatedEvents(RETIRED_TITLE, \"The Cave calendar is no longer published.\", now)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/the-cave"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:93", "workers/src/calendars.ts:100", "workers/src/router.ts:397", "workers/src/campuses.ts:147"]
+notes = "Nothing fetched. Dated by the clock at each request (unlike the news notices). ?before= validated but ignored."
+
+[[route]]
+id = "edu.stolaf/calendar/oleville"
+campus = "edu.stolaf"
+path = "/calendar/oleville"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/calendar/deprecated.ts#deprecatedEvents"]
+response = "one deprecated event: deprecatedEvents(RETIRED_TITLE, \"The Oleville calendar is no longer published.\", now)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/oleville"]
+tests = ["workers/test/calendars.test.ts", "workers/test/legacy.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:95", "workers/src/calendars.ts:101", "workers/src/router.ts:397", "workers/src/campuses.ts:147"]
+notes = "Nothing fetched. Dated by the clock at each request (unlike the news notices). ?before= validated but ignored."
+
+[[route]]
+id = "edu.stolaf/calendar/northfield"
+campus = "edu.stolaf"
+path = "/calendar/northfield"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-ical"]
+upstream_hosts = ["www.northfieldmn.gov"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal"]
+response = "upcoming events from the City of Northfield iCal feed"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/northfield"]
+tests = ["workers/test/archive.test.ts", "workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:102", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed NORTHFIELD in calendars.ts."
+
+[[route]]
+id = "edu.stolaf/calendar/ksto-schedule"
+campus = "edu.stolaf"
+path = "/calendar/ksto-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-weekly-schedule"]
+upstream_hosts = ["stolaf.dev"]
+shape = ["source/calendar/weekly-schedule-shape.ts#weeklyScheduleEvents"]
+response = "events expanded from the published KSTO weekly schedule (ksto-schedule.json)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/ksto-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/dev-pages-origin.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:105", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before= is validated but ignored (live calendar, no history). With PAGES_ORIGIN_OVERRIDE the file is read from the dev origin on every request instead of via the source."
+
+[[route]]
+id = "edu.stolaf/calendar/krlx-schedule"
+campus = "edu.stolaf"
+path = "/calendar/krlx-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-google"]
+upstream_hosts = ["www.googleapis.com"]
+shape = ["source/calendar/google-shape.ts#eventsFromGoogle"]
+response = "next 50 events of the KRLX Google Calendar"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/krlx-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:106", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Needs secret GOOGLE_CALENDAR_API_KEY (sent as X-Goog-Api-Key header); missing key is a load error (502 with nothing stored)."
+
+[[route]]
+id = "edu.stolaf/calendar/stolaf"
+campus = "edu.stolaf"
+path = "/calendar/stolaf"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-tec"]
+upstream_hosts = ["wp.stolaf.edu"]
+shape = ["workers/src/sources/tec-shape.ts#eventsFromTec"]
+response = "St. Olaf events for the next month from The Events Calendar (Tribe) REST API, all pages"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/stolaf"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:108", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Pages followed via next_rest_url, at most 10 pages of 50 (more is an error)."
+
+[[route]]
+id = "edu.stolaf/calendar/upcoming-convos"
+campus = "edu.stolaf"
+path = "/calendar/upcoming-convos"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#withEventImages"]
+response = "Carleton convocations calendar events (same Calendar object as /convos/upcoming)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/upcoming-convos"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:109", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/convocations/calendar/?loadFeed=calendar&stamp=1714843936."
+
+[[route]]
+id = "edu.stolaf/calendar/sumo-schedule"
+campus = "edu.stolaf"
+path = "/calendar/sumo-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#withEventImages"]
+response = "Carleton SUMO film schedule events, with page images"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/sumo-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-sumo-schedule.html", "workers/test/fixtures/carleton-sumo.ics"]
+cite = ["workers/src/calendars.ts:110", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/student/orgs/sumo/schedule/?loadFeed=calendar&stamp=1714840383."
+
+[[route]]
+id = "edu.stolaf/calendar/student-orgs"
+campus = "edu.stolaf"
+path = "/calendar/student-orgs"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-presence"]
+upstream_hosts = ["api.presence.io"]
+shape = ["workers/src/sources/presence-shape.ts#eventsFromPresence"]
+response = "St. Olaf student-org events from Presence that are on now or upcoming"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/student-orgs"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:117", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:147"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. St. Olaf only."
+
+[[route]]
+id = "edu.stolaf/contacts"
+campus = "edu.stolaf"
+path = "/contacts"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/contact-info.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/contacts"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:25", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/dictionary"
+campus = "edu.stolaf"
+path = "/dictionary"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/dictionary.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/dictionary"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:26", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/faqs"
+campus = "edu.stolaf"
+path = "/faqs"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/faqs.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/faqs"]
+tests = ["workers/test/legacy.test.ts", "workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:27", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/privacy/aao"
+campus = "edu.stolaf"
+path = "/privacy/aao"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/aao"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:17", "workers/src/pages-routes.ts:28", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/privacy/carls"
+campus = "edu.stolaf"
+path = "/privacy/carls"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/carls"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:18", "workers/src/pages-routes.ts:28", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/privacy/aaa"
+campus = "edu.stolaf"
+path = "/privacy/aaa"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/aaa"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:19", "workers/src/pages-routes.ts:28", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/tools/help"
+campus = "edu.stolaf"
+path = "/tools/help"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/help.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/tools/help"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:29", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/webcams"
+campus = "edu.stolaf"
+path = "/webcams"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/webcams.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/webcams"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:30", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/spaces/directory"
+campus = "edu.stolaf"
+path = "/spaces/directory"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/building-directory.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/spaces/directory"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:31", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/sources"
+campus = "edu.stolaf"
+path = "/sources"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/sources.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/sources"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:32", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/a-to-z/extras"
+campus = "edu.stolaf"
+path = "/a-to-z/extras"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/a-to-z.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/a-to-z/extras"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:33", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/orgs/category-styles"
+campus = "edu.stolaf"
+path = "/orgs/category-styles"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/org-categories.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/orgs/category-styles"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:34", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/map"
+campus = "edu.stolaf"
+path = "/map"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/campus-map-data/map.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:35", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/map/geojson"
+campus = "edu.stolaf"
+path = "/map/geojson"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/campus-map-data/map.geojson"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map/geojson"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:36", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/map/categories"
+campus = "edu.stolaf"
+path = "/map/categories"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/map-categories.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map/categories"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:37", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/map/style"
+campus = "edu.stolaf"
+path = "/map/style"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/campus-map-data/style.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map/style"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:38", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/map/style-dark"
+campus = "edu.stolaf"
+path = "/map/style-dark"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/campus-map-data/style-dark.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map/style-dark"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:39", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/student-work/areas"
+campus = "edu.stolaf"
+path = "/student-work/areas"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/student-work-areas.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/student-work/areas"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:40", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "The same URL is read by the student-work-areas source for /student-work/* (STOLAF.studentWork.areasUrl). Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/student-work/wages"
+campus = "edu.stolaf"
+path = "/student-work/wages"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/student-wages.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/student-work/wages"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:41", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/transit/bus"
+campus = "edu.stolaf"
+path = "/transit/bus"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/bus-times.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/transit/bus"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:54", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/transit/modes"
+campus = "edu.stolaf"
+path = "/transit/modes"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/transportation.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/transit/modes"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:55", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/printing/color-printers"
+campus = "edu.stolaf"
+path = "/printing/color-printers"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/color-printers.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/printing/color-printers"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:56", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/reports/stav"
+campus = "edu.stolaf"
+path = "/reports/stav"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/stav-mealtimes/two-weeks.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/reports/stav"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:57", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/food/named/menu/the-pause"
+campus = "edu.stolaf"
+path = "/food/named/menu/the-pause"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/pause-menu.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/food/named/menu/the-pause"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:58", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. Not a named café: the redirects table is consulted before the named-food route, and /food/named/cafe/the-pause is a 404. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/courses/catalog.db"
+campus = "edu.stolaf"
+path = "/courses/catalog.db"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/course-data/catalog-recent.db"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/courses/catalog.db"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:59", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.stolaf/a-to-z"
+campus = "edu.stolaf"
+path = "/a-to-z"
+methods = ["GET"]
+kind = "notice"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["source/ccci-stolaf-college/v1/deprecated-shape.ts#deprecatedLinkGroups"]
+response = "deprecatedLinkGroups(A_TO_Z_TEXT): link groups saying the A-Z index cannot be loaded"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/a-to-z"]
+tests = ["workers/test/legacy.test.ts", "workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:150", "workers/src/router.ts:406"]
+notes = "Nothing fetched; body computed once at module load. Carleton's notices table is empty (its /a-to-z is a 404)."
+
+[[route]]
+id = "edu.stolaf/athletics/scores"
+campus = "edu.stolaf"
+path = "/athletics/scores"
+methods = ["GET"]
+kind = "source"
+query = []
+sources = ["athletics-scores"]
+upstream_hosts = ["athletics.stolaf.edu"]
+shape = ["source/athletics/shape.ts#scoresFromFeeds", "source/athletics/shape.ts#yesterdaysGames", "source/athletics/shape.ts#withYesterday", "workers/src/sources/athletics.ts#athleticsFreshFor"]
+response = "the college's games (Score[]): scores feed merged with livestats and yesterday's calendar results"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; livestats or yesterday's calendar failing only leaves out what they add"
+cache_control = "min(600 s, athleticsFreshFor/1000): 60 s while a game is live or within 5 min of kickoff; errors 60 s"
+history = false
+legacy = ["/v1/athletics/scores"]
+tests = ["workers/test/athletics.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["source/athletics/fixtures/2026-09-26-home-games/20260926T180044Z-livestats.json", "source/athletics/fixtures/2026-09-26-home-games/20260926T180044Z-scores.json"]
+cite = ["workers/src/campuses.ts:154", "workers/src/router.ts:416", "workers/src/router.ts:257"]
+notes = "Three upstream reads per load: scores_chris.aspx?format=json, its livestats URL and yesterday's calendar, all on athletics.stolaf.edu; teamName \"Oles\"."
+
+[[route]]
+id = "edu.stolaf/directory/departments"
+campus = "edu.stolaf"
+path = "/directory/departments"
+methods = ["GET"]
+kind = "passthrough"
+query = []
+sources = ["stolaf-directory"]
+upstream_hosts = ["www.stolaf.edu"]
+shape = []
+response = "the JSON at https://www.stolaf.edu/directory/departments?format=json, passed through unchanged"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/directory/departments"]
+tests = ["workers/test/directory.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:158", "workers/src/router.ts:419"]
+notes = "Only the two DIRECTORY_URLS load. Carleton's directory table is empty."
+
+[[route]]
+id = "edu.stolaf/directory/majors"
+campus = "edu.stolaf"
+path = "/directory/majors"
+methods = ["GET"]
+kind = "passthrough"
+query = []
+sources = ["stolaf-directory"]
+upstream_hosts = ["www.stolaf.edu"]
+shape = []
+response = "the JSON at https://www.stolaf.edu/directory/majors?format=json, passed through unchanged"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/directory/majors"]
+tests = ["workers/test/directory.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:159", "workers/src/router.ts:419"]
+notes = "Only the two DIRECTORY_URLS load. Carleton's directory table is empty."
+
+[[route]]
+id = "edu.stolaf/streams/upcoming"
+campus = "edu.stolaf"
+path = "/streams/upcoming"
+methods = ["GET"]
+kind = "source"
+query = ["dateFrom", "dateTo", "sort"]
+sources = ["streams"]
+upstream_hosts = ["www.stolaf.edu"]
+shape = ["source/ccci-stolaf-college/v1/streams-shape.ts#listParams", "source/ccci-stolaf-college/v1/streams-shape.ts#streamsFrom"]
+response = "St. Olaf streams for the next two months (or dateFrom..dateTo), as a list"
+errors = "bad dateFrom/dateTo/sort: 400 {message} max-age 60, nothing fetched; source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/streams/upcoming"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/streams.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:421", "workers/src/router.ts:318", "workers/src/campuses.ts:161"]
+notes = "Upstream https://www.stolaf.edu/multimedia/api/collection with class=current; query keyed in a fixed order."
+
+[[route]]
+id = "edu.stolaf/streams/archived"
+campus = "edu.stolaf"
+path = "/streams/archived"
+methods = ["GET"]
+kind = "source"
+query = ["dateFrom", "dateTo", "sort", "before"]
+sources = ["streams"]
+upstream_hosts = ["www.stolaf.edu"]
+shape = ["source/ccci-stolaf-college/v1/streams-shape.ts#listParams", "source/ccci-stolaf-college/v1/streams-shape.ts#streamsFrom"]
+response = "St. Olaf streams from the last two months (or dateFrom..dateTo), as a list"
+errors = "bad dateFrom/dateTo/sort: 400 {message} max-age 60; with ?before=, sort other than ascending/descending: 400 max-age 60; ?before= not an ISO 8601 date/time: 400 {message} max-age 60; source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/streams/archived"]
+tests = ["workers/test/archive.test.ts", "workers/test/route-listing.test.ts", "workers/test/streams.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:421", "workers/src/router.ts:294", "workers/src/router.ts:318"]
+notes = "?before= (clamped to now) pages back through the ArchiveDO \"streams\" archive: 50 per page, soonest first unless sort=descending, Link rel=\"next\" when full; dateFrom/dateTo are ignored in that mode."
+
+[[route]]
+id = "edu.stolaf/streams/search"
+campus = "edu.stolaf"
+path = "/streams/search"
+methods = ["GET"]
+kind = "source"
+query = ["query", "sort", "class", "category", "dateFrom", "dateTo", "count", "offset"]
+sources = ["streams"]
+upstream_hosts = ["www.stolaf.edu"]
+shape = ["source/ccci-stolaf-college/v1/streams-shape.ts#searchParams", "source/ccci-stolaf-college/v1/streams-shape.ts#streamsFrom", "source/ccci-stolaf-college/v1/streams-shape.ts#pageLinks"]
+response = "matching streams as a list, with a Link header to other pages when upstream reports how many match"
+errors = "params failing SearchStreamsParamsSchema (query required; count 1..200; offset >= 0; dateFrom <= dateTo): 400 {message} max-age 60; source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/streams/search"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/streams.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:421", "workers/src/router.ts:321", "source/ccci-stolaf-college/v1/streams-shape.ts:59"]
+notes = "class defaults to archived; sort defaults to ascending for upcoming, descending otherwise; count defaults to 50."
+
+[[route]]
+id = "edu.stolaf/spaces/hours"
+campus = "edu.stolaf"
+path = "/spaces/hours"
+methods = ["GET"]
+kind = "source"
+query = ["breaks"]
+sources = ["schedules"]
+upstream_hosts = ["stolaf.dev"]
+shape = ["source/schedules/resolve.ts#resolveScheduleResponses", "source/schedules/publications.ts#publicationData", "source/schedules/active.ts#hoursAt"]
+response = "today's building hours, with an active break's schedules in place (or the usual schedules with ?breaks=none)"
+errors = "breaks present and not \"none\": 400 {message} max-age 60; source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "min(600 s, seconds until midnight in the calendar's timezone); ?breaks=none: 600 s; errors 60 s"
+history = false
+legacy = ["/v1/spaces/hours"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/route-listing.test.ts", "workers/test/schedules.test.ts"]
+fixtures = ["source/schedules/fixtures/calendar-response.json", "source/schedules/fixtures/calendar.json", "source/schedules/fixtures/spaces-resolved.json", "source/schedules/fixtures/spaces.json"]
+cite = ["workers/src/router.ts:412", "workers/src/router.ts:201", "workers/src/pages-routes.ts:45"]
+notes = "Reads building-hours.json and breaks.json from https://stolaf.dev/AAO-React-Native/ together as one source value. With PAGES_ORIGIN_OVERRIDE both files are re-read from the dev origin on every request (loadSchedules)."
+
+[[route]]
+id = "edu.stolaf/breaks"
+campus = "edu.stolaf"
+path = "/breaks"
+methods = ["GET"]
+kind = "source"
+query = []
+sources = ["schedules"]
+upstream_hosts = ["stolaf.dev"]
+shape = ["source/schedules/resolve.ts#resolveScheduleResponses", "source/schedules/publications.ts#publicationData"]
+response = "the break calendar (value.calendar of the resolved pair)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/breaks"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/route-listing.test.ts", "workers/test/schedules.test.ts"]
+fixtures = ["source/schedules/fixtures/calendar-response.json", "source/schedules/fixtures/calendar.json", "source/schedules/fixtures/spaces-resolved.json", "source/schedules/fixtures/spaces.json"]
+cite = ["workers/src/router.ts:413", "workers/src/router.ts:201"]
+notes = "Same source value as /spaces/hours. ?breaks is not read here. Carleton has no /breaks (404)."
+
+[[route]]
+id = "edu.stolaf/images/:group/:name"
+campus = "edu.stolaf"
+path = "/images/:group/:name"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["source/ccc-lib/images-shape.ts#isPublishedImage", "source/ccc-lib/images-shape.ts#imageUrl"]
+response = "307 Location: https://stolaf.dev/AAO-React-Native/img/<group>/<name>"
+errors = "group or name not published, or any query string: 404 {error: \"not found\"} (no Cache-Control)"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/images/:group/:name"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:440", "source/ccc-lib/images-shape.ts:6", "workers/src/campuses.ts:152"]
+notes = "Accepted group values: contacts, news-sources, spaces, streaming, webcams; name must match /^[a-z0-9]+(?:-[a-z0-9]+)*\\.webp$/. Both campuses redirect to All About Olaf's images. Nothing fetched."
+
+[[route]]
+id = "edu.stolaf/student-work/postings"
+campus = "edu.stolaf"
+path = "/student-work/postings"
+methods = ["GET"]
+kind = "board"
+query = ["area", "unit", "level", "term", "posted_since", "q", "title", "sort"]
+sources = ["StudentWorkDO", "student-work-areas"]
+upstream_hosts = ["fa-ewur-saasfaprod1.fa.ocs.oraclecloud.com", "stolaf.dev"]
+shape = ["source/student-work/oracle-shape.ts#boardPostings", "workers/src/student-work-shape.ts#listingOf", "workers/src/student-work-shape.ts#parseFilters"]
+response = "{updatedAt, count, postings} from the St. Olaf Oracle Recruiting board, newest first (or by relevance)"
+errors = "unknown or malformed parameter: 400 {message} (no Cache-Control); area filter with the areas file unreadable: 502 max-age 60; board never read successfully: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/student-work/postings"]
+tests = ["workers/test/dev-pages-origin.test.ts", "workers/test/route-listing.test.ts", "workers/test/student-work.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:451", "workers/src/student-work.ts:80", "workers/src/student-work-do.ts:165"]
+notes = "StudentWorkDO named \"stolaf\" (binding STUDENT_WORK) refreshes on its alarm every 4 h + up to 30 min jitter; area/unit/level/term are repeatable and comma-splittable (max 20 values); posted_since YYYY-MM-DD; q/title max 100 chars; sort newest|relevance."
+
+[[route]]
+id = "edu.stolaf/student-work/postings/:id"
+campus = "edu.stolaf"
+path = "/student-work/postings/:id"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentWorkDO", "student-work-areas"]
+upstream_hosts = ["fa-ewur-saasfaprod1.fa.ocs.oraclecloud.com", "stolaf.dev"]
+shape = ["source/student-work/oracle-shape.ts#oracleDetail", "workers/src/student-work-shape.ts#postingDetail", "source/student-work/unit-number.ts#unitNumberOfDescription"]
+response = "one posting with its description"
+errors = "id not /^\\d{1,12}$/: 404 {error: \"not found\"} (no Cache-Control); not on the board: 404 {message} max-age 60; board error: 502 max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/student-work/postings/:id"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-work.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:453", "workers/src/student-work.ts:96", "workers/src/student-work-do.ts:251"]
+notes = "Description is null when the posting's detail has not been read yet (details are read by the alarm, 20 per run)."
+
+[[route]]
+id = "edu.stolaf/student-work/units"
+campus = "edu.stolaf"
+path = "/student-work/units"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentWorkDO", "student-work-areas"]
+upstream_hosts = ["fa-ewur-saasfaprod1.fa.ocs.oraclecloud.com", "stolaf.dev"]
+shape = ["source/student-work/areas.ts#groupUnits"]
+response = "each read posting's unit by id, grouped as the Node route answers it"
+errors = "board error: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/student-work/units"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-work.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:452", "workers/src/student-work.ts:107", "workers/src/routes.ts:42"]
+notes = "St. Olaf (oracle board) only; Carleton answers 404."
+
+[[route]]
+id = "edu.stolaf/orgs"
+campus = "edu.stolaf"
+path = "/orgs"
+methods = ["GET"]
+kind = "board"
+query = ["q", "category"]
+sources = ["StudentOrgsDO"]
+upstream_hosts = ["api.presence.io"]
+shape = ["source/student-orgs/presence-shape.ts#presenceOrgs", "source/student-orgs/presence-shape.ts#withoutDemoOrgs", "workers/src/student-orgs.ts#parseOrgFilters"]
+response = "every St. Olaf student org from Presence in list order, or those matching q/category"
+errors = "q repeated, q or a category over 100 chars, or more than 20 categories: 400 {message} (no Cache-Control); list never read: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/orgs"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = ["workers/test/fixtures/presence-categories.json", "workers/test/fixtures/presence-orgs.json", "workers/test/fixtures/presence-portal.json"]
+cite = ["workers/src/router.ts:463", "workers/src/student-orgs.ts:47", "workers/src/student-orgs-do.ts:110"]
+notes = "StudentOrgsDO named \"stolaf\" (binding STUDENT_ORGS) refreshes the list hourly + up to 10 min jitter. Other query parameters are ignored."
+
+[[route]]
+id = "edu.stolaf/orgs/categories"
+campus = "edu.stolaf"
+path = "/orgs/categories"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentOrgsDO"]
+upstream_hosts = ["api.presence.io"]
+shape = ["source/student-orgs/presence-shape.ts#presenceCategories", "source/student-orgs/presence-shape.ts#withoutDemoCategory"]
+response = "each category with the uris of its orgs"
+errors = "list never read: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/orgs/categories"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = ["workers/test/fixtures/presence-categories.json", "workers/test/fixtures/presence-orgs.json", "workers/test/fixtures/presence-portal.json"]
+cite = ["workers/src/router.ts:465", "workers/src/student-orgs.ts:57", "workers/src/student-orgs-do.ts:138"]
+notes = "StudentOrgsDO named \"stolaf\" (binding STUDENT_ORGS) refreshes the list hourly + up to 10 min jitter."
+
+[[route]]
+id = "edu.stolaf/orgs/uri/:uri"
+campus = "edu.stolaf"
+path = "/orgs/uri/:uri"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentOrgsDO"]
+upstream_hosts = ["api.presence.io"]
+shape = ["source/student-orgs/presence-shape.ts#orgDetail", "source/student-orgs/portal.ts#portalFields"]
+response = "one org with contacts, advisors, links and office details from its Presence portal view"
+errors = "uri over 100 chars or not /^[a-z0-9]+(?:-[a-z0-9]+)*$/: 404 {error: \"not found\"} (no Cache-Control); not listed: 404 {message} max-age 60; list or portal view unreadable with nothing stored: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/orgs/uri/:uri"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = ["workers/test/fixtures/presence-categories.json", "workers/test/fixtures/presence-orgs.json", "workers/test/fixtures/presence-portal.json"]
+cite = ["workers/src/router.ts:466", "workers/src/student-orgs.ts:67", "workers/src/student-orgs-do.ts:151"]
+notes = "StudentOrgsDO named \"stolaf\" (binding STUDENT_ORGS) refreshes the list hourly + up to 10 min jitter. Details are read on first open, refreshed behind an answer after 1 h, retried 5 min after a failure."
+
+[[route]]
+id = "edu.stolaf/jobs"
+campus = "edu.stolaf"
+path = "/jobs"
+methods = ["GET"]
+kind = "notice"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["source/student-work/retired-jobs.ts#deprecatedJobs"]
+response = "deprecatedJobs(RETIRED_JOBS_TEXT, 2026-10-10T12:00:00Z): notice that the listings moved"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/jobs"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:165", "workers/src/student-orgs.ts:79", "workers/src/student-orgs.ts:84"]
+notes = "Nothing fetched; dated by a fixed day so the body and ETag never change."
+
+[[route]]
+id = "edu.carleton/routes"
+campus = "edu.carleton"
+path = "/routes"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["workers/src/routes.ts#routeListing", "workers/src/routes.ts#campusPaths"]
+response = "[{path: \"/<campus><path>\", displayName, methods: [\"GET\"], params}] for every campusPaths entry, sorted by path"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = []
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:404", "workers/src/routes.ts:51"]
+notes = "/v1/routes is NOT mapped onto this route: legacy.ts intercepts it and answers its own listing (see the /v1/routes row). The listing omits /v1/routes itself, /, /previews and /sentry/telegram."
+
+[[route]]
+id = "edu.carleton/v1/routes"
+campus = "edu.carleton"
+path = "/v1/routes"
+methods = ["GET"]
+kind = "ops"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["workers/src/legacy.ts#legacyRouteListing", "workers/src/legacy.ts#toLegacyPath"]
+response = "Node-shaped listing: \"/\" and \"/ping\" plus toLegacyPath(each campusPaths entry), each under the mount (\"\" on a Node host, \"/<campus>\" under the prefix), sorted by path"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = []
+tests = ["workers/test/legacy.test.ts"]
+fixtures = []
+cite = ["workers/src/legacy.ts:94", "workers/src/legacy.ts:57"]
+notes = "Not in campusPaths. Served at /<campus>/v1/routes on any host, and at /v1/routes on this campus's Node-era hosts. Under the prefix it lists /<campus>/ and /<campus>/ping, which are not served there (404)."
+
+[[route]]
+id = "edu.carleton/food/menu/:cafeId"
+campus = "edu.carleton"
+path = "/food/menu/:cafeId"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "BonApp menu {cor_icons, items, days} for one café, dated by the campus day (America/Chicago)"
+errors = "unknown cafeId: 400 {message: \"cafeId must be one of ...\"} (no Cache-Control); days other than a single \"5\": 400 {error} (no Cache-Control); every page failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/menu/:cafeId"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/router.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html"]
+cite = ["workers/src/router.ts:473", "workers/src/router.ts:66", "workers/src/cafes.ts:4"]
+notes = "Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown. ?days=5: five dated pages fetched (cafeUrlForDate) and dated by the campus day the request started; a failing day becomes that day's own stand-in inside a 200. Closed café (null page): CafeMenuIsClosed."
+
+[[route]]
+id = "edu.carleton/food/cafe/:cafeId"
+campus = "edu.carleton"
+path = "/food/cafe/:cafeId"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "BonApp café info for one café, dated by the campus day"
+errors = "unknown cafeId: 400 {message} (no Cache-Control); any ?days: 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe(\"Could not load café from BonApp\") stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/cafe/:cafeId"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:473", "workers/src/router.ts:87"]
+notes = "Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown. Undated BonApp page, dated by the clock after the fetch."
+
+[[route]]
+id = "edu.carleton/bonapp/:cafeId"
+campus = "edu.carleton"
+path = "/bonapp/:cafeId"
+methods = ["GET"]
+kind = "ops"
+query = ["full"]
+sources = ["bonapp-page"]
+upstream_hosts = ["*.cafebonappetit.com"]
+shape = []
+response = "debug view: {cafeId, url, state, fetchedAt, summary: {name, dayparts, itemCount}|null, page? (with ?full=1)}"
+errors = "unknown cafeId: 404 {error, known}; source error: 502 {cafeId, url, error}; none carry Cache-Control"
+cache_control = "none set"
+history = false
+legacy = ["/v1/bonapp/:cafeId"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:508", "workers/src/router.ts:113"]
+notes = "Classed ops: the router calls it \"a look at the BonApp source while the real routes are not built yet ... Not the app's menu contract\". Reads the bonapp-page source via fetchSource. Accepted cafeId values (same CAFES table on both campuses): 261, 262, 263, 35, 36, 34, 458; 261-263 are St. Olaf pages, 34/35/36/458 Carleton pages. Lookup uses Object.hasOwn, so \"toString\" etc. are unknown."
+
+[[route]]
+id = "edu.carleton/food/named/menu/stav-hall"
+campus = "edu.carleton"
+path = "/food/named/menu/stav-hall"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the stav-hall page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/stav-hall"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html", "workers/test/fixtures/stav-hall.menu.json"]
+cite = ["workers/src/cafes.ts:17", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/stav-hall"
+campus = "edu.carleton"
+path = "/food/named/cafe/stav-hall"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the stav-hall page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/stav-hall"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:17", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/the-cage"
+campus = "edu.carleton"
+path = "/food/named/menu/the-cage"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the the-cage page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/the-cage"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:18", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/the-cage"
+campus = "edu.carleton"
+path = "/food/named/cafe/the-cage"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the the-cage page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/the-cage"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:18", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/kings-room"
+campus = "edu.carleton"
+path = "/food/named/menu/kings-room"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the kings-room page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/kings-room"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:19", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/kings-room"
+campus = "edu.carleton"
+path = "/food/named/cafe/kings-room"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the kings-room page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/kings-room"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:19", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/the-cave"
+campus = "edu.carleton"
+path = "/food/named/menu/the-cave"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the the-cave page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/the-cave"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.html", "workers/test/fixtures/stav-hall.menu.json"]
+cite = ["workers/src/cafes.ts:20", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/the-cave"
+campus = "edu.carleton"
+path = "/food/named/cafe/the-cave"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["stolaf.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the the-cave page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/the-cave"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:20", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/burton"
+campus = "edu.carleton"
+path = "/food/named/menu/burton"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the burton page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/burton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:21", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/burton"
+campus = "edu.carleton"
+path = "/food/named/cafe/burton"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the burton page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/burton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:21", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/ldc"
+campus = "edu.carleton"
+path = "/food/named/menu/ldc"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the ldc page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/ldc"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:22", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/ldc"
+campus = "edu.carleton"
+path = "/food/named/cafe/ldc"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the ldc page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/ldc"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:22", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/sayles"
+campus = "edu.carleton"
+path = "/food/named/menu/sayles"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the sayles page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/sayles"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:23", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/sayles"
+campus = "edu.carleton"
+path = "/food/named/cafe/sayles"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the sayles page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/sayles"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:23", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/weitz"
+campus = "edu.carleton"
+path = "/food/named/menu/weitz"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the weitz page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/weitz"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:24", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/weitz"
+campus = "edu.carleton"
+path = "/food/named/cafe/weitz"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the weitz page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/weitz"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:24", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/menu/schulze"
+campus = "edu.carleton"
+path = "/food/named/menu/schulze"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#menuFromPages", "source/menus-bonapp/shape.ts#menuFrom", "source/menus-bonapp/shape.ts#CafeMenuIsClosed", "source/menus-bonapp/shape.ts#CafeMenuWithError", "source/menus-bonapp/shape.ts#menuDates", "source/menus-bonapp/shape.ts#cafeUrlForDate", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/menu/:cafeId, for the schulze page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CafeMenuWithError stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/menu/schulze"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/cafes.ts:25", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/food/named/cafe/schulze"
+campus = "edu.carleton"
+path = "/food/named/cafe/schulze"
+methods = ["GET"]
+kind = "source"
+query = ["days"]
+sources = ["bonapp-page"]
+upstream_hosts = ["carleton.cafebonappetit.com"]
+shape = ["source/menus-bonapp/shape.ts#cafeFrom", "source/menus-bonapp/shape.ts#CustomCafe", "workers/src/sources/bonapp.ts#parseBonappPage"]
+response = "same body as /food/cafe/:cafeId, for the schulze page"
+errors = "days other than a single \"5\" (or any days on cafe): 400 {error} (no Cache-Control); BonApp failing with nothing stored: 200 CustomCafe stand-in"
+cache_control = "min(600 s, seconds until campus midnight); stand-ins 60 s"
+history = false
+legacy = ["/v1/food/named/cafe/schulze"]
+tests = ["workers/test/named-food.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/stav-hall.cafe.json", "workers/test/fixtures/stav-hall.html"]
+cite = ["workers/src/cafes.ts:25", "workers/src/router.ts:487", "workers/src/campuses.ts:170"]
+notes = "NAMED_CAFES is shared by both campuses, so each campus serves the other college's named cafés too. Shares the stored copy with the id route for the same page URL."
+
+[[route]]
+id = "edu.carleton/news/stolaf"
+campus = "edu.carleton"
+path = "/news/stolaf"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["wp-news"]
+upstream_hosts = ["wp.stolaf.edu"]
+shape = ["source/feeds/wp-json-shape.ts#feedItemsFrom"]
+response = "feed items (FeedItemType[]) from the WordPress posts API"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/stolaf"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:110", "workers/src/sources/wp-news.ts:14", "workers/src/router.ts:385", "workers/src/router.ts:138", "workers/src/campuses.ts:124"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. Upstream URL: STOLAF_NEWS_URL in workers/src/sources/wp-news.ts (per_page=10&_embed=true)."
+
+[[route]]
+id = "edu.carleton/news/carleton-now"
+campus = "edu.carleton"
+path = "/news/carleton-now"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["wp-news"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/feeds/wp-json-shape.ts#feedItemsFrom"]
+response = "feed items (FeedItemType[]) from the WordPress posts API"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/carleton-now"]
+tests = ["workers/test/carleton-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-now.json", "workers/test/fixtures/carleton-posts.json"]
+cite = ["workers/src/campuses.ts:111", "workers/src/sources/wp-news.ts:18", "workers/src/router.ts:385", "workers/src/router.ts:138", "workers/src/campuses.ts:125"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. Upstream URL: CARLETON_NOW_URL in workers/src/sources/wp-news.ts (per_page=10&_embed=true)."
+
+[[route]]
+id = "edu.carleton/news/carletonian"
+campus = "edu.carleton"
+path = "/news/carletonian"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#newsDown"]
+response = "one undated feed item: newsDown(\"The Carletonian\", null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/carletonian"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:115", "workers/src/router.ts:385", "workers/src/campuses.ts:126"]
+notes = "Temporarily a notice: the fromWordPress(CARLETONIAN_URL) line is commented out (campuses.ts) because the site is down. README says this route reads WordPress and is a 502; the code answers a fixed notice. ?before= is validated but ignored (no history). Body never changes, so ETag re-checks get 304."
+
+[[route]]
+id = "edu.carleton/news/mess"
+campus = "edu.carleton"
+path = "/news/mess"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#newsDown"]
+response = "one undated feed item: newsDown(\"The Olaf Messenger\", null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/mess"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:118", "workers/src/router.ts:385", "workers/src/campuses.ts:127"]
+notes = "Temporarily a notice: the fromWordPress(MESSENGER_URL) line is commented out (campuses.ts) because the site is down. README says this route reads WordPress and is a 502; the code answers a fixed notice. ?before= is validated but ignored (no history). Body never changes, so ETag re-checks get 304."
+
+[[route]]
+id = "edu.carleton/news/krlx"
+campus = "edu.carleton"
+path = "/news/krlx"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["rss-news"]
+upstream_hosts = ["content.krlx.org"]
+shape = ["source/feeds/rss-shape.ts#feedItemsFromRss"]
+response = "feed items from the KRLX RSS feed"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is (a non-RSS body is a load error, not an empty feed); ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/news/named/krlx"]
+tests = ["workers/test/carleton-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/krlx-feed.xml", "workers/test/fixtures/krlx.json"]
+cite = ["workers/src/campuses.ts:116", "workers/src/sources/rss-news.ts:13", "workers/src/router.ts:385", "workers/src/campuses.ts:128"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"news\" archive: 10 items, latest first, Link: <...?before=...>; rel=\"next\" when the page is full. History is read from https://content.krlx.org/wp-json/wp/v2/posts (RSS_POSTS), so archived items are shaped from WordPress, not RSS."
+
+[[route]]
+id = "edu.carleton/news/covid"
+campus = "edu.carleton"
+path = "/news/covid"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#deprecatedWpJson"]
+response = "one undated feed item: deprecatedWpJson(null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/covid"]
+tests = ["workers/test/legacy.test.ts", "workers/test/retired-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:119", "workers/src/campuses.ts:171", "workers/src/router.ts:385"]
+notes = "Retired feed. ?before= is validated but ignored (no history). Undated, so the body and ETag never change."
+
+[[route]]
+id = "edu.carleton/news/nnb"
+campus = "edu.carleton"
+path = "/news/nnb"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/feeds/deprecated.ts#retiredNnb"]
+response = "one undated feed item: retiredNnb(null)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/news/named/nnb"]
+tests = ["workers/test/retired-news.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:120", "workers/src/campuses.ts:171", "workers/src/router.ts:385"]
+notes = "Retired feed. ?before= is validated but ignored (no history). Undated, so the body and ETag never change."
+
+[[route]]
+id = "edu.carleton/news/mess/wp/v2/:resource"
+campus = "edu.carleton"
+path = "/news/mess/wp/v2/:resource"
+methods = ["GET"]
+kind = "passthrough"
+query = ["per_page", "page", "_embed", "_fields", "categories", "include", "staff_name", "staff_year", "hide_empty", "slug"]
+sources = ["wordpress-api"]
+upstream_hosts = ["olafmessenger.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable", "source/ccci-stolaf-college/v1/mess-shape.ts#paginationLinks"]
+response = "the paper's WordPress REST list answer as-is (status, content-type, body, x-wp-total/x-wp-totalpages), plus Link paging on lists with page"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status \"ccc-server; hit; detail=stale\"; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/mess/wp/v2/:resource"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:133", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:56"]
+notes = "Accepted :resource values and their params (RESOURCES in mess-shape.ts): posts {per_page,page,_embed,_fields,categories,include,staff_name}; categories {per_page,_fields}; media {include,per_page,_fields}; staff_profile {staff_name,staff_year,per_page,page,_embed,_fields}; staff_year {hide_empty,per_page,_fields}; pages {slug,_fields}. Every query spelling shares one stored copy (canonicalKey). Upstream base: UPSTREAM in mess-shape.ts. Same table on both campuses."
+
+[[route]]
+id = "edu.carleton/news/mess/wp/v2/:resource/:id"
+campus = "edu.carleton"
+path = "/news/mess/wp/v2/:resource/:id"
+methods = ["GET"]
+kind = "passthrough"
+query = ["_embed", "_fields"]
+sources = ["wordpress-api"]
+upstream_hosts = ["olafmessenger.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable"]
+response = "the paper's WordPress REST single-item answer as-is (status, content-type, body, passed headers)"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status stale; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/mess/wp/v2/:resource/:id"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:133", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:70"]
+notes = "Only resource \"posts\" has an item form; :id must match INTEGER. Same table on both campuses."
+
+[[route]]
+id = "edu.carleton/news/carletonian/wp/v2/:resource"
+campus = "edu.carleton"
+path = "/news/carletonian/wp/v2/:resource"
+methods = ["GET"]
+kind = "passthrough"
+query = ["per_page", "page", "_embed", "_fields", "categories", "include", "staff_name", "staff_year", "hide_empty", "slug"]
+sources = ["wordpress-api"]
+upstream_hosts = ["thecarletonian.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable", "source/ccci-stolaf-college/v1/mess-shape.ts#paginationLinks"]
+response = "the paper's WordPress REST list answer as-is (status, content-type, body, x-wp-total/x-wp-totalpages), plus Link paging on lists with page"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status \"ccc-server; hit; detail=stale\"; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/carletonian/wp/v2/:resource"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:134", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:56"]
+notes = "Accepted :resource values and their params (RESOURCES in mess-shape.ts): posts {per_page,page,_embed,_fields,categories,include,staff_name}; categories {per_page,_fields}; media {include,per_page,_fields}; staff_profile {staff_name,staff_year,per_page,page,_embed,_fields}; staff_year {hide_empty,per_page,_fields}; pages {slug,_fields}. Every query spelling shares one stored copy (canonicalKey). Upstream base: CARLETONIAN.upstream in wordpress-api.ts. Same table on both campuses."
+
+[[route]]
+id = "edu.carleton/news/carletonian/wp/v2/:resource/:id"
+campus = "edu.carleton"
+path = "/news/carletonian/wp/v2/:resource/:id"
+methods = ["GET"]
+kind = "passthrough"
+query = ["_embed", "_fields"]
+sources = ["wordpress-api"]
+upstream_hosts = ["thecarletonian.com"]
+shape = ["source/ccci-stolaf-college/v1/mess-shape.ts#rulesFor", "source/ccci-stolaf-college/v1/mess-shape.ts#canonicalKey", "source/ccci-stolaf-college/v1/mess-shape.ts#isPassable"]
+response = "the paper's WordPress REST single-item answer as-is (status, content-type, body, passed headers)"
+errors = "request outside rulesFor: 404 (unknown resource, or non-integer id) / 400 (unknown, repeated or malformed parameter) {message}, nothing fetched, no Cache-Control; paper answers a passable 4xx: passed on with its body and no Cache-Control; 5xx, redirect, non-JSON, bot challenge or over 1.9 MB with nothing stored: 502 {message} max-age 60"
+cache_control = "200: 600 s; 200 served stale while paper fails: 60 s with Cache-Status stale; non-200 passed on: none"
+history = false
+legacy = ["/v1/news/carletonian/wp/v2/:resource/:id"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/wordpress-api.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:134", "workers/src/router.ts:390", "workers/src/sources/wordpress-api.ts:124", "source/ccci-stolaf-college/v1/mess-shape.ts:70"]
+notes = "Only resource \"posts\" has an item form; :id must match INTEGER. Same table on both campuses."
+
+[[route]]
+id = "edu.carleton/calendar/carleton"
+campus = "edu.carleton"
+path = "/calendar/carleton"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#eventImages", "source/calendar/carleton-images-shape.ts#withEventImages", "source/calendar/carleton-images-shape.ts#carletonPage"]
+response = "events (EventType[]) for the next month from carleton.edu/calendar iCal, with page images"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/carleton"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:99", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/calendar/?loadFeed=calendar&stamp=1714843628; image page failing only drops images."
+
+[[route]]
+id = "edu.carleton/calendar/the-cave"
+campus = "edu.carleton"
+path = "/calendar/the-cave"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/calendar/deprecated.ts#deprecatedEvents"]
+response = "one deprecated event: deprecatedEvents(RETIRED_TITLE, \"The Cave calendar is no longer published.\", now)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/the-cave"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:93", "workers/src/calendars.ts:100", "workers/src/router.ts:397", "workers/src/campuses.ts:173"]
+notes = "Nothing fetched. Dated by the clock at each request (unlike the news notices). ?before= validated but ignored."
+
+[[route]]
+id = "edu.carleton/calendar/oleville"
+campus = "edu.carleton"
+path = "/calendar/oleville"
+methods = ["GET"]
+kind = "notice"
+query = ["before"]
+sources = []
+upstream_hosts = []
+shape = ["source/calendar/deprecated.ts#deprecatedEvents"]
+response = "one deprecated event: deprecatedEvents(RETIRED_TITLE, \"The Oleville calendar is no longer published.\", now)"
+errors = "?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/oleville"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:95", "workers/src/calendars.ts:101", "workers/src/router.ts:397", "workers/src/campuses.ts:173"]
+notes = "Nothing fetched. Dated by the clock at each request (unlike the news notices). ?before= validated but ignored."
+
+[[route]]
+id = "edu.carleton/calendar/northfield"
+campus = "edu.carleton"
+path = "/calendar/northfield"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-ical"]
+upstream_hosts = ["www.northfieldmn.gov"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal"]
+response = "upcoming events from the City of Northfield iCal feed"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/northfield"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:102", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed NORTHFIELD in calendars.ts."
+
+[[route]]
+id = "edu.carleton/calendar/ksto-schedule"
+campus = "edu.carleton"
+path = "/calendar/ksto-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-weekly-schedule"]
+upstream_hosts = ["stolaf.dev"]
+shape = ["source/calendar/weekly-schedule-shape.ts#weeklyScheduleEvents"]
+response = "events expanded from the published KSTO weekly schedule (ksto-schedule.json)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/calendar/named/ksto-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:105", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before= is validated but ignored (live calendar, no history). With PAGES_ORIGIN_OVERRIDE the file is read from the dev origin on every request instead of via the source."
+
+[[route]]
+id = "edu.carleton/calendar/krlx-schedule"
+campus = "edu.carleton"
+path = "/calendar/krlx-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-google"]
+upstream_hosts = ["www.googleapis.com"]
+shape = ["source/calendar/google-shape.ts#eventsFromGoogle"]
+response = "next 50 events of the KRLX Google Calendar"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/krlx-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:106", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Needs secret GOOGLE_CALENDAR_API_KEY (sent as X-Goog-Api-Key header); missing key is a load error (502 with nothing stored)."
+
+[[route]]
+id = "edu.carleton/calendar/stolaf"
+campus = "edu.carleton"
+path = "/calendar/stolaf"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-tec"]
+upstream_hosts = ["wp.stolaf.edu"]
+shape = ["workers/src/sources/tec-shape.ts#eventsFromTec"]
+response = "St. Olaf events for the next month from The Events Calendar (Tribe) REST API, all pages"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/stolaf"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:108", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Pages followed via next_rest_url, at most 10 pages of 50 (more is an error)."
+
+[[route]]
+id = "edu.carleton/calendar/upcoming-convos"
+campus = "edu.carleton"
+path = "/calendar/upcoming-convos"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#withEventImages"]
+response = "Carleton convocations calendar events (same Calendar object as /convos/upcoming)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/upcoming-convos"]
+tests = ["workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/calendars.ts:109", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/convocations/calendar/?loadFeed=calendar&stamp=1714843936."
+
+[[route]]
+id = "edu.carleton/calendar/sumo-schedule"
+campus = "edu.carleton"
+path = "/calendar/sumo-schedule"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#withEventImages"]
+response = "Carleton SUMO film schedule events, with page images"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/calendar/named/sumo-schedule"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-sumo-schedule.html", "workers/test/fixtures/carleton-sumo.ics"]
+cite = ["workers/src/calendars.ts:110", "workers/src/router.ts:397", "workers/src/router.ts:160", "workers/src/campuses.ts:173"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. Feed https://www.carleton.edu/student/orgs/sumo/schedule/?loadFeed=calendar&stamp=1714840383."
+
+[[route]]
+id = "edu.carleton/contacts"
+campus = "edu.carleton"
+path = "/contacts"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/contact-info.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/contacts"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:65", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/dictionary"
+campus = "edu.carleton"
+path = "/dictionary"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/dictionary-carls.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/dictionary"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:66", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/faqs"
+campus = "edu.carleton"
+path = "/faqs"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/faqs.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/faqs"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:67", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/privacy/aao"
+campus = "edu.carleton"
+path = "/privacy/aao"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/aao"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:17", "workers/src/pages-routes.ts:68", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/privacy/carls"
+campus = "edu.carleton"
+path = "/privacy/carls"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/carls"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:18", "workers/src/pages-routes.ts:68", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/privacy/aaa"
+campus = "edu.carleton"
+path = "/privacy/aaa"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://stolaf.dev/AAO-React-Native/privacy.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/privacy/aaa"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:19", "workers/src/pages-routes.ts:68", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "From PRIVACY_FILES, spread into both campuses' file tables: every app's policy is served on every campus, and all three currently point at All About Olaf's privacy.json. Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/tools/help"
+campus = "edu.carleton"
+path = "/tools/help"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/help.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/tools/help"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:69", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/webcams"
+campus = "edu.carleton"
+path = "/webcams"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/webcams.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/webcams"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:70", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/spaces/hours"
+campus = "edu.carleton"
+path = "/spaces/hours"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/building-hours.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/spaces/hours"]
+tests = ["workers/test/legacy.test.ts", "workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts", "workers/test/schedules.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:71", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Carleton has no schedules entry, so /spaces/hours is a plain file redirect here (St. Olaf resolves hours itself). Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/map"
+campus = "edu.carleton"
+path = "/map"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/map-data/map.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:72", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/map/geojson"
+campus = "edu.carleton"
+path = "/map/geojson"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/map-data/map.geojson"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/map/geojson"]
+tests = ["workers/test/pages-routes.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:73", "workers/src/router.ts:447", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE, a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/transit/bus"
+campus = "edu.carleton"
+path = "/transit/bus"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/bus-times.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/transit/bus"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:79", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/transit/modes"
+campus = "edu.carleton"
+path = "/transit/modes"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/transportation.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/transit/modes"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:80", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/food/named/menu/the-pause"
+campus = "edu.carleton"
+path = "/food/named/menu/the-pause"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = []
+response = "307 Location: https://carls-app.github.io/carls/pause-menu.json"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/food/named/menu/the-pause"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/pages-routes.ts:81", "workers/src/router.ts:409", "workers/src/router.ts:187"]
+notes = "Nothing fetched. Not a named café: the redirects table is consulted before the named-food route, and /food/named/cafe/the-pause is a 404. With PAGES_ORIGIN_OVERRIDE a stolaf.dev/AAO-React-Native/ Location is rebased onto the dev origin."
+
+[[route]]
+id = "edu.carleton/convos/upcoming"
+campus = "edu.carleton"
+path = "/convos/upcoming"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["calendar-carleton"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/calendar/ical-shape.ts#eventsFromIcal", "source/calendar/carleton-images-shape.ts#withEventImages"]
+response = "Carleton convocations calendar events (the CONVOS Calendar, same as /calendar/upcoming-convos)"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/convos/upcoming"]
+tests = ["workers/test/calendars.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:174", "workers/src/router.ts:402", "workers/src/calendars.ts:88"]
+notes = "?before=<ISO time> pages back through the ArchiveDO \"calendar\" archive: 50 events, soonest first within a page, each re-evaluated asOf now; Link rel=\"next\" when full. St. Olaf has no convos entry (404 there)."
+
+[[route]]
+id = "edu.carleton/convos/upcoming/:id"
+campus = "edu.carleton"
+path = "/convos/upcoming/:id"
+methods = ["GET"]
+kind = "source"
+query = []
+sources = ["convo-detail"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/ccci-carleton-college/v1/convos-shape.ts#upcomingFrom"]
+response = "one convocation's images, description and sponsor from its calendar page (?eId=<id>)"
+errors = "id not /^[A-Za-z0-9]{1,32}$/: 404 {error: \"not found\"} (no Cache-Control, nothing fetched); source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/convos/upcoming/:id"]
+tests = ["workers/test/convos.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:431", "workers/src/sources/convos.ts:17", "workers/src/campuses.ts:185"]
+notes = "Upstream: CONVOS_CALENDAR_URL (https://www.carleton.edu/convocations/calendar/) with ?eId=. A page without the event is a load error."
+
+[[route]]
+id = "edu.carleton/convos/archived"
+campus = "edu.carleton"
+path = "/convos/archived"
+methods = ["GET"]
+kind = "source"
+query = ["before"]
+sources = ["convos-archived"]
+upstream_hosts = ["feed.podbean.com"]
+shape = ["source/ccci-carleton-college/v1/convos-shape.ts#archivedFrom"]
+response = "latest hundred convocations from the podcast feed"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is (non-XML content-type or non-RSS body is a load error); ?before= not an ISO 8601 date/time: 400 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = true
+legacy = ["/v1/convos/archived"]
+tests = ["workers/test/archive.test.ts", "workers/test/convos.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:425", "workers/src/router.ts:271", "workers/src/sources/convos.ts:55"]
+notes = "?before= pages back through the ArchiveDO \"convos\" archive: 100 per page, newest first, Link rel=\"next\" when full. Upstream: CONVOS_PODCAST_URL https://feed.podbean.com/carletonconvos/feed.xml."
+
+[[route]]
+id = "edu.carleton/athletics/scores"
+campus = "edu.carleton"
+path = "/athletics/scores"
+methods = ["GET"]
+kind = "source"
+query = []
+sources = ["athletics-scores"]
+upstream_hosts = ["athletics.carleton.edu"]
+shape = ["source/athletics/shape.ts#scoresFromFeeds", "source/athletics/shape.ts#yesterdaysGames", "source/athletics/shape.ts#withYesterday", "workers/src/sources/athletics.ts#athleticsFreshFor"]
+response = "the college's games (Score[]): scores feed merged with livestats and yesterday's calendar results"
+errors = "source failing with nothing stored: 502 {message} max-age 60; while upstream fails a stored value is still served as a 200, however old it is; livestats or yesterday's calendar failing only leaves out what they add"
+cache_control = "min(600 s, athleticsFreshFor/1000): 60 s while a game is live or within 5 min of kickoff; errors 60 s"
+history = false
+legacy = ["/v1/athletics/scores"]
+tests = ["workers/test/athletics.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["source/athletics/fixtures/2026-09-26-home-games/20260926T180044Z-livestats.json", "source/athletics/fixtures/2026-09-26-home-games/20260926T180044Z-scores.json"]
+cite = ["workers/src/campuses.ts:180", "workers/src/router.ts:416", "workers/src/router.ts:257"]
+notes = "Three upstream reads per load: scores_chris.aspx?format=json, its livestats URL and yesterday's calendar, all on athletics.carleton.edu; teamName \"Knights\"."
+
+[[route]]
+id = "edu.carleton/images/:group/:name"
+campus = "edu.carleton"
+path = "/images/:group/:name"
+methods = ["GET"]
+kind = "redirect"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["source/ccc-lib/images-shape.ts#isPublishedImage", "source/ccc-lib/images-shape.ts#imageUrl"]
+response = "307 Location: https://stolaf.dev/AAO-React-Native/img/<group>/<name>"
+errors = "group or name not published, or any query string: 404 {error: \"not found\"} (no Cache-Control)"
+cache_control = "600 s (CLIENT_MAX_AGE) on the 307"
+history = false
+legacy = ["/v1/images/:group/:name"]
+tests = ["workers/test/published-redirects.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = []
+cite = ["workers/src/router.ts:440", "source/ccc-lib/images-shape.ts:6", "workers/src/campuses.ts:178"]
+notes = "Accepted group values: contacts, news-sources, spaces, streaming, webcams; name must match /^[a-z0-9]+(?:-[a-z0-9]+)*\\.webp$/. Both campuses redirect to All About Olaf's images. Nothing fetched."
+
+[[route]]
+id = "edu.carleton/student-work/postings"
+campus = "edu.carleton"
+path = "/student-work/postings"
+methods = ["GET"]
+kind = "board"
+query = ["when", "off_campus", "posted_since", "q", "title", "sort"]
+sources = ["StudentWorkDO"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/student-work/carleton-shape.ts#carletonPosting", "workers/src/carleton-board.ts#listCarleton", "workers/src/carleton-student-work.ts#parseCarletonFilters"]
+response = "{updatedAt, count, postings} from Carleton Student Employment (WordPress), filtered"
+errors = "unknown or malformed parameter: 400 {message} (no Cache-Control); board never read: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/student-work/postings"]
+tests = ["workers/test/carleton-student-work.test.ts", "workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-student-jobs.json"]
+cite = ["workers/src/router.ts:457", "workers/src/carleton-student-work.ts:85", "workers/src/student-work-do.ts:287"]
+notes = "StudentWorkDO named \"carleton\" (same class, Carleton board). when=term|break (repeatable, comma-splittable), off_campus=true|false, posted_since YYYY-MM-DD, q/title max 100 chars, sort newest|relevance."
+
+[[route]]
+id = "edu.carleton/student-work/postings/:id"
+campus = "edu.carleton"
+path = "/student-work/postings/:id"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentWorkDO"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/student-work/carleton-shape.ts#carletonPosting", "workers/src/carleton-board.ts#oneCarleton"]
+response = "one Carleton job with its description"
+errors = "id not /^\\d{1,12}$/: 404 {error} (no Cache-Control); not listed: 404 {message} max-age 60; board error: 502 max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/student-work/postings/:id"]
+tests = ["workers/test/carleton-student-work.test.ts", "workers/test/route-listing.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-student-jobs.json"]
+cite = ["workers/src/router.ts:458", "workers/src/carleton-student-work.ts:98", "workers/src/student-work-do.ts:296"]
+notes = ""
+
+[[route]]
+id = "edu.carleton/orgs"
+campus = "edu.carleton"
+path = "/orgs"
+methods = ["GET"]
+kind = "notice"
+query = []
+sources = []
+upstream_hosts = []
+shape = ["source/ccci-carleton-college/v1/deprecated.ts#unavailableOrgs"]
+response = "unavailableOrgs(): the Node route's notice that Carleton's orgs cannot be loaded"
+errors = "none"
+cache_control = "600 s (CLIENT_MAX_AGE)"
+history = false
+legacy = ["/v1/orgs"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = []
+cite = ["workers/src/campuses.ts:187", "workers/src/student-orgs.ts:48"]
+notes = "Nothing fetched; query ignored. /orgs/categories and /orgs/uri/:uri are 404 on Carleton."
+
+[[route]]
+id = "edu.carleton/jobs"
+campus = "edu.carleton"
+path = "/jobs"
+methods = ["GET"]
+kind = "board"
+query = []
+sources = ["StudentWorkDO"]
+upstream_hosts = ["www.carleton.edu"]
+shape = ["source/ccci-carleton-college/v1/jobs-shape.ts#jobFromPost", "workers/src/carleton-board.ts#carletonJobsAsListed"]
+response = "Carleton's Student Employment jobs in the Node /jobs shape, newest first"
+errors = "board never read: 502 {message} max-age 60"
+cache_control = "600 s (CLIENT_MAX_AGE); errors 60 s (ERROR_MAX_AGE)"
+history = false
+legacy = ["/v1/jobs"]
+tests = ["workers/test/route-listing.test.ts", "workers/test/student-orgs.test.ts"]
+fixtures = ["workers/test/fixtures/carleton-student-jobs.json"]
+cite = ["workers/src/campuses.ts:188", "workers/src/student-orgs.ts:87", "workers/src/student-work-do.ts:303"]
+notes = "Read from the same StudentWorkDO \"carleton\" board as /student-work/postings, so no fetch of its own."
