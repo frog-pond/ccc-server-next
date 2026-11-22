@@ -364,10 +364,10 @@ impl CacheState {
 	}
 }
 
-impl TryFrom<&str> for CacheState {
-	type Error = ObjectFailure;
+impl std::str::FromStr for CacheState {
+	type Err = ObjectFailure;
 
-	fn try_from(state: &str) -> Result<Self, Self::Error> {
+	fn from_str(state: &str) -> Result<Self, Self::Err> {
 		[Self::Value, Self::Failed, Self::Stale]
 			.into_iter()
 			.find(|entry| entry.name() == state)
@@ -476,7 +476,7 @@ impl Records {
 			) => Ok(Some(CachedOutcome {
 				payload,
 				refresh_after_ms,
-				state: CacheState::try_from(state.as_str())?,
+				state: state.parse()?,
 			})),
 			_ => Err(ObjectFailure::RecordType(Record::Outcome)),
 		}
@@ -636,27 +636,23 @@ enum FixtureSetupFailure {
 	CancellationController(#[source] worker::Error),
 }
 
-fn prepare_fixture(env: &Env, fixture: Fixture) -> Result<LoopbackUrl, FixtureSetupFailure> {
+fn prepare_refresh(
+	env: &Env,
+	fixture: Fixture,
+) -> Result<(LoopbackUrl, AbortController), FixtureSetupFailure> {
 	let origin = env
 		.var("EXPERIMENT_FIXTURE_ORIGIN")
 		.map_err(FixtureSetupFailure::Binding)?;
-	LoopbackUrl::for_fixture(&origin.to_string(), fixture)
+	let url = LoopbackUrl::for_fixture(&origin.to_string(), fixture)?;
+	let controller = AbortController::new()
+		.map_err(|cause| FixtureSetupFailure::CancellationController(cause.into()))?;
+	Ok((url, controller))
 }
 
 async fn run_refresh(env: &Env, fixture: Fixture) -> RefreshOutcome {
-	let url = match prepare_fixture(env, fixture) {
-		Ok(url) => url,
+	let (url, controller) = match prepare_refresh(env, fixture) {
+		Ok(prepared) => prepared,
 		Err(error) => return failed_refresh(fixture, RefreshFailure::FixtureSetup, &error),
-	};
-	let controller = match AbortController::new() {
-		Ok(controller) => controller,
-		Err(cause) => {
-			return failed_refresh(
-				fixture,
-				RefreshFailure::FixtureSetup,
-				&FixtureSetupFailure::CancellationController(cause.into()),
-			)
-		}
 	};
 	let source = FixtureSource(AbortSignal::from(controller.signal()));
 	let operation = fixture_operation(source, FixtureAdapter);
@@ -851,18 +847,8 @@ fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
 		ObjectFailure::DecodeJob(cause) => {
 			log_object_failure(fixture, "decode_job", "decode_record", &cause.to_string());
 		}
-		ObjectFailure::RecordType(record) => log_object_failure(
-			fixture,
-			StorageOperation::Read(*record).name(),
-			"decode_record",
-			"stored record has unexpected column types",
-		),
-		ObjectFailure::InvalidCacheState => log_object_failure(
-			fixture,
-			StorageOperation::Read(Record::Outcome).name(),
-			"decode_record",
-			"stored outcome has an unrecognized cache state",
-		),
+		ObjectFailure::RecordType(record) => log_invalid_record(fixture, *record, failure),
+		ObjectFailure::InvalidCacheState => log_invalid_record(fixture, Record::Outcome, failure),
 		ObjectFailure::JobFixtureMismatch(job) => {
 			log_object_failure(fixture, "validate_job", "decode_record", job.segment());
 		}
@@ -873,6 +859,15 @@ fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
 			&cause.to_string(),
 		),
 	}
+}
+
+fn log_invalid_record(fixture: Option<Fixture>, record: Record, failure: &ObjectFailure) {
+	log_object_failure(
+		fixture,
+		StorageOperation::Read(record).name(),
+		"decode_record",
+		&failure.to_string(),
+	);
 }
 
 fn log_object_failure(

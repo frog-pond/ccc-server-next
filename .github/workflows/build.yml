@@ -117,5 +117,7 @@ jobs:
         run: |
           npm run worker-build:install
           npm run worker-build -- . --locked
+          test -s build/index.js
+          test -s build/index_bg.wasm
       - name: Lint the Worker and shared route for WASM
         run: cargo clippy --locked --target wasm32-unknown-unknown -p worker-experiment -p fixture-experiment-route --lib
