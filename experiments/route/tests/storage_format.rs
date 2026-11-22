@@ -1,18 +1,17 @@
 use fixture_experiment_route::{
 	Fixture, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob, RefreshOutcome,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 
-fn assert_storage_format<T>(value: &T, json: &str)
-where
-	T: Serialize + DeserializeOwned + Eq + std::fmt::Debug,
-{
+fn assert_storage_format(value: &impl Serialize, json: &str) {
 	assert_eq!(serde_json::to_string(value).unwrap(), json);
-	assert_eq!(&serde_json::from_str::<T>(json).unwrap(), value);
 }
 
 #[test]
 fn refresh_job_json_is_stable() {
+	let job: RefreshJob =
+		serde_json::from_str(r#"{"name":"read_fixture","parameters":"redirect"}"#).unwrap();
+	assert_eq!(job, RefreshJob::ReadFixture(Fixture::Redirect));
 	assert_storage_format(
 		&RefreshJob::ReadFixture(Fixture::Value),
 		r#"{"name":"read_fixture","parameters":"value"}"#,
@@ -102,11 +101,17 @@ fn object_reply_json_is_stable() {
 }
 
 #[test]
+fn object_call_failure_uses_the_object_reply_format() {
+	assert_storage_format(
+		&ObjectReply::ObjectCallFailed,
+		r#"{"state":"object_call_failed"}"#,
+	);
+}
+
+#[test]
 fn failure_status_rejects_success_and_non_http_codes() {
 	for status in [0, 99, 200, 204, 299, 600, u16::MAX] {
 		assert!(NonSuccessStatus::try_from(status).is_err());
-		let json = format!(r#"{{"kind":"http_status","status":{status}}}"#);
-		assert!(serde_json::from_str::<RefreshFailure>(&json).is_err());
 	}
 	for status in [100, 199, 300, 302, 599] {
 		let json = status.to_string();

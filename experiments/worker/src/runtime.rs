@@ -17,7 +17,7 @@ use trifecta::{
 	source::Source,
 };
 use worker::{
-	durable_object, event, send::SendFuture, wasm_bindgen, Context, DurableObject, Env, Fetch,
+	durable_object, event, send::SendFuture, wasm_bindgen, Context, Date, DurableObject, Env, Fetch,
 	Headers, Method, Request, RequestInit, RequestRedirect, Response, SqlStorage, SqlStorageValue,
 	State, Storage,
 };
@@ -26,6 +26,7 @@ use address::LoopbackUrl;
 
 const FIXTURES: &str = "FIXTURES";
 const ALARM_DELAY_MS: i64 = 3_000;
+const OUTCOME_LIFETIME_MS: i64 = 5_000;
 
 type SourceFailure = FixtureSourceError<worker::Error>;
 
@@ -43,10 +44,36 @@ pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Res
 		return Response::empty().map(|response| response.with_status(405).with_headers(headers));
 	}
 
-	let object = env
-		.durable_object(FIXTURES)?
-		.get_by_name(fixture.object_name())?;
-	object.fetch_with_request(request).await
+	match call_fixture_object(request, &env, fixture).await {
+		Ok(response) => Ok(response),
+		Err((operation, cause)) => {
+			log_event(&ObjectFailureEvent {
+				event: "worker_experiment.object_call_failed",
+				fixture: fixture.segment(),
+				operation,
+				kind: "object_call",
+				cause: (&cause).into(),
+			});
+			reply(ObjectReply::ObjectCallFailed)
+		}
+	}
+}
+
+async fn call_fixture_object(
+	request: Request,
+	env: &Env,
+	fixture: Fixture,
+) -> Result<Response, (&'static str, worker::Error)> {
+	let namespace = env
+		.durable_object(FIXTURES)
+		.map_err(|cause| ("resolve_binding", cause))?;
+	let object = namespace
+		.get_by_name(fixture.object_name())
+		.map_err(|cause| ("get_by_name", cause))?;
+	object
+		.fetch_with_request(request)
+		.await
+		.map_err(|cause| ("fetch_with_request", cause))
 }
 
 /// Owns the SQLite storage and alarm for one fixture.
@@ -105,7 +132,7 @@ impl DurableObject for FixtureObject {
 			Err(failure) => {
 				record_object_failure(owner, &failure);
 				match failure {
-					ObjectFailure::Storage { cause, .. } => Err(cause),
+					ObjectFailure::Storage { cause, .. } | ObjectFailure::ScheduleAlarm(cause) => Err(cause),
 					_ => Response::empty(),
 				}
 			}
@@ -131,15 +158,20 @@ impl FixtureObject {
 	}
 
 	async fn refresh(&self, owner: Fixture) -> Result<(), ObjectFailure> {
-		let records = Records::open(self.state.storage().sql())?;
+		let storage = self.state.storage();
+		let records = Records::open(storage.sql())?;
 		let Some(requested) = records.read_job(owner)? else {
 			return Ok(());
 		};
-		if records.read(Record::Outcome)?.is_some() {
-			return Ok(());
+		if let Some(deadline) = records.refresh_deadline()? {
+			if deadline > now_ms() {
+				return schedule_refresh(&storage, deadline).await;
+			}
 		}
 		let result = run_refresh(&self.env, requested).await;
-		records.write(Record::Outcome, &ObjectReply::from(result))
+		let deadline = now_ms().saturating_add(OUTCOME_LIFETIME_MS);
+		records.write_outcome(result, deadline)?;
+		schedule_refresh(&storage, deadline).await
 	}
 }
 
@@ -170,26 +202,77 @@ async fn read_or_schedule(
 	alarm_running: &Cell<bool>,
 ) -> Result<ReadReply, ObjectFailure> {
 	let records = Records::open(storage.sql())?;
-	let job = records.read_job(owner)?;
-	if let Some(payload) = records.read(Record::Outcome)? {
-		return Ok(ReadReply::Complete(payload));
-	}
-	if job.is_none() {
+	if records.read_job(owner)?.is_none() {
 		check_owner(owner, requested)?;
 		records.write(Record::Job, &RefreshJob::ReadFixture(requested))?;
 	}
+	if let Some(cached) = records.read_outcome()? {
+		if let Err(failure) = ensure_alarm(storage, alarm_running, cached.refresh_after_ms).await {
+			record_object_failure(owner, &failure);
+		}
+		return Ok(cached.for_read(owner));
+	}
+	ensure_alarm(
+		storage,
+		alarm_running,
+		now_ms().saturating_add(ALARM_DELAY_MS),
+	)
+	.await?;
+	Ok(ReadReply::Pending)
+}
 
+fn now_ms() -> i64 {
+	i64::try_from(Date::now().as_millis()).unwrap_or(i64::MAX)
+}
+
+async fn ensure_alarm(
+	storage: &Storage,
+	running: &Cell<bool>,
+	deadline: i64,
+) -> Result<(), ObjectFailure> {
 	let scheduled = storage
 		.get_alarm()
 		.await
 		.map_err(|cause| StorageOperation::ReadAlarm.failure(cause))?;
-	if scheduled.is_none() && !alarm_running.get() {
-		storage
-			.set_alarm(ALARM_DELAY_MS)
-			.await
-			.map_err(ObjectFailure::ScheduleAlarm)?;
+	if scheduled.is_none() && !running.get() {
+		schedule_refresh(storage, deadline).await?;
 	}
-	Ok(ReadReply::Pending)
+	Ok(())
+}
+
+async fn schedule_refresh(storage: &Storage, deadline: i64) -> Result<(), ObjectFailure> {
+	storage
+		.set_alarm(deadline.saturating_sub(now_ms()).max(0))
+		.await
+		.map_err(ObjectFailure::ScheduleAlarm)
+}
+
+#[derive(Serialize)]
+struct StaleValueEvent {
+	event: &'static str,
+	fixture: Fixture,
+	operation: &'static str,
+	reason: &'static str,
+}
+
+struct CachedOutcome {
+	payload: String,
+	refresh_after_ms: i64,
+	stale_after_failure: bool,
+}
+
+impl CachedOutcome {
+	fn for_read(self, fixture: Fixture) -> ReadReply {
+		if self.stale_after_failure {
+			log_event(&StaleValueEvent {
+				event: "worker_experiment.stale_value_served",
+				fixture,
+				operation: "read_fixture",
+				reason: "refresh_failed",
+			});
+		}
+		ReadReply::Complete(self.payload)
+	}
 }
 
 #[derive(Clone, Copy)]
@@ -216,7 +299,19 @@ impl Records {
 				"CREATE TABLE IF NOT EXISTS fixture_records (
 				name TEXT PRIMARY KEY,
 				payload TEXT NOT NULL CHECK (json_valid(payload))
-			) STRICT",
+			) STRICT;
+			CREATE TABLE IF NOT EXISTS fixture_cache (
+				id INTEGER PRIMARY KEY CHECK (id = 1),
+				payload TEXT NOT NULL CHECK (json_valid(payload)),
+				refresh_after_ms INTEGER NOT NULL,
+				state TEXT NOT NULL CHECK (state IN ('value', 'failed', 'stale'))
+			) STRICT;
+			INSERT INTO fixture_cache (id, payload, refresh_after_ms, state)
+			SELECT 1, payload, 0, json_extract(payload, '$.result.outcome')
+			FROM fixture_records
+			WHERE name = 'outcome' AND NOT EXISTS (SELECT 1 FROM fixture_cache)
+			AND json_extract(payload, '$.state') = 'complete'
+			AND json_extract(payload, '$.result.outcome') IN ('value', 'failed')",
 				None,
 			)
 			.map_err(|cause| StorageOperation::Open.failure(cause))?;
@@ -264,6 +359,89 @@ impl Records {
 			.map_err(|cause| StorageOperation::Write(record).failure(cause))?;
 		Ok(())
 	}
+	fn read_outcome(&self) -> Result<Option<CachedOutcome>, ObjectFailure> {
+		let Some(row) = self
+			.outcome_row("SELECT payload, refresh_after_ms, state FROM fixture_cache WHERE id = 1")?
+		else {
+			return Ok(None);
+		};
+		let mut values = row.into_iter();
+		match (values.next(), values.next(), values.next()) {
+			(
+				Some(SqlStorageValue::String(payload)),
+				Some(SqlStorageValue::Integer(refresh_after_ms)),
+				Some(SqlStorageValue::String(state)),
+			) => Ok(Some(CachedOutcome {
+				payload,
+				refresh_after_ms,
+				stale_after_failure: state == "stale",
+			})),
+			_ => Err(ObjectFailure::RecordType(Record::Outcome)),
+		}
+	}
+
+	fn refresh_deadline(&self) -> Result<Option<i64>, ObjectFailure> {
+		match self.outcome_row("SELECT refresh_after_ms FROM fixture_cache WHERE id = 1")? {
+			None => Ok(None),
+			Some(row) => match row.into_iter().next() {
+				Some(SqlStorageValue::Integer(deadline)) => Ok(Some(deadline)),
+				_ => Err(ObjectFailure::RecordType(Record::Outcome)),
+			},
+		}
+	}
+
+	fn outcome_row(&self, query: &str) -> Result<Option<Vec<SqlStorageValue>>, ObjectFailure> {
+		let on_error = |cause| StorageOperation::Read(Record::Outcome).failure(cause);
+		self
+			.0
+			.exec(query, None)
+			.map_err(on_error)?
+			.raw()
+			.next()
+			.transpose()
+			.map_err(on_error)
+	}
+
+	fn write_outcome(&self, outcome: RefreshOutcome, deadline: i64) -> Result<(), ObjectFailure> {
+		let on_error = |cause| StorageOperation::Write(Record::Outcome).failure(cause);
+		let state = match outcome {
+			RefreshOutcome::Value { .. } => "value",
+			RefreshOutcome::Failed { .. } => {
+				if self.retain_value(deadline)? {
+					return Ok(());
+				}
+				"failed"
+			}
+		};
+		let payload = serde_json::to_string(&ObjectReply::from(outcome)).map_err(|cause| {
+			ObjectFailure::Encode {
+				record: Record::Outcome,
+				cause,
+			}
+		})?;
+		self
+			.0
+			.exec(
+				"INSERT INTO fixture_cache (id, payload, refresh_after_ms, state) VALUES (1, ?, ?, ?)
+			 ON CONFLICT(id) DO UPDATE SET payload = excluded.payload,
+			 refresh_after_ms = excluded.refresh_after_ms, state = excluded.state",
+				vec![payload.into(), deadline.into(), state.into()],
+			)
+			.map_err(on_error)?;
+		Ok(())
+	}
+
+	fn retain_value(&self, deadline: i64) -> Result<bool, ObjectFailure> {
+		let update = self
+			.0
+			.exec(
+				"UPDATE fixture_cache SET state = 'stale', refresh_after_ms = ?
+			 WHERE id = 1 AND state IN ('value', 'stale')",
+				vec![deadline.into()],
+			)
+			.map_err(|cause| StorageOperation::Write(Record::Outcome).failure(cause))?;
+		Ok(update.rows_written() != 0)
+	}
 }
 
 fn check_owner(owner: Fixture, requested: Fixture) -> Result<(), ObjectFailure> {
@@ -285,7 +463,9 @@ fn reply(reply: ObjectReply) -> worker::Result<Response> {
 	let status = match reply {
 		ObjectReply::Complete { .. } => 200,
 		ObjectReply::Pending => 202,
-		ObjectReply::StorageUnavailable | ObjectReply::AlarmSchedulingFailed => 503,
+		ObjectReply::StorageUnavailable
+		| ObjectReply::AlarmSchedulingFailed
+		| ObjectReply::ObjectCallFailed => 503,
 		ObjectReply::StoredRecordInvalid => 500,
 	};
 	Response::from_json(&reply).map(|response| response.with_status(status))
@@ -400,8 +580,9 @@ impl Source<LoopbackUrl> for FixtureSource {
 	}
 }
 
-/// The SDK wrapper supplies the `Send` required by Trifecta on this
-/// single-threaded runtime. The native response already satisfies `Send`.
+/// The SDK wrapper supplies Trifecta's `Send` bound with an unchecked unsafe
+/// impl. These futures must stay on the single-threaded Worker executor.
+/// The SDK response already satisfies `Send`.
 fn fetch_fixture(
 	url: &LoopbackUrl,
 ) -> SendFuture<impl Future<Output = Result<Response, SourceFailure>> + '_> {
@@ -528,7 +709,7 @@ fn record_object_failure(fixture: Fixture, failure: &ObjectFailure) {
 			fixture,
 			StorageOperation::Read(*record).name(),
 			"decode_record",
-			"stored value is not text",
+			"stored record has unexpected column types",
 		),
 		ObjectFailure::JobFixtureMismatch(job) => {
 			log_object_failure(fixture, "validate_job", "decode_record", job.segment());

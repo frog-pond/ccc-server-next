@@ -128,7 +128,7 @@ pub enum RefreshJob {
 /// The nested outcome format is `{"outcome":"value","value":42}` for a value,
 /// or `{"outcome":"failed","failure":{"kind":"http_status","status":302}}`
 /// for a failure, with the inner `kind` and fields defined by [`RefreshFailure`].
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "outcome")]
 pub enum RefreshOutcome {
 	/// The integer decoded from a successful upstream response.
@@ -146,9 +146,8 @@ pub enum RefreshOutcome {
 }
 
 /// An HTTP status in `100..=199` or `300..=599`.
-/// Construction and deserialization both check these ranges.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(try_from = "u16")]
+/// Construction checks these ranges before the status can be serialized.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct NonSuccessStatus(u16);
 
 /// The supplied number is a success status or is outside the HTTP status range.
@@ -181,7 +180,7 @@ impl std::fmt::Display for NonSuccessStatus {
 
 /// A refresh failure returned to the caller as data.
 /// The alarm logs the underlying cause before persisting this classification.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "kind")]
 pub enum RefreshFailure {
 	/// The transport failed before it yielded a response.
@@ -225,7 +224,7 @@ pub enum ObjectReply {
 	/// A completed attempt for the fixture that owns this object.
 	#[serde(rename = "complete")]
 	Complete {
-		/// The result returned by the last completed refresh.
+		/// The last good value, or a failed refresh when no good value exists.
 		result: RefreshOutcome,
 	},
 	/// The object could not read or write SQLite storage.
@@ -234,6 +233,9 @@ pub enum ObjectReply {
 	/// Storage is accessible, but the runtime rejected the alarm schedule.
 	#[serde(rename = "alarm_scheduling_failed")]
 	AlarmSchedulingFailed,
+	/// The Worker could not resolve or call the fixture's Durable Object.
+	#[serde(rename = "object_call_failed")]
+	ObjectCallFailed,
 	/// The stored job could not be decoded or belonged to a different fixture.
 	#[serde(rename = "stored_record_invalid")]
 	StoredRecordInvalid,
