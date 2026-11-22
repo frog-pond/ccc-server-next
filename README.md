@@ -15,6 +15,7 @@ The previous attempt's crates have been removed from this branch. They are still
 | `AGENTS.md` | How the server is built and how to work in this repository. Written for coding agents, and the quickest orientation for people too. |
 | `docs/reference/` | What the reference implementation serves and how it behaves, as of a recorded reference commit. |
 | `docs/review/rubric.md` | The rules a change is reviewed against. |
+| `docs/delegation-levels.md` | How much a coordinating agent may do on its own, and how the maintainer grants it. |
 | `.claude/skills/` | Step-by-step procedures: working an issue, designing types, porting a route, reviewing a change, syncing with the reference, writing an issue and driving the whole effort. |
 
 The reference implementation is expected to be checked out beside this repository, at `../ccc-server`. `tools/reference-path` prints where it was found.

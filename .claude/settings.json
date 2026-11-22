@@ -45,6 +45,7 @@
 			"Bash(mise run e2e *)",
 			"Edit(.notes/**)",
 			"Edit(docs/review/**)",
+			"Edit(docs/delegation-levels.md)",
 			"Edit(TRIFECTA_SPEC.md)",
 			"Edit(AGENTS.md)",
 			"Edit(CLAUDE.md)",

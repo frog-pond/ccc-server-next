@@ -70,7 +70,7 @@ Issues and documents are written for a person who has not followed the work: say
 
 Work is tracked in GitHub issues under #424. `tools/board` shows their state and which are ready to start.
 
-1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`.
+1. To work one issue, follow the `work-issue` skill. To coordinate the whole effort, follow `drive-rearchitecture`. A driver works at the level of autonomy the maintainer grants, described in `docs/delegation-levels.md`; with no grant it is at level 1.
 2. One issue per branch and pull request, in its own worktree. Branches are named `rearch/<issue>-<name>`.
 3. Branch from the base `tools/board` prints for the issue: `rearchitecture`, or the branch of the pull request the issue is waiting on while that is unmerged. Foundation work therefore forms a stack of pull requests, and routes are independent of each other.
 4. Nothing pushed is rewritten: no rebase and no force-push. When a branch you built on changes, merge it into yours.
