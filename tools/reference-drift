@@ -50,6 +50,18 @@ cited=$(grep -o -h -E '(workers|source|scripts)/[A-Za-z0-9_./-]+\.[a-z]+|wrangle
 changed=$(git -C "$ref" diff --name-only "$pin..$head")
 comm -12 <(echo "$cited") <(echo "$changed" | sort -u) | sed 's/^/  /' || true
 echo
+echo "Changed conversion fixtures and generator modules:"
+fixtures="$here/../fixtures/ccc-server"
+fixture_paths=$(
+	cd "$fixtures"
+	find source workers -type f -print
+	cat REFERENCE_CONVERSIONS
+)
+# Disable rename detection so a fixture moved out of its recorded path is reported.
+fixture_changes=$(git -C "$ref" diff --name-only --no-renames "$pin..$head")
+comm -12 <(printf '%s\n' "$fixture_paths" | sort -u) \
+	<(printf '%s\n' "$fixture_changes" | sort -u) | sed 's/^/  /'
+echo
 echo "Commits, including merges:"
 git -C "$ref" log --oneline "$pin..$head"
 exit 1

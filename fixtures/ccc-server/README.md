@@ -1,11 +1,12 @@
 # Conversion fixtures from ccc-server
 
-`REFERENCE_COMMIT` records the [ccc-server](https://github.com/frog-pond/ccc-server)
-revision for this directory. Copied files retain their original paths and bytes.
-To copy a file, read the committed blob with
-`git -C "$(tools/reference-path)" show "<commit>:<path>"`. Review changes to the
-fixtures and their expected outputs before updating the pin. The route inventory
-has its own pin in `docs/reference/REFERENCE_COMMIT`.
+[`docs/reference/REFERENCE_COMMIT`](../../docs/reference/REFERENCE_COMMIT)
+records the [ccc-server](https://github.com/frog-pond/ccc-server) revision for
+the route inventory and these fixtures. Copied files retain their original
+paths and bytes. To copy a file, read the committed blob with
+`git -C "$(tools/reference-path)" show "<commit>:<path>"` and save it at the
+same path under this directory. Run `tools/reference-drift` to see changes
+to these paths and to the modules listed in [REFERENCE_CONVERSIONS](REFERENCE_CONVERSIONS).
 
 | Conversion | Input → expected output | Reference test |
 | --- | --- | --- |
@@ -15,7 +16,9 @@ has its own pin in `docs/reference/REFERENCE_COMMIT`.
 | Carletonian RSS | `carletonian-feed.xml` → `carletonian.json` | `source/feeds/rss-shape.test.ts` |
 | BonApp café and menu | `stav-hall.html` → `stav-hall.cafe.json` and `stav-hall.menu.json` | `source/menus-bonapp/shape.test.ts` |
 | Hours and breaks | `calendar.json` and `spaces.json` → `calendar-response.json` and `spaces-resolved.json`, all in `source/schedules/fixtures/` | `source/schedules/resolve.test.ts` |
-| Athletics scores | `20260926T180044Z-scores.json` and `20260926T180044Z-livestats.json` in `source/athletics/fixtures/2026-09-26-home-games/` → `generated/athletics-scores.json` | `workers/test/athletics.test.ts` |
+| Athletics scores with live updates and no calendar for yesterday | `20260926T180044Z-scores.json` and `20260926T180044Z-livestats.json` in `source/athletics/fixtures/2026-09-26-home-games/` → `generated/athletics-scores.json` | `workers/test/athletics.test.ts` |
+| Athletics results from yesterday's calendar, including Central kickoff times | `source/athletics/fixtures/calendar/2026-10-03-stolaf.json` → `generated/athletics-yesterday.json` | `source/athletics/index.test.ts:396–440` |
+| Athletics away games with home-side-first results and calendar backfill | `20260924T020713Z-scores.json` and `20260924T020713Z-livestats.json` in `source/athletics/fixtures/2026-09-23-away-games/`, and `source/athletics/fixtures/calendar/2026-09-23-stolaf.json` → `generated/athletics-away-games.json` | `source/athletics/index.test.ts` tests away-game fields and `withYesterday` |
 | Carleton SUMO calendar | `carleton-sumo.ics` and `carleton-sumo-schedule.html` → `generated/carleton-sumo.json` | `workers/test/calendars.test.ts` |
 
 Unless specified, input and copied output names in the table are relative to
@@ -24,13 +27,23 @@ and substitutes that date for `$DATE` in each expected output. The athletics
 test substitutes `2030` for `2026` in both input files and passes
 `2030-09-26T18:00:44Z` as the clock. The SUMO test makes the same year
 substitution in the ICS only and passes `2030-10-09T12:00:00Z`.
+The October athletics calendar case passes `2026-10-04T07:54:00Z`, the
+St. Olaf origin `https://athletics.stolaf.edu` and team name `Oles`. The away
+case uses the same school and passes `2026-09-24T15:00:00Z`. It omits
+volleyball (ID `21117`) from the scores feed before conversion, so
+`withYesterday` adds volleyball from the calendar and keeps soccer from the
+scores feed.
 
 ## Generating an expected output
 
 When the reference has a captured input but no complete output file, add a
 case to [the generator](../../tools/reference-fixture.mjs) that calls the
 reference's existing conversion functions. Pass fixture parameters such as
-a date explicitly. The generator uses Node.js 26 or newer and prints JSON.
+a date explicitly and list the reference modules it calls in
+`REFERENCE_CONVERSIONS` so drift reports include them. The generator prints
+JSON and requires the exact Node.js version pinned in the reference's
+`.config/mise.toml` at the recorded commit. A version mismatch prints the
+required version.
 It reads from a temporary copy of the pinned commit, installs locked npm
 dependencies there, and disables network access for the conversion. Set
 `npm_config_offline=true` to also require a warm npm cache for installation.
@@ -76,6 +89,8 @@ fn stolaf_posts_match_the_reference() -> Result<(), Box<dyn std::error::Error>> 
 }
 ```
 
-`mise run test` runs with Cargo offline. Conversion tests use the checked-in
-fixtures directly. The generator is a separate maintenance command. Run
-`mise run e2e` by hand to compare running servers.
+Use the network during setup for `mise install` and `cargo fetch --locked`.
+After setup, `MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test` runs
+without network access and uses the checked-in fixtures directly. The
+generator is a separate maintenance command. Run `mise run e2e` by hand to
+compare running servers.
