@@ -5,7 +5,12 @@
 //! domain value and report how it was obtained. The application owns request
 //! preparation, authorization, and presentation.
 
-#![allow(clippy::todo, dead_code, unused_variables)] // Types review draft (rubric E3).
+#![allow(
+	clippy::todo,
+	dead_code,
+	unused_variables,
+	reason = "The types review draft declares the API before its implementation (rubric E3)"
+)]
 
 pub mod body;
 pub mod future;

@@ -5,7 +5,12 @@
 //! and transform wherever their input types match.
 
 #![cfg(not(target_arch = "wasm32"))]
-#![allow(clippy::todo, dead_code, unused_variables)] // Types review draft (rubric E3).
+#![allow(
+	clippy::todo,
+	dead_code,
+	unused_variables,
+	reason = "The types review draft declares the API before its implementation (rubric E3)"
+)]
 
 use std::{
 	error::Error as StdError,

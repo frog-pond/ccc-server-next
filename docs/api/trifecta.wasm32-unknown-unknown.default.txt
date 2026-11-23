@@ -1,0 +1,422 @@
+pub mod trifecta
+pub mod trifecta::body
+pub struct trifecta::body::BodyWithMetadata<M>
+pub trifecta::body::BodyWithMetadata::body: bytes::bytes::Bytes
+pub trifecta::body::BodyWithMetadata::metadata: M
+impl<M: core::clone::Clone> core::clone::Clone for trifecta::body::BodyWithMetadata<M>
+pub fn trifecta::body::BodyWithMetadata<M>::clone(&self) -> Self
+impl<M: core::cmp::Eq> core::cmp::Eq for trifecta::body::BodyWithMetadata<M>
+impl<M: core::cmp::PartialEq> core::cmp::PartialEq for trifecta::body::BodyWithMetadata<M>
+pub fn trifecta::body::BodyWithMetadata<M>::eq(&self, &Self) -> bool
+impl<M: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta::body::BodyWithMetadata<M>
+impl<M: core::fmt::Debug> core::fmt::Debug for trifecta::body::BodyWithMetadata<M>
+pub fn trifecta::body::BodyWithMetadata<M>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<M> core::marker::Forget for trifecta::body::BodyWithMetadata<M>
+impl<M> !core::marker::Freeze for trifecta::body::BodyWithMetadata<M>
+impl<M> core::marker::Move for trifecta::body::BodyWithMetadata<M>
+impl<M> core::marker::Send for trifecta::body::BodyWithMetadata<M> where M: core::marker::Send
+impl<M> core::marker::Sync for trifecta::body::BodyWithMetadata<M> where M: core::marker::Sync
+impl<M> core::marker::Unpin for trifecta::body::BodyWithMetadata<M> where M: core::marker::Unpin
+impl<M> core::marker::UnsafeUnpin for trifecta::body::BodyWithMetadata<M> where M: core::marker::UnsafeUnpin
+impl<M> core::panic::unwind_safe::RefUnwindSafe for trifecta::body::BodyWithMetadata<M> where M: core::panic::unwind_safe::RefUnwindSafe
+impl<M> core::panic::unwind_safe::UnwindSafe for trifecta::body::BodyWithMetadata<M> where M: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta::body::BodyWithMetadata<M> where U: core::convert::From<T>
+pub fn trifecta::body::BodyWithMetadata<M>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::body::BodyWithMetadata<M> where U: core::convert::Into<T>
+pub type trifecta::body::BodyWithMetadata<M>::Error = never
+pub fn trifecta::body::BodyWithMetadata<M>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::body::BodyWithMetadata<M> where U: core::convert::TryFrom<T>
+pub type trifecta::body::BodyWithMetadata<M>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::body::BodyWithMetadata<M>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::body::BodyWithMetadata<M> where T: core::clone::Clone
+pub type trifecta::body::BodyWithMetadata<M>::Owned = T
+pub fn trifecta::body::BodyWithMetadata<M>::clone_into(&self, &mut T)
+pub fn trifecta::body::BodyWithMetadata<M>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::body::BodyWithMetadata<M> where T: 'static + ?core::marker::Sized
+pub fn trifecta::body::BodyWithMetadata<M>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::body::BodyWithMetadata<M> where T: ?core::marker::Sized
+pub fn trifecta::body::BodyWithMetadata<M>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::body::BodyWithMetadata<M> where T: ?core::marker::Sized
+pub fn trifecta::body::BodyWithMetadata<M>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::body::BodyWithMetadata<M> where T: core::clone::Clone
+pub unsafe fn trifecta::body::BodyWithMetadata<M>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::body::BodyWithMetadata<M>
+pub fn trifecta::body::BodyWithMetadata<M>::from(T) -> T
+pub trait trifecta::body::AdaptResponse<R>: core::marker::Send + core::marker::Sync + 'static
+pub type trifecta::body::AdaptResponse::Error: core::error::Error + core::marker::Send + core::marker::Sync + 'static
+pub type trifecta::body::AdaptResponse::Metadata: core::marker::Send + 'static
+pub fn trifecta::body::AdaptResponse::adapt_response(&self, R) -> trifecta::future::BoxFuture<'_, core::result::Result<trifecta::body::BodyWithMetadata<Self::Metadata>, Self::Error>>
+pub mod trifecta::future
+pub type trifecta::future::BoxFuture<'a, T> = core::pin::Pin<alloc::boxed::Box<(dyn core::future::future::Future<Output = T> + 'a)>>
+pub mod trifecta::operation
+pub enum trifecta::operation::CacheStatus
+pub trifecta::operation::CacheStatus::Bypassed
+pub trifecta::operation::CacheStatus::Disabled
+impl core::clone::Clone for trifecta::operation::CacheStatus
+pub fn trifecta::operation::CacheStatus::clone(&self) -> Self
+impl core::cmp::Eq for trifecta::operation::CacheStatus
+impl core::cmp::PartialEq for trifecta::operation::CacheStatus
+pub fn trifecta::operation::CacheStatus::eq(&self, &Self) -> bool
+impl core::fmt::Debug for trifecta::operation::CacheStatus
+pub fn trifecta::operation::CacheStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for trifecta::operation::CacheStatus
+impl core::marker::StructuralPartialEq for trifecta::operation::CacheStatus
+impl core::marker::Forget for trifecta::operation::CacheStatus
+impl core::marker::Freeze for trifecta::operation::CacheStatus
+impl core::marker::Move for trifecta::operation::CacheStatus
+impl core::marker::Send for trifecta::operation::CacheStatus
+impl core::marker::Sync for trifecta::operation::CacheStatus
+impl core::marker::Unpin for trifecta::operation::CacheStatus
+impl core::marker::UnsafeUnpin for trifecta::operation::CacheStatus
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::CacheStatus
+impl core::panic::unwind_safe::UnwindSafe for trifecta::operation::CacheStatus
+impl<T, U> core::convert::Into<U> for trifecta::operation::CacheStatus where U: core::convert::From<T>
+pub fn trifecta::operation::CacheStatus::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::CacheStatus where U: core::convert::Into<T>
+pub type trifecta::operation::CacheStatus::Error = never
+pub fn trifecta::operation::CacheStatus::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::CacheStatus where U: core::convert::TryFrom<T>
+pub type trifecta::operation::CacheStatus::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::CacheStatus::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::CacheStatus where T: core::clone::Clone
+pub type trifecta::operation::CacheStatus::Owned = T
+pub fn trifecta::operation::CacheStatus::clone_into(&self, &mut T)
+pub fn trifecta::operation::CacheStatus::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::operation::CacheStatus where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::CacheStatus::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::CacheStatus where T: ?core::marker::Sized
+pub fn trifecta::operation::CacheStatus::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::CacheStatus where T: ?core::marker::Sized
+pub fn trifecta::operation::CacheStatus::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::CacheStatus where T: core::clone::Clone
+pub unsafe fn trifecta::operation::CacheStatus::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::CacheStatus
+pub fn trifecta::operation::CacheStatus::from(T) -> T
+pub enum trifecta::operation::Error<E>
+pub trifecta::operation::Error::ResponseAdaptation(E)
+pub trifecta::operation::Error::Source(E)
+pub trifecta::operation::Error::Transformation(E)
+impl<E: core::clone::Clone> core::clone::Clone for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::clone(&self) -> Self
+impl<E: core::cmp::Eq> core::cmp::Eq for trifecta::operation::Error<E>
+impl<E: core::cmp::PartialEq> core::cmp::PartialEq for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::eq(&self, &Self) -> bool
+impl<E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta::operation::Error<E>
+impl<E: core::error::Error + 'static> core::error::Error for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E: core::fmt::Debug> core::fmt::Debug for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E: core::fmt::Display> core::fmt::Display for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E> core::marker::Forget for trifecta::operation::Error<E>
+impl<E> core::marker::Freeze for trifecta::operation::Error<E> where E: core::marker::Freeze + core::marker::Freeze + core::marker::Freeze
+impl<E> core::marker::Move for trifecta::operation::Error<E>
+impl<E> core::marker::Send for trifecta::operation::Error<E> where E: core::marker::Send
+impl<E> core::marker::Sync for trifecta::operation::Error<E> where E: core::marker::Sync
+impl<E> core::marker::Unpin for trifecta::operation::Error<E> where E: core::marker::Unpin
+impl<E> core::marker::UnsafeUnpin for trifecta::operation::Error<E> where E: core::marker::UnsafeUnpin + core::marker::UnsafeUnpin + core::marker::UnsafeUnpin
+impl<E> core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::Error<E> where E: core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe
+impl<E> core::panic::unwind_safe::UnwindSafe for trifecta::operation::Error<E> where E: core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta::operation::Error<E> where U: core::convert::From<T>
+pub fn trifecta::operation::Error<E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::Error<E> where U: core::convert::Into<T>
+pub type trifecta::operation::Error<E>::Error = never
+pub fn trifecta::operation::Error<E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::Error<E> where U: core::convert::TryFrom<T>
+pub type trifecta::operation::Error<E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::Error<E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::Error<E> where T: core::clone::Clone
+pub type trifecta::operation::Error<E>::Owned = T
+pub fn trifecta::operation::Error<E>::clone_into(&self, &mut T)
+pub fn trifecta::operation::Error<E>::to_owned(&self) -> T
+impl<T> alloc::string::ToString for trifecta::operation::Error<E> where T: core::fmt::Display + ?core::marker::Sized
+pub fn trifecta::operation::Error<E>::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for trifecta::operation::Error<E> where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::Error<E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::Error<E> where T: ?core::marker::Sized
+pub fn trifecta::operation::Error<E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::Error<E> where T: ?core::marker::Sized
+pub fn trifecta::operation::Error<E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::Error<E> where T: core::clone::Clone
+pub unsafe fn trifecta::operation::Error<E>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::Error<E>
+pub fn trifecta::operation::Error<E>::from(T) -> T
+pub enum trifecta::operation::FlightStatus
+pub trifecta::operation::FlightStatus::Independent
+impl core::clone::Clone for trifecta::operation::FlightStatus
+pub fn trifecta::operation::FlightStatus::clone(&self) -> Self
+impl core::cmp::Eq for trifecta::operation::FlightStatus
+impl core::cmp::PartialEq for trifecta::operation::FlightStatus
+pub fn trifecta::operation::FlightStatus::eq(&self, &Self) -> bool
+impl core::fmt::Debug for trifecta::operation::FlightStatus
+pub fn trifecta::operation::FlightStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for trifecta::operation::FlightStatus
+impl core::marker::StructuralPartialEq for trifecta::operation::FlightStatus
+impl core::marker::Forget for trifecta::operation::FlightStatus
+impl core::marker::Freeze for trifecta::operation::FlightStatus
+impl core::marker::Move for trifecta::operation::FlightStatus
+impl core::marker::Send for trifecta::operation::FlightStatus
+impl core::marker::Sync for trifecta::operation::FlightStatus
+impl core::marker::Unpin for trifecta::operation::FlightStatus
+impl core::marker::UnsafeUnpin for trifecta::operation::FlightStatus
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::FlightStatus
+impl core::panic::unwind_safe::UnwindSafe for trifecta::operation::FlightStatus
+impl<T, U> core::convert::Into<U> for trifecta::operation::FlightStatus where U: core::convert::From<T>
+pub fn trifecta::operation::FlightStatus::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::FlightStatus where U: core::convert::Into<T>
+pub type trifecta::operation::FlightStatus::Error = never
+pub fn trifecta::operation::FlightStatus::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::FlightStatus where U: core::convert::TryFrom<T>
+pub type trifecta::operation::FlightStatus::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::FlightStatus::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::FlightStatus where T: core::clone::Clone
+pub type trifecta::operation::FlightStatus::Owned = T
+pub fn trifecta::operation::FlightStatus::clone_into(&self, &mut T)
+pub fn trifecta::operation::FlightStatus::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::operation::FlightStatus where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::FlightStatus::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::FlightStatus where T: ?core::marker::Sized
+pub fn trifecta::operation::FlightStatus::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::FlightStatus where T: ?core::marker::Sized
+pub fn trifecta::operation::FlightStatus::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::FlightStatus where T: core::clone::Clone
+pub unsafe fn trifecta::operation::FlightStatus::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::FlightStatus
+pub fn trifecta::operation::FlightStatus::from(T) -> T
+pub enum trifecta::operation::ToleratedFailure
+impl core::clone::Clone for trifecta::operation::ToleratedFailure
+pub fn trifecta::operation::ToleratedFailure::clone(&self) -> Self
+impl core::cmp::Eq for trifecta::operation::ToleratedFailure
+impl core::cmp::PartialEq for trifecta::operation::ToleratedFailure
+pub fn trifecta::operation::ToleratedFailure::eq(&self, &Self) -> bool
+impl core::fmt::Debug for trifecta::operation::ToleratedFailure
+pub fn trifecta::operation::ToleratedFailure::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for trifecta::operation::ToleratedFailure
+impl core::marker::StructuralPartialEq for trifecta::operation::ToleratedFailure
+impl core::marker::Forget for trifecta::operation::ToleratedFailure
+impl core::marker::Freeze for trifecta::operation::ToleratedFailure
+impl core::marker::Move for trifecta::operation::ToleratedFailure
+impl core::marker::Send for trifecta::operation::ToleratedFailure
+impl core::marker::Sync for trifecta::operation::ToleratedFailure
+impl core::marker::Unpin for trifecta::operation::ToleratedFailure
+impl core::marker::UnsafeUnpin for trifecta::operation::ToleratedFailure
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::ToleratedFailure
+impl core::panic::unwind_safe::UnwindSafe for trifecta::operation::ToleratedFailure
+impl<T, U> core::convert::Into<U> for trifecta::operation::ToleratedFailure where U: core::convert::From<T>
+pub fn trifecta::operation::ToleratedFailure::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::ToleratedFailure where U: core::convert::Into<T>
+pub type trifecta::operation::ToleratedFailure::Error = never
+pub fn trifecta::operation::ToleratedFailure::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::ToleratedFailure where U: core::convert::TryFrom<T>
+pub type trifecta::operation::ToleratedFailure::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::ToleratedFailure::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::ToleratedFailure where T: core::clone::Clone
+pub type trifecta::operation::ToleratedFailure::Owned = T
+pub fn trifecta::operation::ToleratedFailure::clone_into(&self, &mut T)
+pub fn trifecta::operation::ToleratedFailure::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::operation::ToleratedFailure where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::ToleratedFailure::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::ToleratedFailure where T: ?core::marker::Sized
+pub fn trifecta::operation::ToleratedFailure::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::ToleratedFailure where T: ?core::marker::Sized
+pub fn trifecta::operation::ToleratedFailure::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::ToleratedFailure where T: core::clone::Clone
+pub unsafe fn trifecta::operation::ToleratedFailure::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::ToleratedFailure
+pub fn trifecta::operation::ToleratedFailure::from(T) -> T
+pub struct trifecta::operation::Observations
+impl trifecta::operation::Observations
+pub fn trifecta::operation::Observations::cache_status(&self) -> trifecta::operation::CacheStatus
+pub fn trifecta::operation::Observations::flight_status(&self) -> trifecta::operation::FlightStatus
+pub fn trifecta::operation::Observations::tolerated_failures(&self) -> &[trifecta::operation::ToleratedFailure]
+impl core::clone::Clone for trifecta::operation::Observations
+pub fn trifecta::operation::Observations::clone(&self) -> Self
+impl core::cmp::Eq for trifecta::operation::Observations
+impl core::cmp::PartialEq for trifecta::operation::Observations
+pub fn trifecta::operation::Observations::eq(&self, &Self) -> bool
+impl core::fmt::Debug for trifecta::operation::Observations
+pub fn trifecta::operation::Observations::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for trifecta::operation::Observations
+impl core::marker::Forget for trifecta::operation::Observations
+impl core::marker::Freeze for trifecta::operation::Observations
+impl core::marker::Move for trifecta::operation::Observations
+impl core::marker::Send for trifecta::operation::Observations
+impl core::marker::Sync for trifecta::operation::Observations
+impl core::marker::Unpin for trifecta::operation::Observations
+impl core::marker::UnsafeUnpin for trifecta::operation::Observations
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::Observations
+impl core::panic::unwind_safe::UnwindSafe for trifecta::operation::Observations
+impl<T, U> core::convert::Into<U> for trifecta::operation::Observations where U: core::convert::From<T>
+pub fn trifecta::operation::Observations::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::Observations where U: core::convert::Into<T>
+pub type trifecta::operation::Observations::Error = never
+pub fn trifecta::operation::Observations::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::Observations where U: core::convert::TryFrom<T>
+pub type trifecta::operation::Observations::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::Observations::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::Observations where T: core::clone::Clone
+pub type trifecta::operation::Observations::Owned = T
+pub fn trifecta::operation::Observations::clone_into(&self, &mut T)
+pub fn trifecta::operation::Observations::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::operation::Observations where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::Observations::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::Observations where T: ?core::marker::Sized
+pub fn trifecta::operation::Observations::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::Observations where T: ?core::marker::Sized
+pub fn trifecta::operation::Observations::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::Observations where T: core::clone::Clone
+pub unsafe fn trifecta::operation::Observations::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::Observations
+pub fn trifecta::operation::Observations::from(T) -> T
+pub struct trifecta::operation::Operation<P, T, E>
+impl<P, T, E> trifecta::operation::Operation<P, T, E> where P: core::marker::Send + 'static, T: core::marker::Send + 'static, E: core::error::Error + core::marker::Send + core::marker::Sync + 'static
+pub fn trifecta::operation::Operation<P, T, E>::new(trifecta::pipeline::Handle<P, T, E>) -> Self
+pub fn trifecta::operation::Operation<P, T, E>::new_with_selector(impl trifecta::pipeline::Selector<P, T, E>) -> Self
+pub fn trifecta::operation::Operation<P, T, E>::perform(&self, P) -> trifecta::future::BoxFuture<'_, core::result::Result<trifecta::operation::Outcome<T>, trifecta::operation::Error<E>>>
+pub fn trifecta::operation::Operation<P, T, E>::perform_bypassing_cache(&self, P) -> trifecta::future::BoxFuture<'_, core::result::Result<trifecta::operation::Outcome<T>, trifecta::operation::Error<E>>>
+impl<P, T, E> core::marker::Forget for trifecta::operation::Operation<P, T, E>
+impl<P, T, E> core::marker::Freeze for trifecta::operation::Operation<P, T, E> where Dispatch<P, T, E>: core::marker::Freeze
+impl<P, T, E> core::marker::Move for trifecta::operation::Operation<P, T, E>
+impl<P, T, E> core::marker::Send for trifecta::operation::Operation<P, T, E> where Dispatch<P, T, E>: core::marker::Send
+impl<P, T, E> core::marker::Sync for trifecta::operation::Operation<P, T, E> where Dispatch<P, T, E>: core::marker::Sync
+impl<P, T, E> core::marker::Unpin for trifecta::operation::Operation<P, T, E> where Dispatch<P, T, E>: core::marker::Unpin
+impl<P, T, E> core::marker::UnsafeUnpin for trifecta::operation::Operation<P, T, E> where Dispatch<P, T, E>: core::marker::UnsafeUnpin
+impl<P, T, E> !core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::Operation<P, T, E>
+impl<P, T, E> !core::panic::unwind_safe::UnwindSafe for trifecta::operation::Operation<P, T, E>
+impl<T, U> core::convert::Into<U> for trifecta::operation::Operation<P, T, E> where U: core::convert::From<T>
+pub fn trifecta::operation::Operation<P, T, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::Operation<P, T, E> where U: core::convert::Into<T>
+pub type trifecta::operation::Operation<P, T, E>::Error = never
+pub fn trifecta::operation::Operation<P, T, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::Operation<P, T, E> where U: core::convert::TryFrom<T>
+pub type trifecta::operation::Operation<P, T, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::Operation<P, T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for trifecta::operation::Operation<P, T, E> where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::Operation<P, T, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::Operation<P, T, E> where T: ?core::marker::Sized
+pub fn trifecta::operation::Operation<P, T, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::Operation<P, T, E> where T: ?core::marker::Sized
+pub fn trifecta::operation::Operation<P, T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta::operation::Operation<P, T, E>
+pub fn trifecta::operation::Operation<P, T, E>::from(T) -> T
+pub struct trifecta::operation::Outcome<T>
+impl<T> trifecta::operation::Outcome<T>
+pub fn trifecta::operation::Outcome<T>::into_parts(self) -> (T, trifecta::operation::Observations)
+pub fn trifecta::operation::Outcome<T>::map<U>(self, impl core::ops::function::FnOnce(T) -> U) -> trifecta::operation::Outcome<U>
+pub fn trifecta::operation::Outcome<T>::observations(&self) -> &trifecta::operation::Observations
+pub fn trifecta::operation::Outcome<T>::value(&self) -> &T
+impl<T: core::clone::Clone> core::clone::Clone for trifecta::operation::Outcome<T>
+pub fn trifecta::operation::Outcome<T>::clone(&self) -> Self
+impl<T: core::cmp::Eq> core::cmp::Eq for trifecta::operation::Outcome<T>
+impl<T: core::cmp::PartialEq> core::cmp::PartialEq for trifecta::operation::Outcome<T>
+pub fn trifecta::operation::Outcome<T>::eq(&self, &Self) -> bool
+impl<T: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta::operation::Outcome<T>
+impl<T: core::fmt::Debug> core::fmt::Debug for trifecta::operation::Outcome<T>
+pub fn trifecta::operation::Outcome<T>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T> core::marker::Forget for trifecta::operation::Outcome<T>
+impl<T> core::marker::Freeze for trifecta::operation::Outcome<T> where T: core::marker::Freeze
+impl<T> core::marker::Move for trifecta::operation::Outcome<T>
+impl<T> core::marker::Send for trifecta::operation::Outcome<T> where T: core::marker::Send
+impl<T> core::marker::Sync for trifecta::operation::Outcome<T> where T: core::marker::Sync
+impl<T> core::marker::Unpin for trifecta::operation::Outcome<T> where T: core::marker::Unpin
+impl<T> core::marker::UnsafeUnpin for trifecta::operation::Outcome<T> where T: core::marker::UnsafeUnpin
+impl<T> core::panic::unwind_safe::RefUnwindSafe for trifecta::operation::Outcome<T> where T: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for trifecta::operation::Outcome<T> where T: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta::operation::Outcome<T> where U: core::convert::From<T>
+pub fn trifecta::operation::Outcome<T>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::operation::Outcome<T> where U: core::convert::Into<T>
+pub type trifecta::operation::Outcome<T>::Error = never
+pub fn trifecta::operation::Outcome<T>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::operation::Outcome<T> where U: core::convert::TryFrom<T>
+pub type trifecta::operation::Outcome<T>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::operation::Outcome<T>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::operation::Outcome<T> where T: core::clone::Clone
+pub type trifecta::operation::Outcome<T>::Owned = T
+pub fn trifecta::operation::Outcome<T>::clone_into(&self, &mut T)
+pub fn trifecta::operation::Outcome<T>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::operation::Outcome<T> where T: 'static + ?core::marker::Sized
+pub fn trifecta::operation::Outcome<T>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::operation::Outcome<T> where T: ?core::marker::Sized
+pub fn trifecta::operation::Outcome<T>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::operation::Outcome<T> where T: ?core::marker::Sized
+pub fn trifecta::operation::Outcome<T>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::operation::Outcome<T> where T: core::clone::Clone
+pub unsafe fn trifecta::operation::Outcome<T>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::operation::Outcome<T>
+pub fn trifecta::operation::Outcome<T>::from(T) -> T
+pub mod trifecta::pipeline
+pub struct trifecta::pipeline::Handle<P, T, E>
+impl<P, T, E> core::clone::Clone for trifecta::pipeline::Handle<P, T, E>
+pub fn trifecta::pipeline::Handle<P, T, E>::clone(&self) -> Self
+impl<P, T, E> core::marker::Forget for trifecta::pipeline::Handle<P, T, E>
+impl<P, T, E> core::marker::Freeze for trifecta::pipeline::Handle<P, T, E> where alloc::rcs::arc::Arc<dyn Fetch<P, T, E>>: core::marker::Freeze
+impl<P, T, E> core::marker::Move for trifecta::pipeline::Handle<P, T, E>
+impl<P, T, E> core::marker::Send for trifecta::pipeline::Handle<P, T, E> where alloc::rcs::arc::Arc<dyn Fetch<P, T, E>>: core::marker::Send
+impl<P, T, E> core::marker::Sync for trifecta::pipeline::Handle<P, T, E> where alloc::rcs::arc::Arc<dyn Fetch<P, T, E>>: core::marker::Sync
+impl<P, T, E> core::marker::Unpin for trifecta::pipeline::Handle<P, T, E> where alloc::rcs::arc::Arc<dyn Fetch<P, T, E>>: core::marker::Unpin
+impl<P, T, E> core::marker::UnsafeUnpin for trifecta::pipeline::Handle<P, T, E> where alloc::rcs::arc::Arc<dyn Fetch<P, T, E>>: core::marker::UnsafeUnpin
+impl<P, T, E> !core::panic::unwind_safe::RefUnwindSafe for trifecta::pipeline::Handle<P, T, E>
+impl<P, T, E> !core::panic::unwind_safe::UnwindSafe for trifecta::pipeline::Handle<P, T, E>
+impl<T, U> core::convert::Into<U> for trifecta::pipeline::Handle<P, T, E> where U: core::convert::From<T>
+pub fn trifecta::pipeline::Handle<P, T, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::pipeline::Handle<P, T, E> where U: core::convert::Into<T>
+pub type trifecta::pipeline::Handle<P, T, E>::Error = never
+pub fn trifecta::pipeline::Handle<P, T, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::pipeline::Handle<P, T, E> where U: core::convert::TryFrom<T>
+pub type trifecta::pipeline::Handle<P, T, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::pipeline::Handle<P, T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta::pipeline::Handle<P, T, E> where T: core::clone::Clone
+pub type trifecta::pipeline::Handle<P, T, E>::Owned = T
+pub fn trifecta::pipeline::Handle<P, T, E>::clone_into(&self, &mut T)
+pub fn trifecta::pipeline::Handle<P, T, E>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta::pipeline::Handle<P, T, E> where T: 'static + ?core::marker::Sized
+pub fn trifecta::pipeline::Handle<P, T, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::pipeline::Handle<P, T, E> where T: ?core::marker::Sized
+pub fn trifecta::pipeline::Handle<P, T, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::pipeline::Handle<P, T, E> where T: ?core::marker::Sized
+pub fn trifecta::pipeline::Handle<P, T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta::pipeline::Handle<P, T, E> where T: core::clone::Clone
+pub unsafe fn trifecta::pipeline::Handle<P, T, E>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta::pipeline::Handle<P, T, E>
+pub fn trifecta::pipeline::Handle<P, T, E>::from(T) -> T
+pub trait trifecta::pipeline::Selector<P, T, E>: core::marker::Send + core::marker::Sync + 'static
+pub fn trifecta::pipeline::Selector::select(&self, &P) -> &trifecta::pipeline::Handle<P, T, E>
+pub mod trifecta::source
+pub trait trifecta::source::Source<P>: core::marker::Send + core::marker::Sync + 'static
+pub type trifecta::source::Source::Error: core::error::Error + core::marker::Send + core::marker::Sync + 'static
+pub type trifecta::source::Source::Response: core::marker::Send + 'static
+pub fn trifecta::source::Source::retrieve<'a>(&'a self, &'a P) -> trifecta::future::BoxFuture<'a, core::result::Result<Self::Response, Self::Error>>
+pub mod trifecta::transform
+pub trait trifecta::transform::Transform<P, M, T>: core::marker::Send + core::marker::Sync + 'static
+pub type trifecta::transform::Transform::Error: core::error::Error + core::marker::Send + core::marker::Sync + 'static
+pub fn trifecta::transform::Transform::transform<'a>(&'a self, &'a P, trifecta::body::BodyWithMetadata<M>) -> trifecta::future::BoxFuture<'a, core::result::Result<T, Self::Error>>
+pub mod trifecta::uncached
+pub struct trifecta::uncached::Pipeline<S, A, X>
+impl<S, A, X> trifecta::uncached::Pipeline<S, A, X>
+pub fn trifecta::uncached::Pipeline<S, A, X>::into_handle<P, T, E>(self) -> trifecta::pipeline::Handle<P, T, E> where P: core::marker::Send + core::marker::Sync + 'static, T: core::marker::Send + 'static, E: core::error::Error + core::marker::Send + core::marker::Sync + 'static + core::convert::From<<S as trifecta::source::Source>::Error> + core::convert::From<<A as trifecta::body::AdaptResponse>::Error> + core::convert::From<<X as trifecta::transform::Transform>::Error>, S: trifecta::source::Source<P>, A: trifecta::body::AdaptResponse<<S as trifecta::source::Source>::Response>, X: trifecta::transform::Transform<P, <A as trifecta::body::AdaptResponse>::Metadata, T>
+pub fn trifecta::uncached::Pipeline<S, A, X>::new(S, A, X) -> Self
+impl<S, A, X> core::marker::Forget for trifecta::uncached::Pipeline<S, A, X>
+impl<S, A, X> core::marker::Freeze for trifecta::uncached::Pipeline<S, A, X> where S: core::marker::Freeze, A: core::marker::Freeze, X: core::marker::Freeze
+impl<S, A, X> core::marker::Move for trifecta::uncached::Pipeline<S, A, X>
+impl<S, A, X> core::marker::Send for trifecta::uncached::Pipeline<S, A, X> where X: core::marker::Send, A: core::marker::Send, S: core::marker::Send
+impl<S, A, X> core::marker::Sync for trifecta::uncached::Pipeline<S, A, X> where X: core::marker::Sync, A: core::marker::Sync, S: core::marker::Sync
+impl<S, A, X> core::marker::Unpin for trifecta::uncached::Pipeline<S, A, X> where X: core::marker::Unpin, A: core::marker::Unpin, S: core::marker::Unpin
+impl<S, A, X> core::marker::UnsafeUnpin for trifecta::uncached::Pipeline<S, A, X> where S: core::marker::UnsafeUnpin, A: core::marker::UnsafeUnpin, X: core::marker::UnsafeUnpin
+impl<S, A, X> core::panic::unwind_safe::RefUnwindSafe for trifecta::uncached::Pipeline<S, A, X> where S: core::panic::unwind_safe::RefUnwindSafe, A: core::panic::unwind_safe::RefUnwindSafe, X: core::panic::unwind_safe::RefUnwindSafe
+impl<S, A, X> core::panic::unwind_safe::UnwindSafe for trifecta::uncached::Pipeline<S, A, X> where S: core::panic::unwind_safe::UnwindSafe, A: core::panic::unwind_safe::UnwindSafe, X: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta::uncached::Pipeline<S, A, X> where U: core::convert::From<T>
+pub fn trifecta::uncached::Pipeline<S, A, X>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta::uncached::Pipeline<S, A, X> where U: core::convert::Into<T>
+pub type trifecta::uncached::Pipeline<S, A, X>::Error = never
+pub fn trifecta::uncached::Pipeline<S, A, X>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta::uncached::Pipeline<S, A, X> where U: core::convert::TryFrom<T>
+pub type trifecta::uncached::Pipeline<S, A, X>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta::uncached::Pipeline<S, A, X>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for trifecta::uncached::Pipeline<S, A, X> where T: 'static + ?core::marker::Sized
+pub fn trifecta::uncached::Pipeline<S, A, X>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta::uncached::Pipeline<S, A, X> where T: ?core::marker::Sized
+pub fn trifecta::uncached::Pipeline<S, A, X>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta::uncached::Pipeline<S, A, X> where T: ?core::marker::Sized
+pub fn trifecta::uncached::Pipeline<S, A, X>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta::uncached::Pipeline<S, A, X>
+pub fn trifecta::uncached::Pipeline<S, A, X>::from(T) -> T

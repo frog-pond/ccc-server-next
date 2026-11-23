@@ -2,46 +2,61 @@
 
 import argparse
 import difflib
-import json
-from pathlib import Path
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
+from workspace import ROOT, WASM_TARGET, wasm_exclusions, workspace_members, workspace_metadata
 
-ROOT = Path(__file__).resolve().parents[1]
 LISTINGS = ROOT / "docs" / "api"
-# rustdoc JSON is unstable. Match the toolchain installed by CI.
-NIGHTLY = "+nightly-2026-11-22"
+# rustdoc JSON is unstable. Install this version with --install-toolchain.
+NIGHTLY = "nightly-2026-11-22"
 LIBRARY_KINDS = {"lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"}
 
 
-def listings():
-    metadata = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--locked", "--no-deps", "--format-version=1"],
-        cwd=ROOT,
-    ))
-    for package in sorted(metadata["packages"], key=lambda package: package["name"]):
+def listings(target_dir):
+    metadata = workspace_metadata()
+    excluded = set(wasm_exclusions(metadata))
+    for package in sorted(workspace_members(metadata), key=lambda package: package["name"]):
         if not any(LIBRARY_KINDS.intersection(target["kind"]) for target in package["targets"]):
             continue
-        output = subprocess.check_output(
-            ["cargo", NIGHTLY, "public-api", "--color", "never", "--all-features",
-             "--manifest-path", package["manifest_path"]],
-            cwd=ROOT,
-            text=True,
-        )
-        yield LISTINGS / f'{package["name"]}.txt', output
+        name = package["name"]
+        targets = [("", [])]
+        if name not in excluded:
+            targets.append((f".{WASM_TARGET}", ["--target", WASM_TARGET]))
+        for target_suffix, target_args in targets:
+            for feature_suffix, feature_args in (("", ["--all-features"]), (".default", [])):
+                output = subprocess.check_output(
+                    ["cargo", f"+{NIGHTLY}", "public-api", "--color", "never",
+                     "--target-dir", target_dir,
+                     "--manifest-path", package["manifest_path"], *target_args, *feature_args],
+                    cwd=ROOT,
+                    text=True,
+                )
+                yield LISTINGS / f"{name}{target_suffix}{feature_suffix}.txt", output
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="fail on missing or changed listings")
-    check = parser.parse_args().check
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="fail on missing or changed listings")
+    mode.add_argument("--install-toolchain", action="store_true", help="install the API toolchain")
+    args = parser.parse_args()
+    if args.install_toolchain:
+        subprocess.run(
+            ["rustup", "toolchain", "install", NIGHTLY, "--profile", "minimal",
+             "--target", WASM_TARGET],
+            check=True,
+        )
+        return 0
 
-    generated = dict(listings())
+    # mise can run cargo doc and API checks at the same time.
+    with TemporaryDirectory(prefix="ccc-public-api-") as target_dir:
+        generated = dict(listings(target_dir))
     outdated = False
     for path in sorted(set(generated) | set(LISTINGS.glob("*.txt"))):
         expected = generated.get(path)
-        if not check:
+        if not args.check:
             if expected is None:
                 path.unlink()
             else:

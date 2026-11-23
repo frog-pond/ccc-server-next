@@ -1636,6 +1636,7 @@ name = "trifecta"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

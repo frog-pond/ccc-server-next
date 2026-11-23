@@ -11,3 +11,6 @@ workspace = true
 
 [dependencies]
 bytes.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.77"
