@@ -1,0 +1,295 @@
+[
+  {
+    "id": "21050",
+    "sport": "Women's Cross Country",
+    "sport_abbrev": "WXC",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T15:00:00.000Z",
+    "date_end_utc": "",
+    "time": "10 a.m./11 a.m.",
+    "timestamp": 1791039600,
+    "location": {
+      "location": "Northfield, Minn. / Bill Huyck Championship Course",
+      "facility": "",
+      "homeAway": "A"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Running of the Cows",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/Carleton-College.png",
+    "opponent": "Oles",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "team_score": "",
+    "opponent_score": "",
+    "result": "N",
+    "ip_time": "",
+    "prescore_info": "18th of 35",
+    "postscore_info": "",
+    "links": {
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/10/3/womens-cross-country-lamarre-leads-way-for-no-25-womens-cross-country-at-pre-nationals.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21463",
+    "sport": "Women's Golf",
+    "sport_abbrev": "WGOLF",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T16:50:00.000Z",
+    "date_end_utc": "",
+    "time": "11:50 a.m.",
+    "timestamp": 1791046200,
+    "location": {
+      "location": "Edina, Minn. - Braemar G.C.",
+      "facility": "",
+      "homeAway": "A"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "MIAC Championships",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/2018/2/5/miac.png",
+    "opponent": "Oles",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "team_score": "",
+    "opponent_score": "",
+    "result": "N",
+    "ip_time": "",
+    "prescore_info": "7th of 9",
+    "postscore_info": "",
+    "links": {},
+    "coverage": {}
+  },
+  {
+    "id": "21059",
+    "sport": "Men's Cross Country",
+    "sport_abbrev": "MXC",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T17:00:00.000Z",
+    "date_end_utc": "",
+    "time": "12 p.m./1 p.m./2 p.m.",
+    "timestamp": 1791046800,
+    "location": {
+      "location": "Northfield, Minn. / Bill Huyck Championship Course",
+      "facility": "",
+      "homeAway": "A"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Running of the Cows",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/Carleton-College.png",
+    "opponent": "Oles",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "team_score": "",
+    "opponent_score": "",
+    "result": "N",
+    "ip_time": "",
+    "prescore_info": "20th of 35",
+    "postscore_info": "",
+    "links": {
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/10/3/mens-cross-country-no-23-mens-cross-country-20th-at-pre-nationals-at-carleton.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21078",
+    "sport": "Women's Soccer",
+    "sport_abbrev": "WSOC",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T18:00:00.000Z",
+    "date_end_utc": "",
+    "time": "1 p.m.",
+    "timestamp": 1791050400,
+    "location": {
+      "location": "Northfield, Minn. ",
+      "facility": "Rolf Mellby Field",
+      "homeAway": "H"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Oles",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "opponent": "Concordia College",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/concordia-moorhead.png",
+    "team_score": "5",
+    "opponent_score": "0",
+    "result": "W",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {
+      "boxscore": {
+        "url": "https://athletics.stolaf.edu/boxscore.aspx?id=21078",
+        "text": "Box"
+      },
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/10/3/womens-soccer-womens-soccer-blanks-concordia-johnson-firts-to-reach-100-point-milestone.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21038",
+    "sport": "Football",
+    "sport_abbrev": "FB",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T18:00:00.000Z",
+    "date_end_utc": "",
+    "time": "1 p.m.",
+    "timestamp": 1791050400,
+    "location": {
+      "location": "Northfield, Minn.",
+      "facility": "Klein Field at Manitou",
+      "homeAway": "H"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Oles",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "opponent": "Augsburg University",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/Augsburg-Spirit-Logo.png",
+    "team_score": "23",
+    "opponent_score": "21",
+    "result": "W",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {
+      "boxscore": {
+        "url": "https://athletics.stolaf.edu/boxscore.aspx?id=21038",
+        "text": "Box"
+      },
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/10/3/football-gardners-last-second-field-goal-gives-football-first-win-of-season.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21099",
+    "sport": "Men's Soccer",
+    "sport_abbrev": "MSOC",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T20:30:00.000Z",
+    "date_end_utc": "",
+    "time": "3:30 p.m.",
+    "timestamp": 1791059400,
+    "location": {
+      "location": "Northfield, Minn.",
+      "facility": "Rolf Mellby Field",
+      "homeAway": "H"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Oles",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "opponent": "Concordia College ",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/concordia-moorhead.png",
+    "team_score": "4",
+    "opponent_score": "0",
+    "result": "W",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {
+      "boxscore": {
+        "url": "https://athletics.stolaf.edu/boxscore.aspx?id=21099",
+        "text": "Box"
+      },
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/10/3/mens-soccer-no-1-mens-soccer-extends-miac-regular-season-streak-with-shutout-of-cobbers.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21296",
+    "sport": "Men's Swimming and Diving",
+    "sport_abbrev": "MSWIM",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T21:00:00.000Z",
+    "date_end_utc": "",
+    "time": "4 p.m.",
+    "timestamp": 1791061200,
+    "location": {
+      "location": "Northfield, Minn.",
+      "facility": "Skoglund Center Natatorium",
+      "homeAway": "H"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Oles",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "opponent": "Alumni Meet",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/Saint-Olaf.png",
+    "team_score": "",
+    "opponent_score": "",
+    "result": "N",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {},
+    "coverage": {}
+  },
+  {
+    "id": "21323",
+    "sport": "Women's Swimming and Diving",
+    "sport_abbrev": "WSWIM",
+    "date": "10.3",
+    "dateFormatted": "10.3",
+    "date_utc": "2026-10-03T21:00:00.000Z",
+    "date_end_utc": "",
+    "time": "4 p.m.",
+    "timestamp": 1791061200,
+    "location": {
+      "location": "Northfield, Minn.",
+      "facility": "Skoglund Center Natatorium",
+      "homeAway": "H"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Oles",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "opponent": "Alumni Meet",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/Saint-Olaf.png",
+    "team_score": "",
+    "opponent_score": "",
+    "result": "N",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {},
+    "coverage": {}
+  }
+]
