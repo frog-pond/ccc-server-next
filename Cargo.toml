@@ -3,6 +3,7 @@ resolver = "2"
 members = [
 	"ccc-schema",
 	"e2e",
+	"trifecta-freshness",
 ]
 
 [workspace.metadata.wasm]
@@ -33,7 +34,7 @@ unused_must_use = "deny"
 [workspace.package]
 edition = "2021"
 license = "AGPL-3.0-only"
-rust-version = "1.74"
+rust-version = "1.100"
 
 [workspace.dependencies]
 bytes = "1.5.0"

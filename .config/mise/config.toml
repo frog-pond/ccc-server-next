@@ -12,7 +12,7 @@ _.file = '.env'
 run = "cargo build"
 
 [tasks.check]
-depends = ["clippy", "fmt-check", "test", "test:doc", "test:tools", "doc", "check:dependencies", "check:api"]
+depends = ["clippy", "fmt-check", "test", "test:doc", "test:tools", "doc", "check:dependencies", "check:api", "check:features"]
 
 [tasks."check:wasm"]
 description = "Build, lint, check documentation and test the shared crates on Wasm"
@@ -24,6 +24,13 @@ env = { RUSTDOCFLAGS = "-D warnings" }
 
 [tasks."check:dependencies"]
 run = "cargo deny --all-features --locked check bans"
+
+[tasks."check:features"]
+description = "Compile trifecta-freshness for wasm32 without std, with and without jiff"
+run = [
+  "cargo check -p trifecta-freshness --locked --no-default-features --target wasm32-unknown-unknown",
+  "cargo check -p trifecta-freshness --locked --no-default-features --features jiff --target wasm32-unknown-unknown",
+]
 
 [tasks."check:api"]
 description = "Check committed public API listings"

@@ -53,6 +53,11 @@ jobs:
           MISE_OFFLINE: 'true'
           CARGO_NET_OFFLINE: 'true'
         run: mise run check:wasm
+      - name: Check builds without std
+        if: matrix.target.name == 'wasm32-unknown-unknown'
+        env:
+          CARGO_NET_OFFLINE: 'true'
+        run: mise run check:features
       - name: Build
         if: matrix.target.name == 'host'
         run: cargo build --workspace --all-features --locked

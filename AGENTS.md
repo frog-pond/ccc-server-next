@@ -89,7 +89,7 @@ Work is tracked in GitHub issues under #424. `tools/board` shows their state and
 ```sh
 tools/board         # every issue under #424, what blocks it, and the open pull requests
 tools/board maintain [--apply]   # the board moves the rules call for (see the board-maintenance skill)
-mise run check      # host lint, formatting, tests, doctests, docs, dependency bans, API listings and offline tool checks
+mise run check      # host lint, formatting, tests, doctests, docs, dependency bans, API listings, Wasm feature checks and offline tool checks
 mise run check:wasm # build, lint, check docs and run tests for the shared crates on Wasm
 mise run clippy
 mise run fmt

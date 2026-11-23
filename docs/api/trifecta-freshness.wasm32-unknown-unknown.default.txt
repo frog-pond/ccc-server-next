@@ -1,0 +1,309 @@
+pub mod trifecta_freshness
+pub enum trifecta_freshness::Error
+pub trifecta_freshness::Error::PeriodEndsBeforeFetch
+impl core::clone::Clone for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::clone(&self) -> Self
+impl core::cmp::Eq for trifecta_freshness::Error
+impl core::cmp::PartialEq for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::eq(&self, &Self) -> bool
+impl core::error::Error for trifecta_freshness::Error
+impl core::fmt::Debug for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::Copy for trifecta_freshness::Error
+impl core::marker::StructuralPartialEq for trifecta_freshness::Error
+impl core::marker::Forget for trifecta_freshness::Error
+impl core::marker::Freeze for trifecta_freshness::Error
+impl core::marker::Move for trifecta_freshness::Error
+impl core::marker::Send for trifecta_freshness::Error
+impl core::marker::Sync for trifecta_freshness::Error
+impl core::marker::Unpin for trifecta_freshness::Error
+impl core::marker::UnsafeUnpin for trifecta_freshness::Error
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::Error
+impl core::panic::unwind_safe::UnwindSafe for trifecta_freshness::Error
+impl<T, U> core::convert::Into<U> for trifecta_freshness::Error where U: core::convert::From<T>
+pub fn trifecta_freshness::Error::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::Error where U: core::convert::Into<T>
+pub type trifecta_freshness::Error::Error = never
+pub fn trifecta_freshness::Error::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::Error where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::Error::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::Error::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::Error where T: core::clone::Clone
+pub type trifecta_freshness::Error::Owned = T
+pub fn trifecta_freshness::Error::clone_into(&self, &mut T)
+pub fn trifecta_freshness::Error::to_owned(&self) -> T
+impl<T> alloc::string::ToString for trifecta_freshness::Error where T: core::fmt::Display + ?core::marker::Sized
+pub fn trifecta_freshness::Error::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for trifecta_freshness::Error where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::Error::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::Error where T: ?core::marker::Sized
+pub fn trifecta_freshness::Error::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::Error where T: ?core::marker::Sized
+pub fn trifecta_freshness::Error::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::Error where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::Error::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::Error
+pub fn trifecta_freshness::Error::from(T) -> T
+pub enum trifecta_freshness::ReadAction<'a, T, E>
+pub trifecta_freshness::ReadAction::FetchWithStaleFallback
+pub trifecta_freshness::ReadAction::FetchWithStaleFallback::fallback_fetch_started_at: T
+pub trifecta_freshness::ReadAction::FetchWithoutFallback
+pub trifecta_freshness::ReadAction::ReportCachedError(&'a E)
+pub trifecta_freshness::ReadAction::RequestRefresh
+pub trifecta_freshness::ReadAction::RequestRefresh::fetch_started_at: T
+pub trifecta_freshness::ReadAction::RequestRefreshAfterFailure
+pub trifecta_freshness::ReadAction::RequestRefreshAfterFailure::fetch_started_at: T
+pub trifecta_freshness::ReadAction::ServeCachedAfterFailure
+pub trifecta_freshness::ReadAction::ServeCachedAfterFailure::fetch_started_at: T
+pub trifecta_freshness::ReadAction::ServeFresh
+pub trifecta_freshness::ReadAction::ServeFresh::fetch_started_at: T
+pub trifecta_freshness::ReadAction::ServeFreshAndRequestRefresh
+pub trifecta_freshness::ReadAction::ServeFreshAndRequestRefresh::fetch_started_at: T
+impl<'a, T: core::cmp::Eq, E: core::cmp::Eq> core::cmp::Eq for trifecta_freshness::ReadAction<'a, T, E>
+impl<'a, T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::cmp::PartialEq for trifecta_freshness::ReadAction<'a, T, E>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::eq(&self, &Self) -> bool
+impl<'a, T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::ReadAction<'a, T, E>
+impl<'a, T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::ReadAction<'a, T, E>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a, T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::ReadAction<'a, T, E>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy, E> core::clone::Clone for trifecta_freshness::ReadAction<'_, T, E>
+pub fn trifecta_freshness::ReadAction<'_, T, E>::clone(&self) -> Self
+impl<T: core::marker::Copy, E> core::marker::Copy for trifecta_freshness::ReadAction<'_, T, E>
+impl<'a, T, E> core::marker::Forget for trifecta_freshness::ReadAction<'a, T, E>
+impl<'a, T, E> core::marker::Freeze for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze, &'a E: core::marker::Freeze
+impl<'a, T, E> core::marker::Move for trifecta_freshness::ReadAction<'a, T, E>
+impl<'a, T, E> core::marker::Send for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::Send, &'a E: core::marker::Send
+impl<'a, T, E> core::marker::Sync for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::Sync, &'a E: core::marker::Sync
+impl<'a, T, E> core::marker::Unpin for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::Unpin, &'a E: core::marker::Unpin
+impl<'a, T, E> core::marker::UnsafeUnpin for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::UnsafeUnpin + core::marker::UnsafeUnpin + core::marker::UnsafeUnpin + core::marker::UnsafeUnpin + core::marker::UnsafeUnpin + core::marker::UnsafeUnpin, &'a E: core::marker::UnsafeUnpin
+impl<'a, T, E> core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::ReadAction<'a, T, E> where T: core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe + core::panic::unwind_safe::RefUnwindSafe, &'a E: core::panic::unwind_safe::RefUnwindSafe
+impl<'a, T, E> core::panic::unwind_safe::UnwindSafe for trifecta_freshness::ReadAction<'a, T, E> where T: core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe + core::panic::unwind_safe::UnwindSafe, &'a E: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_freshness::ReadAction<'a, T, E> where U: core::convert::From<T>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::ReadAction<'a, T, E> where U: core::convert::Into<T>
+pub type trifecta_freshness::ReadAction<'a, T, E>::Error = never
+pub fn trifecta_freshness::ReadAction<'a, T, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::ReadAction<'a, T, E> where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::ReadAction<'a, T, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::ReadAction<'a, T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::ReadAction<'a, T, E> where T: core::clone::Clone
+pub type trifecta_freshness::ReadAction<'a, T, E>::Owned = T
+pub fn trifecta_freshness::ReadAction<'a, T, E>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::ReadAction<'a, T, E>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_freshness::ReadAction<'a, T, E> where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::ReadAction<'a, T, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::ReadAction<'a, T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::ReadAction<'a, T, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::ReadAction<'a, T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::ReadAction<'a, T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::ReadAction<'a, T, E> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::ReadAction<'a, T, E>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::ReadAction<'a, T, E>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::from(T) -> T
+pub struct trifecta_freshness::CachedValueMetadata<T>
+impl<T: trifecta_freshness::Timestamp> trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::fetch_started_at(&self) -> T
+pub fn trifecta_freshness::CachedValueMetadata<T>::fresh_for(&self) -> core::option::Option<core::time::Duration>
+pub fn trifecta_freshness::CachedValueMetadata<T>::new(T, core::option::Option<T>, core::option::Option<core::time::Duration>) -> core::result::Result<Self, trifecta_freshness::Error>
+pub fn trifecta_freshness::CachedValueMetadata<T>::period_ends_at(&self) -> core::option::Option<T>
+impl<T: core::clone::Clone> core::clone::Clone for trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::clone(&self) -> Self
+impl<T: core::cmp::Eq> core::cmp::Eq for trifecta_freshness::CachedValueMetadata<T>
+impl<T: core::cmp::PartialEq> core::cmp::PartialEq for trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::eq(&self, &Self) -> bool
+impl<T: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::CachedValueMetadata<T>
+impl<T: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::hash::Hash> core::hash::Hash for trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy> core::marker::Copy for trifecta_freshness::CachedValueMetadata<T>
+impl<T> core::marker::Forget for trifecta_freshness::CachedValueMetadata<T>
+impl<T> core::marker::Freeze for trifecta_freshness::CachedValueMetadata<T> where T: core::marker::Freeze, core::option::Option<T>: core::marker::Freeze
+impl<T> core::marker::Move for trifecta_freshness::CachedValueMetadata<T>
+impl<T> core::marker::Send for trifecta_freshness::CachedValueMetadata<T> where T: core::marker::Send, core::option::Option<T>: core::marker::Send
+impl<T> core::marker::Sync for trifecta_freshness::CachedValueMetadata<T> where T: core::marker::Sync, core::option::Option<T>: core::marker::Sync
+impl<T> core::marker::Unpin for trifecta_freshness::CachedValueMetadata<T> where T: core::marker::Unpin, core::option::Option<T>: core::marker::Unpin
+impl<T> core::marker::UnsafeUnpin for trifecta_freshness::CachedValueMetadata<T> where T: core::marker::UnsafeUnpin, core::option::Option<T>: core::marker::UnsafeUnpin
+impl<T> core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::CachedValueMetadata<T> where T: core::panic::unwind_safe::RefUnwindSafe, core::option::Option<T>: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for trifecta_freshness::CachedValueMetadata<T> where T: core::panic::unwind_safe::UnwindSafe, core::option::Option<T>: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_freshness::CachedValueMetadata<T> where U: core::convert::From<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::CachedValueMetadata<T> where U: core::convert::Into<T>
+pub type trifecta_freshness::CachedValueMetadata<T>::Error = never
+pub fn trifecta_freshness::CachedValueMetadata<T>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::CachedValueMetadata<T> where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::CachedValueMetadata<T>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::CachedValueMetadata<T>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::CachedValueMetadata<T> where T: core::clone::Clone
+pub type trifecta_freshness::CachedValueMetadata<T>::Owned = T
+pub fn trifecta_freshness::CachedValueMetadata<T>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::CachedValueMetadata<T>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_freshness::CachedValueMetadata<T> where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::CachedValueMetadata<T>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::CachedValueMetadata<T> where T: ?core::marker::Sized
+pub fn trifecta_freshness::CachedValueMetadata<T>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::CachedValueMetadata<T> where T: ?core::marker::Sized
+pub fn trifecta_freshness::CachedValueMetadata<T>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::CachedValueMetadata<T> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::CachedValueMetadata<T>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::CachedValueMetadata<T>
+pub fn trifecta_freshness::CachedValueMetadata<T>::from(T) -> T
+pub struct trifecta_freshness::Entry<T, E>
+pub trifecta_freshness::Entry::cached: core::option::Option<trifecta_freshness::CachedValueMetadata<T>>
+pub trifecta_freshness::Entry::failure: core::option::Option<trifecta_freshness::Failure<T, E>>
+pub trifecta_freshness::Entry::last_read: T
+impl<T: core::clone::Clone, E: core::clone::Clone> core::clone::Clone for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::clone(&self) -> Self
+impl<T: core::cmp::Eq, E: core::cmp::Eq> core::cmp::Eq for trifecta_freshness::Entry<T, E>
+impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::cmp::PartialEq for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::eq(&self, &Self) -> bool
+impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::Entry<T, E>
+impl<T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy, E: core::marker::Copy> core::marker::Copy for trifecta_freshness::Entry<T, E>
+impl<T, E> core::marker::Forget for trifecta_freshness::Entry<T, E>
+impl<T, E> core::marker::Freeze for trifecta_freshness::Entry<T, E> where T: core::marker::Freeze, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::Freeze, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::Freeze
+impl<T, E> core::marker::Move for trifecta_freshness::Entry<T, E>
+impl<T, E> core::marker::Send for trifecta_freshness::Entry<T, E> where T: core::marker::Send, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::Send, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::Send
+impl<T, E> core::marker::Sync for trifecta_freshness::Entry<T, E> where T: core::marker::Sync, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::Sync, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::Sync
+impl<T, E> core::marker::Unpin for trifecta_freshness::Entry<T, E> where T: core::marker::Unpin, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::Unpin, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::Unpin
+impl<T, E> core::marker::UnsafeUnpin for trifecta_freshness::Entry<T, E> where T: core::marker::UnsafeUnpin, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::UnsafeUnpin, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::UnsafeUnpin
+impl<T, E> core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::Entry<T, E> where T: core::panic::unwind_safe::RefUnwindSafe, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::panic::unwind_safe::RefUnwindSafe, core::option::Option<trifecta_freshness::Failure<T, E>>: core::panic::unwind_safe::RefUnwindSafe
+impl<T, E> core::panic::unwind_safe::UnwindSafe for trifecta_freshness::Entry<T, E> where T: core::panic::unwind_safe::UnwindSafe, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::panic::unwind_safe::UnwindSafe, core::option::Option<trifecta_freshness::Failure<T, E>>: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_freshness::Entry<T, E> where U: core::convert::From<T>
+pub fn trifecta_freshness::Entry<T, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::Entry<T, E> where U: core::convert::Into<T>
+pub type trifecta_freshness::Entry<T, E>::Error = never
+pub fn trifecta_freshness::Entry<T, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::Entry<T, E> where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::Entry<T, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::Entry<T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::Entry<T, E> where T: core::clone::Clone
+pub type trifecta_freshness::Entry<T, E>::Owned = T
+pub fn trifecta_freshness::Entry<T, E>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::Entry<T, E>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_freshness::Entry<T, E> where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::Entry<T, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::Entry<T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::Entry<T, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::Entry<T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::Entry<T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::Entry<T, E> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::Entry<T, E>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::from(T) -> T
+pub struct trifecta_freshness::Failure<T, E>
+pub trifecta_freshness::Failure::backoff_until: T
+pub trifecta_freshness::Failure::consecutive_failures: core::num::nonzero::NonZeroU32
+pub trifecta_freshness::Failure::last_error: E
+impl<T: core::clone::Clone, E: core::clone::Clone> core::clone::Clone for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::clone(&self) -> Self
+impl<T: core::cmp::Eq, E: core::cmp::Eq> core::cmp::Eq for trifecta_freshness::Failure<T, E>
+impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::cmp::PartialEq for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::eq(&self, &Self) -> bool
+impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::Failure<T, E>
+impl<T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy, E: core::marker::Copy> core::marker::Copy for trifecta_freshness::Failure<T, E>
+impl<T, E> core::marker::Forget for trifecta_freshness::Failure<T, E>
+impl<T, E> core::marker::Freeze for trifecta_freshness::Failure<T, E> where T: core::marker::Freeze, E: core::marker::Freeze
+impl<T, E> core::marker::Move for trifecta_freshness::Failure<T, E>
+impl<T, E> core::marker::Send for trifecta_freshness::Failure<T, E> where E: core::marker::Send, T: core::marker::Send
+impl<T, E> core::marker::Sync for trifecta_freshness::Failure<T, E> where E: core::marker::Sync, T: core::marker::Sync
+impl<T, E> core::marker::Unpin for trifecta_freshness::Failure<T, E> where E: core::marker::Unpin, T: core::marker::Unpin
+impl<T, E> core::marker::UnsafeUnpin for trifecta_freshness::Failure<T, E> where T: core::marker::UnsafeUnpin, E: core::marker::UnsafeUnpin
+impl<T, E> core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::Failure<T, E> where T: core::panic::unwind_safe::RefUnwindSafe, E: core::panic::unwind_safe::RefUnwindSafe
+impl<T, E> core::panic::unwind_safe::UnwindSafe for trifecta_freshness::Failure<T, E> where T: core::panic::unwind_safe::UnwindSafe, E: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_freshness::Failure<T, E> where U: core::convert::From<T>
+pub fn trifecta_freshness::Failure<T, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::Failure<T, E> where U: core::convert::Into<T>
+pub type trifecta_freshness::Failure<T, E>::Error = never
+pub fn trifecta_freshness::Failure<T, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::Failure<T, E> where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::Failure<T, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::Failure<T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::Failure<T, E> where T: core::clone::Clone
+pub type trifecta_freshness::Failure<T, E>::Owned = T
+pub fn trifecta_freshness::Failure<T, E>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::Failure<T, E>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_freshness::Failure<T, E> where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::Failure<T, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::Failure<T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::Failure<T, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::Failure<T, E> where T: ?core::marker::Sized
+pub fn trifecta_freshness::Failure<T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::Failure<T, E> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::Failure<T, E>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::from(T) -> T
+pub struct trifecta_freshness::FreshnessPolicy<T>
+pub trifecta_freshness::FreshnessPolicy::fresh_for: core::time::Duration
+pub trifecta_freshness::FreshnessPolicy::period_end: core::option::Option<fn(T) -> T>
+pub trifecta_freshness::FreshnessPolicy::refresh_ahead: core::time::Duration
+pub trifecta_freshness::FreshnessPolicy::serve_cached_after_failure: core::option::Option<core::time::Duration>
+pub trifecta_freshness::FreshnessPolicy::stale_window: core::time::Duration
+impl<T: trifecta_freshness::Timestamp> trifecta_freshness::FreshnessPolicy<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::cached_after_success(&self, T, core::option::Option<core::time::Duration>) -> core::result::Result<trifecta_freshness::CachedValueMetadata<T>, trifecta_freshness::Error>
+pub fn trifecta_freshness::FreshnessPolicy<T>::may_refresh<E>(&self, T, core::option::Option<&trifecta_freshness::Entry<T, E>>) -> bool
+pub fn trifecta_freshness::FreshnessPolicy<T>::may_serve_fallback(&self, T, T) -> bool
+pub fn trifecta_freshness::FreshnessPolicy<T>::next_refresh_hint<E>(&self, T, &trifecta_freshness::Entry<T, E>) -> core::option::Option<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::on_read<'a, E>(&self, T, core::option::Option<&'a trifecta_freshness::Entry<T, E>>) -> trifecta_freshness::ReadAction<'a, T, E>
+impl<T: core::clone::Clone> core::clone::Clone for trifecta_freshness::FreshnessPolicy<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::clone(&self) -> Self
+impl<T: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::FreshnessPolicy<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::marker::Copy> core::marker::Copy for trifecta_freshness::FreshnessPolicy<T>
+impl<T> core::marker::Forget for trifecta_freshness::FreshnessPolicy<T>
+impl<T> core::marker::Freeze for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::marker::Freeze
+impl<T> core::marker::Move for trifecta_freshness::FreshnessPolicy<T>
+impl<T> core::marker::Send for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::marker::Send
+impl<T> core::marker::Sync for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::marker::Sync
+impl<T> core::marker::Unpin for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::marker::Unpin
+impl<T> core::marker::UnsafeUnpin for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::marker::UnsafeUnpin
+impl<T> core::panic::unwind_safe::RefUnwindSafe for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for trifecta_freshness::FreshnessPolicy<T> where core::option::Option<fn(T) -> T>: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_freshness::FreshnessPolicy<T> where U: core::convert::From<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_freshness::FreshnessPolicy<T> where U: core::convert::Into<T>
+pub type trifecta_freshness::FreshnessPolicy<T>::Error = never
+pub fn trifecta_freshness::FreshnessPolicy<T>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_freshness::FreshnessPolicy<T> where U: core::convert::TryFrom<T>
+pub type trifecta_freshness::FreshnessPolicy<T>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_freshness::FreshnessPolicy<T>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::FreshnessPolicy<T> where T: core::clone::Clone
+pub type trifecta_freshness::FreshnessPolicy<T>::Owned = T
+pub fn trifecta_freshness::FreshnessPolicy<T>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::FreshnessPolicy<T>::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_freshness::FreshnessPolicy<T> where T: 'static + ?core::marker::Sized
+pub fn trifecta_freshness::FreshnessPolicy<T>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_freshness::FreshnessPolicy<T> where T: ?core::marker::Sized
+pub fn trifecta_freshness::FreshnessPolicy<T>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::FreshnessPolicy<T> where T: ?core::marker::Sized
+pub fn trifecta_freshness::FreshnessPolicy<T>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::FreshnessPolicy<T> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::FreshnessPolicy<T>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_freshness::FreshnessPolicy<T>
+pub fn trifecta_freshness::FreshnessPolicy<T>::from(T) -> T
+pub const trifecta_freshness::IDLE_AFTER: core::time::Duration
+pub const trifecta_freshness::MAX_BACKOFF: core::time::Duration
+pub const trifecta_freshness::MAX_RETRY_AFTER: core::time::Duration
+pub const trifecta_freshness::MIN_BACKOFF: core::time::Duration
+pub const trifecta_freshness::TOUCH_EVERY: core::time::Duration
+pub trait trifecta_freshness::Timestamp: core::marker::Copy + core::cmp::Ord
+pub fn trifecta_freshness::Timestamp::checked_duration_since(self, Self) -> core::option::Option<core::time::Duration>
+pub fn trifecta_freshness::Timestamp::saturating_add_duration(self, core::time::Duration) -> Self
+impl trifecta_freshness::Timestamp for std::time::SystemTime
+pub fn std::time::SystemTime::checked_duration_since(self, Self) -> core::option::Option<core::time::Duration>
+pub fn std::time::SystemTime::saturating_add_duration(self, core::time::Duration) -> Self
+pub fn trifecta_freshness::backoff_delay(core::num::nonzero::NonZeroU32, core::time::Duration) -> core::time::Duration
+pub fn trifecta_freshness::failure_after<T: trifecta_freshness::Timestamp, E>(T, core::option::Option<core::num::nonzero::NonZeroU32>, E, core::time::Duration) -> trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::record_read<T: trifecta_freshness::Timestamp, E>(T, core::option::Option<&trifecta_freshness::Entry<T, E>>) -> core::option::Option<T>

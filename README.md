@@ -34,9 +34,10 @@ mise trust
 ```
 
 ```sh
+rustup target add wasm32-unknown-unknown
 mise install               # download the pinned tools
 mise run setup:api         # install the pinned nightly and its Wasm target for API listings
-cargo fetch --locked --target host-tuple # download host dependencies, including test dependencies
+cargo fetch --locked --target host-tuple --target wasm32-unknown-unknown
 mise run check             # run the host and repository checks
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
@@ -55,6 +56,9 @@ updated listings in [`docs/api/`](docs/api/). The listings cover workspace
 libraries with both default and all features on the host and, for libraries
 built for Wasm, on `wasm32-unknown-unknown`.
 
+`mise run check` also compiles `trifecta-freshness` for Wasm without `std`,
+with and without `jiff`.
+
 CI runs the host workspace and the shared crates on stable and beta. To run the
 shared checks on `wasm32-unknown-unknown` locally, make Node.js available and
 run the following commands. Use `#[wasm_bindgen_test(unsupported = test)]`
@@ -62,7 +66,6 @@ for shared tests so both runners execute them. The Wasm check also compares the
 test names reported by the host and Wasm runners.
 
 ```sh
-rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
 cargo fetch --locked --target host-tuple --target wasm32-unknown-unknown
 MISE_OFFLINE=true MISE_AUTO_INSTALL=false CARGO_NET_OFFLINE=true mise run check:wasm
