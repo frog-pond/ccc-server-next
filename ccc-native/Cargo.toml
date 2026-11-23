@@ -15,4 +15,9 @@ axum = { version = "0.8.9", default-features = false, features = ["http1", "json
 ccc-schema = { path = "../ccc-schema" }
 reqwest = { workspace = true }
 socket2 = "0.6.5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
 tokio = { workspace = true, features = ["net", "signal", "sync"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

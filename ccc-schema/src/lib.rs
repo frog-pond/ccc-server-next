@@ -7,7 +7,7 @@
 //! Each API area has its own module. A conversion imports only its own area's module,
 //! and types used by multiple areas live in a shared module.
 
-pub mod error;
+pub mod routing;
 
 #[cfg(all(test, target_arch = "wasm32", target_os = "unknown"))]
 mod tests {

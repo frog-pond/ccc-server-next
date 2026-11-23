@@ -1,206 +1,303 @@
 //! Native entry point for running the CCC API as an HTTP server.
 
-#![allow(
-	dead_code,
-	unused_variables,
-	reason = "Draft signatures are not wired together yet"
-)]
-#![allow(clippy::todo, reason = "Signatures are under review in draft PR #487")]
+mod server;
 
 use std::{
+	error::Error,
 	ffi::OsStr,
 	fmt,
-	future::{Future, Ready},
+	future::{ready, Ready},
 	io,
-	net::{AddrParseError, SocketAddr},
+	net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
 	process::ExitCode,
-	time::SystemTime,
+	time::{Duration, SystemTime},
 };
 
 use axum::{
-	extract::Request,
 	http::{Method, StatusCode},
-	middleware::Next,
-	response::Response,
+	response::{IntoResponse, Response},
+	routing::any,
 	Json, Router,
 };
-use ccc_schema::error::RouteErrorBody;
-use reqwest::Client;
-use tokio::{net::TcpListener, runtime::Runtime};
+use ccc_schema::routing::{RouteErrorBody, RouteErrorMessage};
+use reqwest::{redirect::Policy, Client};
 
 /// The native HTTP client identifies itself by the binary crate's name and version.
 const UPSTREAM_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
-/// Process settings parsed by the native entry point before starting the listener.
+/// Process settings parsed by the native entry point.
 struct Config {
-	/// Every IP address and port at which the process accepts HTTP connections.
 	listen_addresses: NonEmpty<SocketAddr>,
 }
 
-/// One or more items, maintaining the first item through parsing and binding.
+/// One or more items, preserving the first item through parsing and binding.
 struct NonEmpty<T> {
-	/// The required first item.
 	first: T,
-	/// Any additional items in their original order.
 	rest: Vec<T>,
 }
 
-/// The server's Tokio runtime, constructed with I/O and time drivers enabled.
-struct ServerRuntime(Runtime);
-
-/// Provides the current wall-clock time to native handlers. A handler that
-/// needs time passes the sampled timestamp to shared library code.
+/// Provides a sampled wall-clock timestamp to a route when it needs one.
 type Clock = fn() -> SystemTime;
 
-/// Why the native process could not start serving HTTP.
+/// Why the native process could not start or continue serving HTTP.
 #[derive(Debug)]
 enum ServerError {
-	/// The listen address setting is present and is not Unicode.
+	/// The address list cannot be decoded as Unicode.
 	ListenAddressEncoding,
-	/// The listen address setting is not an IP socket address.
+	/// One list entry is not an IP address with a port.
 	ListenAddressSyntax {
-		/// The list entry that could not be parsed.
+		/// The entry supplied by the operator.
 		value: String,
-		/// The socket-address parser's failure.
+		/// The socket address parser's error.
 		source: AddrParseError,
 	},
-	/// The Tokio runtime could not be initialized.
+	/// Tokio could not create the server runtime.
 	Runtime(io::Error),
-	/// The upstream HTTP client could not be initialized.
+	/// Reqwest could not construct the upstream client.
 	HttpClient(reqwest::Error),
-	/// The process could not register a SIGTERM or SIGINT handler.
+	/// The process could not install its tracing subscriber.
+	Tracing(tracing::subscriber::SetGlobalDefaultError),
+	/// Tokio could not register SIGTERM or SIGINT.
 	SignalHandler(io::Error),
-	/// The TCP listener could not bind to the configured address.
+	/// One configured listener could not be opened.
 	Bind {
 		/// The configured IP address and port the listener tried to bind.
 		address: SocketAddr,
-		/// The underlying failure returned by the TCP listener.
+		/// The error from creating, binding, listening on, or registering the socket.
 		source: io::Error,
 	},
+	/// The listener returned an unexpected I/O error while serving.
+	ListenerIo {
+		address: SocketAddr,
+		source: io::Error,
+	},
+	/// A listener finished serving ahead of the shutdown signal.
+	ListenerStopped(SocketAddr),
+	/// Tokio could not join a spawned listener task.
+	ListenerTask(tokio::task::JoinError),
 }
 
 impl fmt::Display for ServerError {
 	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-		todo!("review draft")
+		match self {
+			Self::ListenAddressEncoding => formatter.write_str("CCC_LISTEN_ADDR is not valid Unicode"),
+			Self::ListenAddressSyntax { value, .. } => {
+				write!(formatter, "invalid CCC_LISTEN_ADDR entry {value:?}")
+			}
+			Self::Runtime(_) => formatter.write_str("could not initialize the Tokio runtime"),
+			Self::HttpClient(_) => formatter.write_str("could not initialize the HTTP client"),
+			Self::Tracing(_) => formatter.write_str("could not install the tracing subscriber"),
+			Self::SignalHandler(_) => {
+				formatter.write_str("could not install the shutdown signal handlers")
+			}
+			Self::Bind { address, .. } => write!(formatter, "could not bind HTTP listener at {address}"),
+			Self::ListenerIo { address, .. } => write!(formatter, "HTTP listener at {address} failed"),
+			Self::ListenerStopped(address) => write!(
+				formatter,
+				"HTTP listener at {address} stopped before shutdown"
+			),
+			Self::ListenerTask(_) => formatter.write_str("an HTTP listener task ended abnormally"),
+		}
 	}
 }
 
-impl std::error::Error for ServerError {
-	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-		todo!("review draft")
+impl Error for ServerError {
+	fn source(&self) -> Option<&(dyn Error + 'static)> {
+		match self {
+			Self::ListenAddressEncoding | Self::ListenerStopped(_) => None,
+			Self::ListenAddressSyntax { source, .. } => Some(source),
+			Self::Runtime(source)
+			| Self::SignalHandler(source)
+			| Self::Bind { source, .. }
+			| Self::ListenerIo { source, .. } => Some(source),
+			Self::HttpClient(source) => Some(source),
+			Self::Tracing(source) => Some(source),
+			Self::ListenerTask(source) => Some(source),
+		}
 	}
 }
 
-/// Parses the value of `CCC_LISTEN_ADDR` supplied by the entry point.
-/// A comma-separated list accepts surrounding whitespace per entry.
-/// An unset or blank value selects both `0.0.0.0:8080` and `[::]:8080`.
+/// Parses the process setting provided by main. No other server component reads
+/// listener configuration. Blank or absent values select both wildcards at 8080.
 ///
 /// # Errors
-///
-/// Returns an error if the setting is not Unicode or any entry is not an IP
-/// address with a port.
+/// Returns an error for non-Unicode values or an invalid socket address entry.
 fn parse_config(value: Option<&OsStr>) -> Result<Config, ServerError> {
-	todo!("review draft")
+	let value = value
+		.map(|value| value.to_str().ok_or(ServerError::ListenAddressEncoding))
+		.transpose()?
+		.unwrap_or_default();
+	let listen_addresses = if value.trim().is_empty() {
+		NonEmpty {
+			first: SocketAddr::from((Ipv4Addr::UNSPECIFIED, 8080)),
+			rest: vec![SocketAddr::from((Ipv6Addr::UNSPECIFIED, 8080))],
+		}
+	} else {
+		let (first, rest) = value
+			.split_once(',')
+			.map_or((value, None), |(first, rest)| (first, Some(rest)));
+		NonEmpty {
+			first: parse_address(first)?,
+			rest: rest
+				.into_iter()
+				.flat_map(|rest| rest.split(','))
+				.map(parse_address)
+				.collect::<Result<_, _>>()?,
+		}
+	};
+	Ok(Config { listen_addresses })
 }
 
-/// Builds the native client with the upstream User-Agent set to the crate name
-/// and version. The client returns redirects without following them.
+fn parse_address(value: &str) -> Result<SocketAddr, ServerError> {
+	let value = value.trim();
+	value
+		.parse()
+		.map_err(|source| ServerError::ListenAddressSyntax {
+			value: value.to_owned(),
+			source,
+		})
+}
+
+/// Builds the native client with a five-second connect timeout and a
+/// thirty-second total timeout. It bypasses proxies and returns redirects
+/// unchanged. Upstream requests carry the binary crate's name and version.
 ///
 /// # Errors
-///
 /// Returns an error if reqwest cannot initialize the client.
 fn build_http_client() -> Result<Client, ServerError> {
-	todo!("review draft")
+	Client::builder()
+		.user_agent(UPSTREAM_USER_AGENT)
+		.redirect(Policy::none())
+		.no_proxy()
+		.connect_timeout(Duration::from_secs(5))
+		.timeout(Duration::from_secs(30))
+		.build()
+		.map_err(ServerError::HttpClient)
 }
 
-/// Returns the fixed text of the native process's root health check.
+/// Maps the shared response message to its HTTP status at the native boundary.
+struct RoutingFailure(RouteErrorMessage);
+
+impl IntoResponse for RoutingFailure {
+	fn into_response(self) -> Response {
+		let status = match self.0 {
+			RouteErrorMessage::NotFound => StatusCode::NOT_FOUND,
+			RouteErrorMessage::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
+		};
+		(status, Json(RouteErrorBody { error: self.0 })).into_response()
+	}
+}
+
 fn ping() -> Ready<&'static str> {
-	todo!("review draft")
+	ready("pong")
 }
 
-/// Returns the JSON 405 response for a method the native router does not serve.
-fn method_not_allowed() -> Ready<(StatusCode, Json<RouteErrorBody>)> {
-	todo!("review draft")
+fn method_not_allowed() -> Ready<RoutingFailure> {
+	ready(RoutingFailure(RouteErrorMessage::MethodNotAllowed))
 }
 
-/// Returns the JSON 404 response for an unmatched GET. Other methods receive
-/// the same JSON 405 response as they would on a matched path.
-fn unmatched_path(method: Method) -> Ready<(StatusCode, Json<RouteErrorBody>)> {
-	todo!("review draft")
+#[allow(
+	clippy::needless_pass_by_value,
+	reason = "Axum extracts the request method by value"
+)]
+fn unmatched_path(method: Method) -> Ready<RoutingFailure> {
+	ready(RoutingFailure(if method == Method::GET {
+		RouteErrorMessage::NotFound
+	} else {
+		RouteErrorMessage::MethodNotAllowed
+	}))
 }
 
-/// Removes Axum's Allow header from every 405 to match the reference Worker.
-async fn strip_allow_on_405(request: Request, next: Next) -> Response {
-	todo!("review draft")
+/// The health route is static. Future upstream routes can use the injected
+/// clock and client when the router assembles them.
+fn router(_clock: Clock, _http_client: Client) -> Router {
+	Router::new()
+		.route(
+			"/ping",
+			any(method_not_allowed).get(ping).head(method_not_allowed),
+		)
+		.fallback(unmatched_path)
 }
 
-/// Builds the native router with the supplied clock and HTTP client available
-/// for routes that need them. `/ping` accepts GET on every host. HEAD is
-/// explicitly routed to the method error handler so Axum cannot use GET for it.
-fn router(clock: Clock, http_client: Client) -> Router {
-	todo!("review draft")
+async fn healthcheck(config: &Config, client: &Client) -> bool {
+	for address in
+		std::iter::once(&config.listen_addresses.first).chain(&config.listen_addresses.rest)
+	{
+		let check = async {
+			let response = client.get(healthcheck_url(*address)).send().await?;
+			Ok::<_, reqwest::Error>(
+				response.status() == StatusCode::OK && response.bytes().await? == "pong",
+			)
+		};
+		if matches!(
+			tokio::time::timeout(Duration::from_millis(500), check).await,
+			Ok(Ok(true))
+		) {
+			return true;
+		}
+	}
+	false
 }
 
-/// Builds the Tokio runtime with I/O and time drivers enabled.
-///
-/// # Errors
-/// Returns an error if Tokio cannot initialize the runtime.
-fn build_runtime() -> Result<ServerRuntime, ServerError> {
-	todo!("review draft")
+fn healthcheck_url(mut address: SocketAddr) -> String {
+	if address.ip().is_unspecified() {
+		address.set_ip(if address.is_ipv4() {
+			IpAddr::V4(Ipv4Addr::LOCALHOST)
+		} else {
+			IpAddr::V6(Ipv6Addr::LOCALHOST)
+		});
+	}
+	format!("http://{address}/ping")
 }
 
-/// Binds every configured address and registers each listener on the supplied
-/// runtime. The sockets use `SO_REUSEADDR` and a requested backlog of 1024.
-/// IPv6 sockets accept only IPv6 connections so both families can share a port.
-///
-/// # Errors
-///
-/// Returns the attempted address and I/O error if any listener cannot be opened.
-fn bind_listeners(
-	runtime: &ServerRuntime,
-	config: &Config,
-) -> Result<NonEmpty<TcpListener>, ServerError> {
-	todo!("review draft")
+async fn run(config: Config, probe: bool, clock: Clock) -> Result<ExitCode, ServerError> {
+	let client = build_http_client()?;
+	if probe {
+		let healthy = tokio::time::timeout(Duration::from_secs(1), healthcheck(&config, &client))
+			.await
+			.unwrap_or(false);
+		return Ok(if healthy {
+			ExitCode::SUCCESS
+		} else {
+			ExitCode::FAILURE
+		});
+	}
+	server::run(config, router(clock, client)).await?;
+	Ok(ExitCode::SUCCESS)
 }
 
-/// Registers SIGTERM and SIGINT on the supplied runtime. The returned future
-/// completes when the first of the two signals arrives.
-///
-/// # Errors
-///
-/// Returns an error if the process cannot register the signal handler.
-fn install_shutdown_signal(
-	runtime: &ServerRuntime,
-) -> Result<impl Future<Output = ()> + Send + 'static, ServerError> {
-	Ok(async { todo!("review draft") })
-}
-
-/// Serves the same router on every bound listener on the supplied runtime.
-/// One task awaits the shutdown future and broadcasts completion through
-/// a Tokio watch channel. Every listener stops accepting and drains its requests.
-///
-/// # Panics
-/// Calls Tokio's blocking entry point and must be invoked outside a running runtime.
-fn serve(
-	runtime: &ServerRuntime,
-	listeners: NonEmpty<TcpListener>,
-	router: Router,
-	shutdown: impl Future<Output = ()> + Send + 'static,
-) {
-	todo!("review draft")
-}
-
-/// Initializes native dependencies, binds the listeners and serves until shutdown.
-///
-/// # Errors
-///
-/// Returns errors from runtime, client, listener or signal initialization.
-fn run(config: Config, clock: Clock) -> Result<(), ServerError> {
-	todo!("review draft")
-}
-
-/// Reads process configuration and starts the native server. On startup
-/// failure, writes the error and its causes to stderr and returns failure.
 fn main() -> ExitCode {
-	todo!("review draft")
+	match start() {
+		Ok(exit) => exit,
+		Err(error) => {
+			eprintln!("{error}");
+			let mut cause = error.source();
+			while let Some(error) = cause {
+				eprintln!("  caused by {error}");
+				cause = error.source();
+			}
+			ExitCode::FAILURE
+		}
+	}
 }
+
+#[allow(
+	clippy::disallowed_methods,
+	reason = "The entry point supplies the wall clock to the native router"
+)]
+fn start() -> Result<ExitCode, ServerError> {
+	let subscriber = tracing_subscriber::fmt().with_writer(io::stderr).finish();
+	tracing::subscriber::set_global_default(subscriber).map_err(ServerError::Tracing)?;
+	let config = parse_config(std::env::var_os("CCC_LISTEN_ADDR").as_deref())?;
+	let probe = std::env::args_os().nth(1).as_deref() == Some(OsStr::new("healthcheck"));
+	let runtime = tokio::runtime::Builder::new_multi_thread()
+		.enable_all()
+		.build()
+		.map_err(ServerError::Runtime)?;
+	let result = runtime.block_on(run(config, probe, SystemTime::now));
+	runtime.shutdown_background();
+	result
+}
+
+#[cfg(test)]
+mod routing_tests;
