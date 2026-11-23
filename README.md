@@ -36,13 +36,14 @@ mise trust
 ```sh
 rustup toolchain install nightly-2026-11-22 --profile minimal # public API listings
 mise install               # download the pinned tools
-cargo fetch --locked       # download the locked Rust dependencies
+cargo fetch --locked --target host-tuple # download host dependencies, including test dependencies
 mise run check             # lint, test, check docs, dependencies and API listings
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
 ```
 
-`mise install` and `cargo fetch --locked` use the network during setup.
+`mise install` and `cargo fetch --locked --target <target>` use the network
+during setup. Fetch dependencies for each target you plan to test, as CI does.
 After setup, run the tests without network access as CI does.
 
 ```sh
@@ -61,5 +62,6 @@ that should execute in Wasm.
 ```sh
 rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
+cargo fetch --locked --target wasm32-unknown-unknown
 MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test -- --target wasm32-unknown-unknown --exclude e2e
 ```
