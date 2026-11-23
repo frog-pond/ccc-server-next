@@ -51,5 +51,29 @@ that should execute in Wasm.
 ```sh
 rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
-mise run test -- --target wasm32-unknown-unknown --exclude e2e
+mise run test -- --target wasm32-unknown-unknown --exclude ccc-native --exclude e2e
+```
+
+## Native server
+
+The native server accepts `GET /ping` on any host and returns plain-text
+`pong`. The reference Worker restricts this route to Node-era hosts. The native
+server accepts `localhost` so the container can check its own health. Other
+methods, including `HEAD`, receive 405. An unmatched GET receives 404.
+[#453](https://github.com/frog-pond/ccc-server-next/issues/453)
+
+The shared response layer will supply `Cache-Control: public, max-age=600`
+and the ETag. [#449](https://github.com/frog-pond/ccc-server-next/issues/449)
+
+Set `CCC_LISTEN_ADDR` to a comma-separated list of IP addresses with ports,
+such as `0.0.0.0:8080,[::]:8080`. An unset or blank value selects
+`0.0.0.0:80,[::]:80`. IPv6 listeners accept IPv6 connections only. The native
+server binds every address before serving and drains active requests on SIGTERM.
+
+The container's health check targets `localhost:80`. Keep port 80 available
+inside the container when changing its listen addresses.
+
+```sh
+docker build --tag ccc-native .
+docker run --rm --publish 8080:80 ccc-native
 ```
