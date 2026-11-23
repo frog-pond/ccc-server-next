@@ -50,15 +50,19 @@ request for a known fixture, including `PROPFIND`, returns 405 with `Allow: GET`
 The Worker uses `trifecta-freshness` to select each reply and when to run
 its next alarm. The fixture policy makes a value fresh for five seconds from
 the start of the successful fetch, with a 60-second stale window and no age
-limit for fallback after failure. The first GET records the read and returns
-202 while the initial alarm is pending. The Worker serves a stale value during
-a background refresh when the policy allows it. On failure it records the
-failed reply and the policy's backoff, preserves an eligible cached value, and
-logs `worker_experiment.stale_value_served` when a later read serves it. The
-first retry is due 30 seconds after the failed fetch started. A successful
-refresh replaces the value and clears the failure. Alarms stop when the
-freshness crate considers the fixture idle and resume when a later GET records
-a read.
+limit for fallback after failure. A read that asks for a fetch or refresh
+arms the alarm immediately or keeps an earlier pending alarm. The experiment
+has no waiting readers, so a read that needs the fetch result returns 202 even
+when it holds a fallback for a failed fetch. If the policy allows the cached
+value to be served immediately, a read can return it while a refresh runs.
+
+On failure the object records the failed reply and backoff, keeps the value,
+and logs `worker_experiment.stale_value_served` when the policy selects it
+after a failure. The first retry is due 30 seconds after the failed fetch
+started. A successful refresh replaces the value and clears the failure.
+Alarms stop when the freshness crate considers the fixture idle. If SQLite
+rejects a read-time write, the object logs the failure and uses the new time
+in memory for the read and alarm. A later read retries the write.
 
 Both builds share a five-second deadline covering the source, response
 adapter, and transform.
@@ -99,7 +103,9 @@ These checks were manual local integration checks, outside `cargo test`. A
 local harness could automate them by controlling the fixture responses,
 starting and stopping Wrangler with disposable persistence, and checking
 the HTTP replies, SQLite rows and structured logs. Start each case with a new
-state directory unless it explicitly reuses one. Use `loopback_dev` above
+state directory unless it explicitly reuses one. The checked reply schema
+uses `fixture_cache_entry`; old local state should use a new persistence
+directory for these checks. Use `loopback_dev` above
 from the Worker crate directory.
 
 ### SQLite rows and job ownership
@@ -118,7 +124,7 @@ for db in "$state"/v3/do/ccc-fixture-experiment-FixtureObject/*.sqlite; do
     'SELECT name, payload FROM fixture_records;
      SELECT last_read_ms, value_started_ms, value_payload,
             failure_count, backoff_until_ms, failure_payload
-     FROM fixture_entry;'
+     FROM fixture_cache_entry;'
 done
 ```
 
@@ -136,6 +142,31 @@ SQL
 Restart with the same state and request `/experiment/value`. Expect 500 with
 `{"state":"stored_record_invalid"}` and an object failure event with
 `operation: validate_job`.
+
+### Rejected read-time write
+
+With a fresh disposable state directory, fill the value and identify its
+database as above. While Wrangler is running, run this before the next alarm
+is due. It ages the value past its stale window, marks the fixture idle, and
+rejects writes that would update the read time.
+
+```sh
+sqlite3 "$db" <<'SQL'
+UPDATE fixture_cache_entry
+SET last_read_ms = (unixepoch() - 49 * 3600) * 1000,
+    value_started_ms = (unixepoch() - 120) * 1000;
+CREATE TRIGGER reject_read_time BEFORE UPDATE OF last_read_ms ON fixture_cache_entry
+BEGIN
+    SELECT RAISE(ABORT, 'fixture blocked read time');
+END;
+SQL
+```
+
+Request `/experiment/value`. Expect 202 while the alarm fetches, even though
+SQLite holds a fallback. The Worker logs a `write_read_time` failure and
+stores a reply with a newer `value_started_ms`. The row's `last_read_ms`
+still shows the old time. Drop the trigger and repeat the GET to check that
+the Worker persists the read time on retry.
 
 ### Invalid origin and missing binding
 
@@ -216,7 +247,7 @@ PYCODE
 
 In `503` mode, wait for a refresh failure event with upstream status 503,
 then read `/experiment/value`. Expect 42 and a stale-serving event.
-In `fixture_entry`, the value reply and fetch start stay unchanged,
+In `fixture_cache_entry`, the value reply and fetch start stay unchanged,
 `failure_count` is 1, and `failure_payload` contains the 503 failure.
 Restore the normal fixture before `backoff_until_ms`. After the recovery
 alarm, the successful value has a new fetch start and the failure columns
@@ -230,13 +261,13 @@ attempt should store 42 and clear the failure.
 
 ### Restart before the alarm
 
-With a fresh state directory, request `/experiment/value` and stop Wrangler
-after the 202 and before the five-second initial alarm fires. Query SQLite
-as above to confirm the job and read time exist and `value_payload` and
-`failure_payload` in `fixture_entry` are NULL. Restart
-Wrangler with the same persistence directory. Query SQLite again before
-making another HTTP request. The alarm should store the completed reply on
-its own. The first GET after the write should return 42.
+With a fresh state directory, request `/experiment/value` and poll until
+it returns 42. Record `value_started_ms` from SQLite and stop Wrangler
+before the next refresh, which is due five seconds after that fetch started.
+Restart Wrangler with the same persistence directory. Query SQLite again
+before making another HTTP request. The alarm should load the stored job and
+store a reply with a newer `value_started_ms`. The first GET after the write
+should return 42.
 
 ## Compile probes
 

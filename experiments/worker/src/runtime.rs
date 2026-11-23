@@ -49,7 +49,7 @@ const FIXTURE_POLICY: FreshnessPolicy<SystemTime> = FreshnessPolicy {
 	period_end: None,
 };
 
-type FixtureEntry = Entry<SystemTime, String>;
+type FixtureEntry = Entry<SystemTime, ()>;
 
 type SourceFailure = FixtureSourceError<worker::Error>;
 
@@ -137,6 +137,8 @@ pub struct FixtureObject {
 	env: Env,
 	// get_alarm() can return None while the alarm handler is running.
 	alarm_running: Rc<Cell<bool>>,
+	// A failed SQLite touch must still be visible to the alarm on this instance.
+	unwritten_read: Rc<Cell<Option<SystemTime>>>,
 }
 
 impl DurableObject for FixtureObject {
@@ -145,6 +147,7 @@ impl DurableObject for FixtureObject {
 			state,
 			env,
 			alarm_running: Rc::new(Cell::new(false)),
+			unwritten_read: Rc::new(Cell::new(None)),
 		}
 	}
 
@@ -157,12 +160,13 @@ impl DurableObject for FixtureObject {
 		};
 		let storage = self.state.storage();
 		let alarm_running = Rc::clone(&self.alarm_running);
+		let unwritten_read = Rc::clone(&self.unwritten_read);
 		// Keep the storage/alarm lookup and re-arm together. Return routine
 		// failures as values so they do not fail the concurrency gate.
 		let result = self
 			.state
 			.block_concurrency_while(async move {
-				Ok(read_or_schedule(&storage, owner, requested, &alarm_running).await)
+				Ok(read_or_schedule(&storage, owner, requested, &alarm_running, &unwritten_read).await)
 			})
 			.await;
 		match result {
@@ -247,19 +251,29 @@ impl FixtureObject {
 		records: &Records,
 		requested: Fixture,
 	) -> Result<(), ObjectFailure> {
-		let Some(mut stored) = records.read_entry()? else {
+		let Some(mut stored) = self.read_alarm_entry(records)? else {
 			return Ok(());
 		};
 		let started_at = worker_time()?;
-		if FIXTURE_POLICY.may_refresh(started_at, Some(&stored.entry)) {
+		if FIXTURE_POLICY.may_refresh(started_at, Some(&stored.policy_entry())) {
 			let outcome = run_refresh(&self.env, requested).await;
-			records.write_outcome(outcome, &stored.entry, started_at, worker_time()?)?;
-			stored = records.read_entry()?.ok_or(ObjectFailure::MissingEntry)?;
+			records.write_outcome(outcome, &stored, started_at, requested)?;
+			stored = self
+				.read_alarm_entry(records)?
+				.ok_or(ObjectFailure::MissingEntry)?;
 		}
-		if let Some(deadline) = FIXTURE_POLICY.next_refresh_hint(worker_time()?, &stored.entry) {
+		if let Some(deadline) = FIXTURE_POLICY.next_refresh_hint(worker_time()?, &stored.policy_entry())
+		{
 			schedule_refresh(storage, deadline).await?;
 		}
 		Ok(())
+	}
+
+	fn read_alarm_entry(&self, records: &Records) -> Result<Option<StoredEntry>, ObjectFailure> {
+		Ok(StoredEntry::apply_read(
+			records.read_entry()?,
+			self.unwritten_read.get(),
+		))
 	}
 }
 
@@ -288,19 +302,27 @@ async fn read_or_schedule(
 	owner: Fixture,
 	requested: Fixture,
 	alarm_running: &Cell<bool>,
+	unwritten_read: &Cell<Option<SystemTime>>,
 ) -> Result<ReadReply, ObjectFailure> {
 	check_owner(owner, requested)?;
 	let records = Records::open(storage.sql())?;
 	let now = worker_time()?;
-	let stored = load_for_read(&records, owner, now)?;
-	let hint = FIXTURE_POLICY.next_refresh_hint(now, &stored.entry);
-	let response = stored.for_read(owner, now)?;
-	if let Some(deadline) = hint {
-		if let Err(failure) = ensure_alarm(storage, alarm_running, deadline).await {
-			match response {
-				ReadReply::Pending => return Err(failure),
-				ReadReply::Complete(_) => record_object_failure(Some(owner), &failure),
-			}
+	let stored = load_for_read(&records, owner, now, unwritten_read)?;
+	let entry = stored.policy_entry();
+	let action = FIXTURE_POLICY.on_read(now, Some(&entry));
+	let response = stored.for_read(owner, action)?;
+	if let Err(failure) = ensure_alarm(
+		storage,
+		alarm_running,
+		now,
+		&entry,
+		requests_refresh(action),
+	)
+	.await
+	{
+		match response {
+			ReadReply::Pending => return Err(failure),
+			ReadReply::Complete(_) => record_object_failure(Some(owner), &failure),
 		}
 	}
 	Ok(response)
@@ -310,17 +332,36 @@ fn load_for_read(
 	records: &Records,
 	fixture: Fixture,
 	now: SystemTime,
+	unwritten_read: &Cell<Option<SystemTime>>,
 ) -> Result<StoredEntry, ObjectFailure> {
 	if records.read_job(Some(fixture))?.is_none() {
 		records.write_job(RefreshJob::ReadFixture(fixture))?;
 	}
-	let mut stored = records.read_entry()?;
-	if let Some(last_read) = record_read(now, stored.as_ref().map(|stored| &stored.entry)) {
-		records.write_read_time(last_read)?;
-		let stored = stored.get_or_insert_with(|| StoredEntry::new(last_read));
-		stored.entry.last_read = last_read;
+	let stored = StoredEntry::apply_read(records.read_entry()?, unwritten_read.get());
+	let entry = stored.as_ref().map(StoredEntry::policy_entry);
+	let last_read = record_read(now, entry.as_ref());
+	let stored = StoredEntry::apply_read(stored, last_read).ok_or(ObjectFailure::MissingEntry)?;
+	if let Some(last_read) = last_read {
+		unwritten_read.set(Some(last_read));
 	}
-	stored.ok_or(ObjectFailure::MissingEntry)
+	if let Some(last_read) = unwritten_read.get() {
+		match records.write_read_time(last_read) {
+			Ok(()) => unwritten_read.set(None),
+			Err(failure) => record_object_failure(Some(fixture), &failure),
+		}
+	}
+	Ok(stored)
+}
+
+fn requests_refresh(action: ReadAction<'_, SystemTime, ()>) -> bool {
+	matches!(
+		action,
+		ReadAction::FetchWithoutFallback
+			| ReadAction::FetchWithStaleFallback { .. }
+			| ReadAction::RequestRefresh { .. }
+			| ReadAction::RequestRefreshAfterFailure { .. }
+			| ReadAction::ServeFreshAndRequestRefresh { .. }
+	)
 }
 
 fn worker_time() -> Result<SystemTime, ObjectFailure> {
@@ -349,13 +390,29 @@ fn storage_millis(time: SystemTime) -> Result<i64, ObjectFailure> {
 async fn ensure_alarm(
 	storage: &Storage,
 	running: &Cell<bool>,
-	deadline: SystemTime,
+	now: SystemTime,
+	entry: &FixtureEntry,
+	request_refresh: bool,
 ) -> Result<(), ObjectFailure> {
+	if running.get() {
+		return Ok(());
+	}
 	let scheduled = storage
 		.get_alarm()
 		.await
 		.map_err(|cause| StorageOperation::ReadAlarm.failure(cause))?;
-	if scheduled.is_none() && !running.get() {
+	let deadline = if request_refresh {
+		let now_ms = storage_millis(now)?;
+		scheduled
+			.is_none_or(|millis| millis > now_ms)
+			.then_some(now)
+	} else {
+		scheduled
+			.is_none()
+			.then(|| FIXTURE_POLICY.next_refresh_hint(now, entry))
+			.flatten()
+	};
+	if let Some(deadline) = deadline {
 		schedule_refresh(storage, deadline).await?;
 	}
 	Ok(())
@@ -383,25 +440,53 @@ struct StaleValueEvent {
 	reason: StaleReason,
 }
 
+struct StoredValue {
+	metadata: CachedValueMetadata<SystemTime>,
+	payload: String,
+}
+
 struct StoredEntry {
-	entry: FixtureEntry,
-	value_payload: Option<String>,
+	last_read: SystemTime,
+	value: Option<StoredValue>,
+	failure: Option<Failure<SystemTime, String>>,
 }
 
 impl StoredEntry {
-	const fn new(last_read: SystemTime) -> Self {
-		Self {
-			entry: Entry {
+	fn apply_read(stored: Option<Self>, read: Option<SystemTime>) -> Option<Self> {
+		match (stored, read) {
+			(Some(mut stored), Some(read)) => {
+				stored.last_read = stored.last_read.max(read);
+				Some(stored)
+			}
+			(None, Some(last_read)) => Some(Self {
 				last_read,
-				cached: None,
+				value: None,
 				failure: None,
-			},
-			value_payload: None,
+			}),
+			(stored, None) => stored,
 		}
 	}
 
-	fn for_read(self, fixture: Fixture, now: SystemTime) -> Result<ReadReply, ObjectFailure> {
-		match FIXTURE_POLICY.on_read(now, Some(&self.entry)) {
+	// The policy needs the failure to decide what to serve. The encoded
+	// failure reply stays alongside it and moves to the response if selected.
+	fn policy_entry(&self) -> FixtureEntry {
+		Entry {
+			last_read: self.last_read,
+			cached: self.value.as_ref().map(|value| value.metadata),
+			failure: self.failure.as_ref().map(|failure| Failure {
+				consecutive_failures: failure.consecutive_failures,
+				backoff_until: failure.backoff_until,
+				last_error: (),
+			}),
+		}
+	}
+
+	fn for_read(
+		self,
+		fixture: Fixture,
+		action: ReadAction<'_, SystemTime, ()>,
+	) -> Result<ReadReply, ObjectFailure> {
+		match action {
 			ReadAction::ServeFresh { .. }
 			| ReadAction::ServeFreshAndRequestRefresh { .. }
 			| ReadAction::RequestRefresh { .. } => self.complete_value(fixture, None),
@@ -409,13 +494,12 @@ impl StoredEntry {
 			| ReadAction::ServeCachedAfterFailure { .. } => {
 				self.complete_value(fixture, Some(StaleReason::RefreshFailed))
 			}
-			ReadAction::ReportCachedError(_) => self
-				.entry
+			ReadAction::ReportCachedError(()) => self
 				.failure
 				.map(|failure| ReadReply::Complete(failure.last_error))
 				.ok_or(ObjectFailure::MissingEntry),
-			// Required refreshes complete through the alarm. A later GET reads
-			// its success, cached error or fallback as directed by the policy.
+			// The experiment has no waiting readers. A later read applies the
+			// policy again after the alarm records its success or failure.
 			ReadAction::FetchWithStaleFallback { .. } | ReadAction::FetchWithoutFallback => {
 				Ok(ReadReply::Pending)
 			}
@@ -427,7 +511,7 @@ impl StoredEntry {
 		fixture: Fixture,
 		stale_reason: Option<StaleReason>,
 	) -> Result<ReadReply, ObjectFailure> {
-		let payload = self.value_payload.ok_or(ObjectFailure::MissingEntry)?;
+		let value = self.value.ok_or(ObjectFailure::MissingEntry)?;
 		if let Some(reason) = stale_reason {
 			log_event(&StaleValueEvent {
 				event: "worker_experiment.stale_value_served",
@@ -436,7 +520,7 @@ impl StoredEntry {
 				reason,
 			});
 		}
-		Ok(ReadReply::Complete(payload))
+		Ok(ReadReply::Complete(value.payload))
 	}
 }
 
@@ -460,12 +544,11 @@ struct EntryRow {
 
 impl EntryRow {
 	fn decode(self) -> Result<StoredEntry, ObjectFailure> {
-		let cached = match (self.value_started_ms, &self.value_payload) {
-			(Some(started), Some(_)) => Some(CachedValueMetadata::new(
-				storage_time(started)?,
-				None,
-				None,
-			)?),
+		let value = match (self.value_started_ms, self.value_payload) {
+			(Some(started), Some(payload)) => Some(StoredValue {
+				metadata: CachedValueMetadata::new(storage_time(started)?, None, None)?,
+				payload,
+			}),
 			(None, None) => None,
 			_ => return Err(ObjectFailure::RecordType(Record::Outcome)),
 		};
@@ -483,12 +566,9 @@ impl EntryRow {
 			_ => return Err(ObjectFailure::RecordType(Record::Outcome)),
 		};
 		Ok(StoredEntry {
-			entry: Entry {
-				last_read: storage_time(self.last_read_ms)?,
-				cached,
-				failure,
-			},
-			value_payload: self.value_payload,
+			last_read: storage_time(self.last_read_ms)?,
+			value,
+			failure,
 		})
 	}
 }
@@ -498,25 +578,7 @@ struct Records(SqlStorage);
 impl Records {
 	fn open(sql: SqlStorage) -> Result<Self, ObjectFailure> {
 		sql
-			.exec(
-				"CREATE TABLE IF NOT EXISTS fixture_records (
-				name TEXT PRIMARY KEY,
-				payload TEXT NOT NULL CHECK (json_valid(payload))
-			) STRICT;
-			CREATE TABLE IF NOT EXISTS fixture_entry (
-				id INTEGER PRIMARY KEY CHECK (id = 1),
-				last_read_ms INTEGER NOT NULL,
-				value_started_ms INTEGER,
-				value_payload TEXT CHECK (json_valid(value_payload)),
-				failure_count INTEGER,
-				backoff_until_ms INTEGER,
-				failure_payload TEXT CHECK (json_valid(failure_payload)),
-				CHECK ((value_started_ms IS NULL) = (value_payload IS NULL)),
-				CHECK ((failure_count IS NULL) = (backoff_until_ms IS NULL)
-					AND (failure_count IS NULL) = (failure_payload IS NULL))
-			) STRICT",
-				None,
-			)
+			.exec(include_str!("fixture_storage.sql"), None)
 			.map_err(|cause| StorageOperation::OpenStorage.failure(cause))?;
 		Ok(Self(sql))
 	}
@@ -562,7 +624,7 @@ impl Records {
 			.0
 			.exec(
 				"SELECT last_read_ms, value_started_ms, value_payload, failure_count,
-			 backoff_until_ms, failure_payload FROM fixture_entry WHERE id = 1",
+			 backoff_until_ms, failure_payload FROM fixture_cache_entry WHERE id = 1",
 				None,
 			)
 			.map_err(|cause| StorageOperation::ReadOutcome.failure(cause))?;
@@ -579,8 +641,8 @@ impl Records {
 		self
 			.0
 			.exec(
-				"INSERT INTO fixture_entry (id, last_read_ms) VALUES (1, ?)
-			 ON CONFLICT(id) DO UPDATE SET last_read_ms = excluded.last_read_ms",
+				"INSERT INTO fixture_cache_entry (id, last_read_ms) VALUES (1, ?)
+			 ON CONFLICT(id) DO UPDATE SET last_read_ms = max(last_read_ms, excluded.last_read_ms)",
 				vec![storage_millis(now)?.into()],
 			)
 			.map_err(|cause| StorageOperation::WriteReadTime.failure(cause))?;
@@ -590,27 +652,40 @@ impl Records {
 	fn write_outcome(
 		&self,
 		outcome: RefreshOutcome,
-		entry: &FixtureEntry,
+		stored: &StoredEntry,
 		started_at: SystemTime,
-		finished_at: SystemTime,
+		fixture: Fixture,
 	) -> Result<(), ObjectFailure> {
-		// The read timestamp can advance while the upstream operation is in
-		// flight. The outcome write changes only the value and failure columns.
-		let payload = encode(Record::Outcome, &ObjectReply::from(outcome))?;
-		match outcome {
-			RefreshOutcome::Value { .. } => self.write_value(started_at, payload),
-			RefreshOutcome::Failed { .. } => self.write_failure(entry, started_at, finished_at, payload),
-		}
+		let outcome = match outcome {
+			RefreshOutcome::Value { .. } => match FIXTURE_POLICY.cached_after_success(started_at, None) {
+				Ok(metadata) => {
+					return self.write_value(stored.last_read, metadata, encode_outcome(outcome)?);
+				}
+				Err(error) => failed_refresh(fixture, RefreshFailure::Pipeline, &error),
+			},
+			RefreshOutcome::Failed { .. } => outcome,
+		};
+		self.write_failure(stored, started_at, encode_outcome(outcome)?)
 	}
 
-	fn write_value(&self, started_at: SystemTime, payload: String) -> Result<(), ObjectFailure> {
-		let cached = FIXTURE_POLICY.cached_after_success(started_at, None)?;
+	fn write_value(
+		&self,
+		last_read: SystemTime,
+		cached: CachedValueMetadata<SystemTime>,
+		payload: String,
+	) -> Result<(), ObjectFailure> {
+		// A read may advance during the fetch. Only supply a read time for
+		// the insert, which is needed if the first read-time write failed.
 		self
 			.0
 			.exec(
-				"UPDATE fixture_entry SET value_started_ms = ?, value_payload = ?,
-			 failure_count = NULL, backoff_until_ms = NULL, failure_payload = NULL WHERE id = 1",
+				"INSERT INTO fixture_cache_entry (id, last_read_ms, value_started_ms, value_payload)
+			 VALUES (1, ?, ?, ?)
+			 ON CONFLICT(id) DO UPDATE SET value_started_ms = excluded.value_started_ms,
+			 value_payload = excluded.value_payload, failure_count = NULL,
+			 backoff_until_ms = NULL, failure_payload = NULL",
 				vec![
+					storage_millis(last_read)?.into(),
 					storage_millis(cached.fetch_started_at())?.into(),
 					payload.into(),
 				],
@@ -621,36 +696,33 @@ impl Records {
 
 	fn write_failure(
 		&self,
-		entry: &FixtureEntry,
+		stored: &StoredEntry,
 		started_at: SystemTime,
-		finished_at: SystemTime,
 		payload: String,
 	) -> Result<(), ObjectFailure> {
-		let previous_failures = entry
+		let previous_failures = stored
 			.failure
 			.as_ref()
 			.map(|failure| failure.consecutive_failures);
 		let failure = failure_after(started_at, previous_failures, payload, Duration::ZERO);
-		let keep_value = entry.cached.as_ref().is_some_and(|cached| {
-			FIXTURE_POLICY.may_serve_fallback(finished_at, cached.fetch_started_at())
-		});
-		self
-			.0
-			.exec(
-				"UPDATE fixture_entry SET failure_count = ?, backoff_until_ms = ?, failure_payload = ?,
-			 value_started_ms = CASE WHEN ? THEN value_started_ms END,
-			 value_payload = CASE WHEN ? THEN value_payload END WHERE id = 1",
-				vec![
-					i64::from(failure.consecutive_failures.get()).into(),
-					storage_millis(failure.backoff_until)?.into(),
-					failure.last_error.into(),
-					i64::from(keep_value).into(),
-					i64::from(keep_value).into(),
-				],
-			)
-			.map_err(|cause| StorageOperation::WriteOutcome.failure(cause))?;
+		self.0.exec(
+			"INSERT INTO fixture_cache_entry (id, last_read_ms, failure_count, backoff_until_ms, failure_payload)
+			 VALUES (1, ?, ?, ?, ?)
+			 ON CONFLICT(id) DO UPDATE SET failure_count = excluded.failure_count,
+			 backoff_until_ms = excluded.backoff_until_ms, failure_payload = excluded.failure_payload",
+			vec![
+				storage_millis(stored.last_read)?.into(),
+				i64::from(failure.consecutive_failures.get()).into(),
+				storage_millis(failure.backoff_until)?.into(),
+				failure.last_error.into(),
+			],
+		).map_err(|cause| StorageOperation::WriteOutcome.failure(cause))?;
 		Ok(())
 	}
+}
+
+fn encode_outcome(outcome: RefreshOutcome) -> Result<String, ObjectFailure> {
+	encode(Record::Outcome, &ObjectReply::from(outcome))
 }
 
 fn encode(record: Record, value: &impl Serialize) -> Result<String, ObjectFailure> {
@@ -921,7 +993,7 @@ enum ObjectFailure {
 	MissingEntry,
 	#[error("the Worker clock cannot be represented in storage")]
 	InvalidClock,
-	#[error("the freshness policy returned invalid cached value metadata")]
+	#[error("stored cached value metadata is invalid")]
 	InvalidMetadata(#[from] trifecta_freshness::Error),
 	#[error("stored job for {0:?} is in another fixture's object")]
 	JobFixtureMismatch(Fixture),

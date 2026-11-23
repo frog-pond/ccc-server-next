@@ -214,7 +214,8 @@ pub enum RefreshFailure {
 	/// The response body was not a JSON unsigned integer in the `u32` range.
 	#[serde(rename = "decode")]
 	Decode,
-	/// Trifecta reported a stage or cause outside this uncached pipeline's contract.
+	/// Trifecta reported a stage or cause outside the operation's contract, or
+	/// the freshness policy could not record metadata for a fetched value.
 	#[serde(rename = "pipeline")]
 	Pipeline,
 }
@@ -225,9 +226,10 @@ pub enum RefreshFailure {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "state")]
 pub enum ObjectReply {
-	/// The fixture's alarm is scheduled or running. If a later read finds an
-	/// unfinished job with neither a scheduled nor a running alarm, the object
-	/// re-arms the same job and returns `Pending` only after scheduling succeeds.
+	/// This read needs the result of a fetch that is scheduled or running.
+	/// The experiment has no waiting readers, so it returns HTTP 202 even
+	/// when a cached fallback is available if the fetch fails. A read that
+	/// needs a fetch brings a later alarm forward or schedules a new one.
 	#[serde(rename = "pending")]
 	Pending,
 	/// A completed attempt for the fixture that owns this object.
