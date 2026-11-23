@@ -22,13 +22,14 @@ The reference keeps moving. `docs/reference/` describes it at the commit in `doc
    - **Configuration, tests and fixtures**: `wrangler.jsonc`, a renamed fixture, a changed test. Update whatever in the extracts cites them.
    - **No effect on the contract**: refactors, tooling. Say so in one line.
 4. Update the extracts with `file:line` citations at the new commit. Re-check every citation into a reference file that changed, whether or not the text around the citation changed: line numbers move.
-5. Write the new commit to `docs/reference/REFERENCE_COMMIT`.
-6. Report to the user:
+5. Re-copy changed fixtures from the new commit as [the fixture README](../../../fixtures/ccc-server/README.md) describes. Update paths in the generator, fixture README and affected Rust tests if the reference moves a file.
+6. Write the new commit to `docs/reference/REFERENCE_COMMIT`, then re-run each case in `tools/reference-fixture.mjs` with `tools/reference-fixture <case>`. Review the expected-output diffs and commit the regenerated files under `fixtures/ccc-server/generated/` with the pin.
+7. Report to the user:
    - routes added or removed;
    - already-ported routes whose reference behaviour changed, each needing a follow-up;
    - changes to cache behaviour;
    - anything you could not classify.
-7. Propose issues for the follow-ups, and create them only when the user agrees.
+8. Propose issues for the follow-ups, and create them only when the user agrees.
 
 ## Keep in mind
 

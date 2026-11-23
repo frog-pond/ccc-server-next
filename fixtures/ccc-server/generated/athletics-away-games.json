@@ -1,0 +1,75 @@
+[
+  {
+    "id": "21117",
+    "sport": "Volleyball",
+    "sport_abbrev": "VB",
+    "date": "9.23",
+    "dateFormatted": "9.23",
+    "date_utc": "2026-09-24T00:00:00.000Z",
+    "date_end_utc": "",
+    "time": "7 p.m.",
+    "timestamp": 1790208000,
+    "location": {
+      "location": "Northfield, Minn. / West Gym",
+      "facility": "",
+      "homeAway": "A"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Carleton College",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/Carleton-College.png",
+    "opponent": "Oles",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "team_score": "0",
+    "opponent_score": "3",
+    "result": "W",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {
+      "boxscore": {
+        "url": "https://athletics.stolaf.edu/boxscore.aspx?id=21117",
+        "text": "Box"
+      },
+      "postgame": {
+        "url": "https://athletics.stolaf.edu/news/2026/9/23/volleyball-no-25-volleyball-sweeps-past-carleton-for-third-consceutive-year.aspx",
+        "text": "Recap"
+      }
+    },
+    "coverage": {}
+  },
+  {
+    "id": "21096",
+    "sport": "Men's Soccer",
+    "sport_abbrev": "MSOC",
+    "date": "9.23",
+    "dateFormatted": "9.23",
+    "date_utc": "2026-09-24T00:00:00.000Z",
+    "date_end_utc": "",
+    "time": "7 p.m.",
+    "timestamp": 1790208000,
+    "location": {
+      "location": "Decorah, Iowa / Luther Soccer Field",
+      "facility": "",
+      "homeAway": "A"
+    },
+    "status": {
+      "indicator": "final",
+      "value": ""
+    },
+    "hometeam": "Luther College",
+    "hometeam_logo": "https://athletics.stolaf.edu/images/logos/Luther_College.png",
+    "opponent": "Oles",
+    "opponent_logo": "https://athletics.stolaf.edu/images/logos/site/site.png",
+    "team_score": "1",
+    "opponent_score": "3",
+    "result": "W",
+    "ip_time": "",
+    "prescore_info": "",
+    "postscore_info": "",
+    "links": {},
+    "coverage": {}
+  }
+]
