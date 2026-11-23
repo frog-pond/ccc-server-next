@@ -1,0 +1,14 @@
+[package]
+name = "trifecta-fixtures"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bytes.workspace = true
+trifecta = { path = "../trifecta" }

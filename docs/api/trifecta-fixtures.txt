@@ -1,0 +1,71 @@
+pub mod trifecta_fixtures
+pub enum trifecta_fixtures::Error
+pub trifecta_fixtures::Error::InvalidPath(std::path::PathBuf)
+pub trifecta_fixtures::Error::Read
+pub trifecta_fixtures::Error::Read::path: std::path::PathBuf
+pub trifecta_fixtures::Error::Read::source: core::io::error::Error
+impl core::error::Error for trifecta_fixtures::Error
+pub fn trifecta_fixtures::Error::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for trifecta_fixtures::Error
+pub fn trifecta_fixtures::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for trifecta_fixtures::Error
+pub fn trifecta_fixtures::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Forget for trifecta_fixtures::Error
+impl core::marker::Freeze for trifecta_fixtures::Error
+impl core::marker::Move for trifecta_fixtures::Error
+impl core::marker::Send for trifecta_fixtures::Error
+impl core::marker::Sync for trifecta_fixtures::Error
+impl core::marker::Unpin for trifecta_fixtures::Error
+impl core::marker::UnsafeUnpin for trifecta_fixtures::Error
+impl !core::panic::unwind_safe::RefUnwindSafe for trifecta_fixtures::Error
+impl !core::panic::unwind_safe::UnwindSafe for trifecta_fixtures::Error
+impl<T, U> core::convert::Into<U> for trifecta_fixtures::Error where U: core::convert::From<T>
+pub fn trifecta_fixtures::Error::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_fixtures::Error where U: core::convert::Into<T>
+pub type trifecta_fixtures::Error::Error = never
+pub fn trifecta_fixtures::Error::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_fixtures::Error where U: core::convert::TryFrom<T>
+pub type trifecta_fixtures::Error::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_fixtures::Error::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::string::ToString for trifecta_fixtures::Error where T: core::fmt::Display + ?core::marker::Sized
+pub fn trifecta_fixtures::Error::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for trifecta_fixtures::Error where T: 'static + ?core::marker::Sized
+pub fn trifecta_fixtures::Error::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_fixtures::Error where T: ?core::marker::Sized
+pub fn trifecta_fixtures::Error::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_fixtures::Error where T: ?core::marker::Sized
+pub fn trifecta_fixtures::Error::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta_fixtures::Error
+pub fn trifecta_fixtures::Error::from(T) -> T
+pub struct trifecta_fixtures::FixtureSource<F>
+impl<F> trifecta_fixtures::FixtureSource<F>
+pub fn trifecta_fixtures::FixtureSource<F>::new<P>(std::path::PathBuf, F) -> Self where F: core::ops::function::Fn(&P) -> &std::path::Path
+impl<P, F> trifecta::source::Source<P> for trifecta_fixtures::FixtureSource<F> where P: core::marker::Sync, F: core::ops::function::Fn(&P) -> &std::path::Path + core::marker::Send + core::marker::Sync + 'static
+pub type trifecta_fixtures::FixtureSource<F>::Error = trifecta_fixtures::Error
+pub type trifecta_fixtures::FixtureSource<F>::Response = bytes::bytes::Bytes
+pub fn trifecta_fixtures::FixtureSource<F>::retrieve<'a>(&'a self, &'a P) -> trifecta::future::BoxFuture<'a, core::result::Result<bytes::bytes::Bytes, trifecta_fixtures::Error>>
+impl<F> core::marker::Forget for trifecta_fixtures::FixtureSource<F>
+impl<F> core::marker::Freeze for trifecta_fixtures::FixtureSource<F> where F: core::marker::Freeze
+impl<F> core::marker::Move for trifecta_fixtures::FixtureSource<F>
+impl<F> core::marker::Send for trifecta_fixtures::FixtureSource<F> where F: core::marker::Send
+impl<F> core::marker::Sync for trifecta_fixtures::FixtureSource<F> where F: core::marker::Sync
+impl<F> core::marker::Unpin for trifecta_fixtures::FixtureSource<F> where F: core::marker::Unpin
+impl<F> core::marker::UnsafeUnpin for trifecta_fixtures::FixtureSource<F> where F: core::marker::UnsafeUnpin
+impl<F> core::panic::unwind_safe::RefUnwindSafe for trifecta_fixtures::FixtureSource<F> where F: core::panic::unwind_safe::RefUnwindSafe
+impl<F> core::panic::unwind_safe::UnwindSafe for trifecta_fixtures::FixtureSource<F> where F: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for trifecta_fixtures::FixtureSource<F> where U: core::convert::From<T>
+pub fn trifecta_fixtures::FixtureSource<F>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_fixtures::FixtureSource<F> where U: core::convert::Into<T>
+pub type trifecta_fixtures::FixtureSource<F>::Error = never
+pub fn trifecta_fixtures::FixtureSource<F>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_fixtures::FixtureSource<F> where U: core::convert::TryFrom<T>
+pub type trifecta_fixtures::FixtureSource<F>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_fixtures::FixtureSource<F>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for trifecta_fixtures::FixtureSource<F> where T: 'static + ?core::marker::Sized
+pub fn trifecta_fixtures::FixtureSource<F>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_fixtures::FixtureSource<F> where T: ?core::marker::Sized
+pub fn trifecta_fixtures::FixtureSource<F>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_fixtures::FixtureSource<F> where T: ?core::marker::Sized
+pub fn trifecta_fixtures::FixtureSource<F>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta_fixtures::FixtureSource<F>
+pub fn trifecta_fixtures::FixtureSource<F>::from(T) -> T

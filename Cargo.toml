@@ -4,11 +4,14 @@ members = [
 	"ccc-native",
 	"ccc-schema",
 	"e2e",
+	"trifecta",
+	"trifecta-fixtures",
 	"trifecta-freshness",
+	"trifecta-reqwest",
 ]
 
 [workspace.metadata.wasm]
-exclude = ["ccc-native", "e2e"]
+exclude = ["ccc-native", "e2e", "trifecta-reqwest"]
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

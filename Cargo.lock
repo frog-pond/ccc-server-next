@@ -1632,11 +1632,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "trifecta"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "wasm-bindgen-test",
+]
+
+[[package]]
+name = "trifecta-fixtures"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "trifecta",
+]
+
+[[package]]
 name = "trifecta-freshness"
 version = "0.1.0"
 dependencies = [
  "jiff",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "trifecta-reqwest"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "trifecta",
 ]
 
 [[package]]

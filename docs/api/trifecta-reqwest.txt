@@ -1,0 +1,178 @@
+pub mod trifecta_reqwest
+pub enum trifecta_reqwest::Error
+pub trifecta_reqwest::Error::Execute(reqwest::error::Error)
+pub trifecta_reqwest::Error::ReadBody(reqwest::error::Error)
+impl core::error::Error for trifecta_reqwest::Error
+pub fn trifecta_reqwest::Error::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for trifecta_reqwest::Error
+pub fn trifecta_reqwest::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for trifecta_reqwest::Error
+pub fn trifecta_reqwest::Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Forget for trifecta_reqwest::Error
+impl core::marker::Freeze for trifecta_reqwest::Error
+impl core::marker::Move for trifecta_reqwest::Error
+impl core::marker::Send for trifecta_reqwest::Error
+impl core::marker::Sync for trifecta_reqwest::Error
+impl core::marker::Unpin for trifecta_reqwest::Error
+impl core::marker::UnsafeUnpin for trifecta_reqwest::Error
+impl !core::panic::unwind_safe::RefUnwindSafe for trifecta_reqwest::Error
+impl !core::panic::unwind_safe::UnwindSafe for trifecta_reqwest::Error
+impl<T, U> core::convert::Into<U> for trifecta_reqwest::Error where U: core::convert::From<T>
+pub fn trifecta_reqwest::Error::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_reqwest::Error where U: core::convert::Into<T>
+pub type trifecta_reqwest::Error::Error = never
+pub fn trifecta_reqwest::Error::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_reqwest::Error where U: core::convert::TryFrom<T>
+pub type trifecta_reqwest::Error::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_reqwest::Error::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::string::ToString for trifecta_reqwest::Error where T: core::fmt::Display + ?core::marker::Sized
+pub fn trifecta_reqwest::Error::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for trifecta_reqwest::Error where T: 'static + ?core::marker::Sized
+pub fn trifecta_reqwest::Error::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_reqwest::Error where T: ?core::marker::Sized
+pub fn trifecta_reqwest::Error::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_reqwest::Error where T: ?core::marker::Sized
+pub fn trifecta_reqwest::Error::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta_reqwest::Error
+pub fn trifecta_reqwest::Error::from(T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for trifecta_reqwest::Error where T: ?core::marker::Sized
+pub fn trifecta_reqwest::Error::and<P, B, E>(self, P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn trifecta_reqwest::Error::or<P, B, E>(self, P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for trifecta_reqwest::Error
+impl<T> tracing::instrument::WithSubscriber for trifecta_reqwest::Error
+pub struct trifecta_reqwest::HttpMetadata
+pub trifecta_reqwest::HttpMetadata::headers: http::header::map::HeaderMap
+pub trifecta_reqwest::HttpMetadata::status: http::status::StatusCode
+impl core::clone::Clone for trifecta_reqwest::HttpMetadata
+pub fn trifecta_reqwest::HttpMetadata::clone(&self) -> Self
+impl core::cmp::Eq for trifecta_reqwest::HttpMetadata
+impl core::cmp::PartialEq for trifecta_reqwest::HttpMetadata
+pub fn trifecta_reqwest::HttpMetadata::eq(&self, &Self) -> bool
+impl core::fmt::Debug for trifecta_reqwest::HttpMetadata
+pub fn trifecta_reqwest::HttpMetadata::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for trifecta_reqwest::HttpMetadata
+impl core::marker::Forget for trifecta_reqwest::HttpMetadata
+impl core::marker::Freeze for trifecta_reqwest::HttpMetadata
+impl core::marker::Move for trifecta_reqwest::HttpMetadata
+impl core::marker::Send for trifecta_reqwest::HttpMetadata
+impl core::marker::Sync for trifecta_reqwest::HttpMetadata
+impl core::marker::Unpin for trifecta_reqwest::HttpMetadata
+impl core::marker::UnsafeUnpin for trifecta_reqwest::HttpMetadata
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta_reqwest::HttpMetadata
+impl core::panic::unwind_safe::UnwindSafe for trifecta_reqwest::HttpMetadata
+impl<Q, K> equivalent::Equivalent<K> for trifecta_reqwest::HttpMetadata where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::equivalent(&self, &K) -> bool
+impl<Q, K> hashbrown::Equivalent<K> for trifecta_reqwest::HttpMetadata where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::equivalent(&self, &K) -> bool
+impl<T, U> core::convert::Into<U> for trifecta_reqwest::HttpMetadata where U: core::convert::From<T>
+pub fn trifecta_reqwest::HttpMetadata::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_reqwest::HttpMetadata where U: core::convert::Into<T>
+pub type trifecta_reqwest::HttpMetadata::Error = never
+pub fn trifecta_reqwest::HttpMetadata::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_reqwest::HttpMetadata where U: core::convert::TryFrom<T>
+pub type trifecta_reqwest::HttpMetadata::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_reqwest::HttpMetadata::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_reqwest::HttpMetadata where T: core::clone::Clone
+pub type trifecta_reqwest::HttpMetadata::Owned = T
+pub fn trifecta_reqwest::HttpMetadata::clone_into(&self, &mut T)
+pub fn trifecta_reqwest::HttpMetadata::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_reqwest::HttpMetadata where T: 'static + ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_reqwest::HttpMetadata where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_reqwest::HttpMetadata where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_reqwest::HttpMetadata where T: core::clone::Clone
+pub unsafe fn trifecta_reqwest::HttpMetadata::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_reqwest::HttpMetadata
+pub fn trifecta_reqwest::HttpMetadata::from(T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for trifecta_reqwest::HttpMetadata where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpMetadata::and<P, B, E>(self, P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn trifecta_reqwest::HttpMetadata::or<P, B, E>(self, P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for trifecta_reqwest::HttpMetadata
+impl<T> tracing::instrument::WithSubscriber for trifecta_reqwest::HttpMetadata
+pub struct trifecta_reqwest::HttpResponseAdapter
+impl core::clone::Clone for trifecta_reqwest::HttpResponseAdapter
+pub fn trifecta_reqwest::HttpResponseAdapter::clone(&self) -> Self
+impl core::default::Default for trifecta_reqwest::HttpResponseAdapter
+pub fn trifecta_reqwest::HttpResponseAdapter::default() -> Self
+impl core::fmt::Debug for trifecta_reqwest::HttpResponseAdapter
+pub fn trifecta_reqwest::HttpResponseAdapter::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for trifecta_reqwest::HttpResponseAdapter
+impl trifecta::body::AdaptResponse<reqwest::async_impl::response::Response> for trifecta_reqwest::HttpResponseAdapter
+pub type trifecta_reqwest::HttpResponseAdapter::Error = trifecta_reqwest::Error
+pub type trifecta_reqwest::HttpResponseAdapter::Metadata = trifecta_reqwest::HttpMetadata
+pub fn trifecta_reqwest::HttpResponseAdapter::adapt_response(&self, reqwest::async_impl::response::Response) -> trifecta::future::BoxFuture<'_, core::result::Result<trifecta::body::BodyWithMetadata<trifecta_reqwest::HttpMetadata>, trifecta_reqwest::Error>>
+impl core::marker::Forget for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::Freeze for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::Move for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::Send for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::Sync for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::Unpin for trifecta_reqwest::HttpResponseAdapter
+impl core::marker::UnsafeUnpin for trifecta_reqwest::HttpResponseAdapter
+impl core::panic::unwind_safe::RefUnwindSafe for trifecta_reqwest::HttpResponseAdapter
+impl core::panic::unwind_safe::UnwindSafe for trifecta_reqwest::HttpResponseAdapter
+impl<T, U> core::convert::Into<U> for trifecta_reqwest::HttpResponseAdapter where U: core::convert::From<T>
+pub fn trifecta_reqwest::HttpResponseAdapter::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_reqwest::HttpResponseAdapter where U: core::convert::Into<T>
+pub type trifecta_reqwest::HttpResponseAdapter::Error = never
+pub fn trifecta_reqwest::HttpResponseAdapter::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_reqwest::HttpResponseAdapter where U: core::convert::TryFrom<T>
+pub type trifecta_reqwest::HttpResponseAdapter::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_reqwest::HttpResponseAdapter::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_reqwest::HttpResponseAdapter where T: core::clone::Clone
+pub type trifecta_reqwest::HttpResponseAdapter::Owned = T
+pub fn trifecta_reqwest::HttpResponseAdapter::clone_into(&self, &mut T)
+pub fn trifecta_reqwest::HttpResponseAdapter::to_owned(&self) -> T
+impl<T> core::any::Any for trifecta_reqwest::HttpResponseAdapter where T: 'static + ?core::marker::Sized
+pub fn trifecta_reqwest::HttpResponseAdapter::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_reqwest::HttpResponseAdapter where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpResponseAdapter::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_reqwest::HttpResponseAdapter where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpResponseAdapter::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_reqwest::HttpResponseAdapter where T: core::clone::Clone
+pub unsafe fn trifecta_reqwest::HttpResponseAdapter::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for trifecta_reqwest::HttpResponseAdapter
+pub fn trifecta_reqwest::HttpResponseAdapter::from(T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for trifecta_reqwest::HttpResponseAdapter where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpResponseAdapter::and<P, B, E>(self, P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn trifecta_reqwest::HttpResponseAdapter::or<P, B, E>(self, P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for trifecta_reqwest::HttpResponseAdapter
+impl<T> tracing::instrument::WithSubscriber for trifecta_reqwest::HttpResponseAdapter
+pub struct trifecta_reqwest::HttpSource<F>
+impl<F> trifecta_reqwest::HttpSource<F>
+pub fn trifecta_reqwest::HttpSource<F>::new<P>(reqwest::async_impl::client::Client, F) -> Self where F: core::ops::function::Fn(&P) -> reqwest::async_impl::request::Request
+impl<P, F> trifecta::source::Source<P> for trifecta_reqwest::HttpSource<F> where F: core::ops::function::Fn(&P) -> reqwest::async_impl::request::Request + core::marker::Send + core::marker::Sync + 'static
+pub type trifecta_reqwest::HttpSource<F>::Error = trifecta_reqwest::Error
+pub type trifecta_reqwest::HttpSource<F>::Response = reqwest::async_impl::response::Response
+pub fn trifecta_reqwest::HttpSource<F>::retrieve<'a>(&'a self, &'a P) -> trifecta::future::BoxFuture<'a, core::result::Result<reqwest::async_impl::response::Response, trifecta_reqwest::Error>>
+impl<F> core::marker::Forget for trifecta_reqwest::HttpSource<F>
+impl<F> core::marker::Freeze for trifecta_reqwest::HttpSource<F> where F: core::marker::Freeze
+impl<F> core::marker::Move for trifecta_reqwest::HttpSource<F>
+impl<F> core::marker::Send for trifecta_reqwest::HttpSource<F> where F: core::marker::Send
+impl<F> core::marker::Sync for trifecta_reqwest::HttpSource<F> where F: core::marker::Sync
+impl<F> core::marker::Unpin for trifecta_reqwest::HttpSource<F> where F: core::marker::Unpin
+impl<F> core::marker::UnsafeUnpin for trifecta_reqwest::HttpSource<F> where F: core::marker::UnsafeUnpin
+impl<F> !core::panic::unwind_safe::RefUnwindSafe for trifecta_reqwest::HttpSource<F>
+impl<F> !core::panic::unwind_safe::UnwindSafe for trifecta_reqwest::HttpSource<F>
+impl<T, U> core::convert::Into<U> for trifecta_reqwest::HttpSource<F> where U: core::convert::From<T>
+pub fn trifecta_reqwest::HttpSource<F>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for trifecta_reqwest::HttpSource<F> where U: core::convert::Into<T>
+pub type trifecta_reqwest::HttpSource<F>::Error = never
+pub fn trifecta_reqwest::HttpSource<F>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for trifecta_reqwest::HttpSource<F> where U: core::convert::TryFrom<T>
+pub type trifecta_reqwest::HttpSource<F>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn trifecta_reqwest::HttpSource<F>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for trifecta_reqwest::HttpSource<F> where T: 'static + ?core::marker::Sized
+pub fn trifecta_reqwest::HttpSource<F>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for trifecta_reqwest::HttpSource<F> where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpSource<F>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for trifecta_reqwest::HttpSource<F> where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpSource<F>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for trifecta_reqwest::HttpSource<F>
+pub fn trifecta_reqwest::HttpSource<F>::from(T) -> T
+impl<T> tower_http::follow_redirect::policy::PolicyExt for trifecta_reqwest::HttpSource<F> where T: ?core::marker::Sized
+pub fn trifecta_reqwest::HttpSource<F>::and<P, B, E>(self, P) -> tower_http::follow_redirect::policy::and::And<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+pub fn trifecta_reqwest::HttpSource<F>::or<P, B, E>(self, P) -> tower_http::follow_redirect::policy::or::Or<T, P> where T: core::marker::Sized + tower_http::follow_redirect::policy::Policy<B, E>, P: tower_http::follow_redirect::policy::Policy<B, E>
+impl<T> tracing::instrument::Instrument for trifecta_reqwest::HttpSource<F>
+impl<T> tracing::instrument::WithSubscriber for trifecta_reqwest::HttpSource<F>

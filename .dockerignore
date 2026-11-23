@@ -4,4 +4,7 @@
 !ccc-native/
 !ccc-schema/
 !e2e/
+!trifecta/
+!trifecta-fixtures/
 !trifecta-freshness/
+!trifecta-reqwest/
