@@ -1,0 +1,14 @@
+[package]
+name = "ccc-schema"
+version = "0.1.0"
+description = "Response types for the CCC API"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
+wasm-bindgen-test = "=0.3.77"
+
+[lints]
+workspace = true

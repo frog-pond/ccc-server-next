@@ -1,0 +1,70 @@
+"""Update or check the workspace's public Rust API listings."""
+
+import argparse
+import difflib
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+LISTINGS = ROOT / "docs" / "api"
+# rustdoc JSON is unstable. Match the toolchain installed by CI.
+NIGHTLY = "+nightly-2026-11-22"
+LIBRARY_KINDS = {"lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"}
+
+
+def listings():
+    metadata = json.loads(subprocess.check_output(
+        ["cargo", "metadata", "--locked", "--no-deps", "--format-version=1"],
+        cwd=ROOT,
+    ))
+    for package in sorted(metadata["packages"], key=lambda package: package["name"]):
+        if not any(LIBRARY_KINDS.intersection(target["kind"]) for target in package["targets"]):
+            continue
+        output = subprocess.check_output(
+            ["cargo", NIGHTLY, "public-api", "--color", "never", "--all-features",
+             "--manifest-path", package["manifest_path"]],
+            cwd=ROOT,
+            text=True,
+        )
+        yield LISTINGS / f'{package["name"]}.txt', output
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="fail on missing or changed listings")
+    check = parser.parse_args().check
+
+    generated = dict(listings())
+    outdated = False
+    for path in sorted(set(generated) | set(LISTINGS.glob("*.txt"))):
+        expected = generated.get(path)
+        if not check:
+            if expected is None:
+                path.unlink()
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(expected, encoding="utf-8")
+            continue
+
+        current = path.read_text(encoding="utf-8") if path.exists() else None
+        if expected != current:
+            outdated = True
+            name = path.relative_to(ROOT)
+            print(f"{name} is out of date.", file=sys.stderr)
+            sys.stderr.writelines(difflib.unified_diff(
+                (current or "").splitlines(keepends=True),
+                (expected or "").splitlines(keepends=True),
+                fromfile=f"committed/{name}",
+                tofile=f"generated/{name}",
+            ))
+
+    if outdated:
+        print("Run 'mise run update:api' and commit the resulting listings.", file=sys.stderr)
+    return int(outdated)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -5,7 +5,7 @@ description: Take one GitHub issue in this repository from start to an open pull
 
 # Work an issue
 
-One issue, one branch, one pull request. The issue says what and why. `AGENTS.md` says how the server is built.
+One issue, one session, one branch, one pull request. The issue says what and why. `AGENTS.md` says how the server is built.
 
 ## 1. Before starting
 
@@ -33,12 +33,12 @@ One issue, one branch, one pull request. The issue says what and why. `AGENTS.md
 - Push the branch and open the pull request as a draft, against the branch you branched from. Never open one against `main`.
 - Fill in the pull request template. Say `Part of #N` for the issue. A merge into `rearchitecture` does not close an issue by itself, so do not rely on `Closes`.
 - If the work adds or changes types, push the types and signatures first and get them reviewed in the draft before writing the bodies (`design-types`). Add the bodies to the same pull request.
-- When the work is complete, mark the pull request ready for review, set the issue's status to "In review" (`tools/board status <N> "In review"`), and report back. The driver arranges the review, because a worker cannot start other agents. When findings come back to you, fix them and say in your report what changed since the reviewed commit.
+- When the work is complete, mark the pull request ready for review, set the issue's status to "In review" (`tools/board status <N> "In review"`), and report in the issue's session. The driver arranges the review, because a worker cannot start other agents. When findings come back to you, fix them and say in your report what changed since the reviewed commit.
 - Do not merge it yourself.
 
 ## 5. If you stop before finishing
 
-End with this report as your final output. Whoever started you reads it there, whatever the host; do not post it on the issue.
+End with this report in the issue's session. Whoever started the work reads it there. Put any design question for the maintainer in that session too.
 
 ```
 State: <what is done, what is not>

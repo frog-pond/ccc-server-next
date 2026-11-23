@@ -14,16 +14,17 @@
 //! clock and does no I/O: every time is an argument.
 //!
 //! The default `std` feature implements [`Timestamp`] for
-//! [`std::time::SystemTime`]. Without it the crate needs only `core`, and the
+//! `std::time::SystemTime`. Without it the crate needs only `core`, and the
 //! caller supplies its own [`Timestamp`] type.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
-// Temporary while the draft signatures are under review.
+// Remove these exceptions when the reviewed signatures get bodies (#439).
 #![allow(
 	unused_variables,
 	clippy::missing_panics_doc,
-	clippy::needless_pass_by_value
+	clippy::needless_pass_by_value,
+	clippy::todo
 )]
 
 use core::{num::NonZeroU32, time::Duration};
@@ -57,7 +58,7 @@ pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// A point in time supplied by the caller.
 ///
-/// Implemented for [`std::time::SystemTime`] with the default `std` feature, and
+/// Implemented for `std::time::SystemTime` with the default `std` feature, and
 /// for `jiff::Timestamp` with the `jiff` feature. A caller without `std`
 /// implements it for its own type. A Cloudflare Worker can use `SystemTime`
 /// built as `UNIX_EPOCH + Duration::from_millis(Date.now())`: arithmetic works
