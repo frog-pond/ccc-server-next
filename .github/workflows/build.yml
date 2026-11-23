@@ -61,6 +61,8 @@ jobs:
         with:
           persist-credentials: false
       - run: docker build --tag ccc-native:ci .
+      # Once the server bodies land, run the image, assert GET /ping returns
+      # HTTP 200 and exactly "pong", then send SIGTERM and require exit status 0.
 
   structure:
     name: Check formatting, dependencies and public API listings

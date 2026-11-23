@@ -62,18 +62,24 @@ server accepts `localhost` so the container can check its own health. Other
 methods, including `HEAD`, receive 405. An unmatched GET receives 404.
 [#453](https://github.com/frog-pond/ccc-server-next/issues/453)
 
-The shared response layer will supply `Cache-Control: public, max-age=600`
-and the ETag. [#449](https://github.com/frog-pond/ccc-server-next/issues/449)
+Native `/ping` currently omits `Cache-Control` and `ETag`. The shared response
+layer adds both. [#449](https://github.com/frog-pond/ccc-server-next/issues/449)
+
+The native upstream client identifies itself as `ccc-native/<crate version>`.
+The reference Worker sends `ccc-server/2.0`. This difference identifies the
+native build that sent a request. [#453](https://github.com/frog-pond/ccc-server-next/issues/453)
 
 Set `CCC_LISTEN_ADDR` to a comma-separated list of IP addresses with ports,
 such as `0.0.0.0:8080,[::]:8080`. An unset or blank value selects
-`0.0.0.0:80,[::]:80`. IPv6 listeners accept IPv6 connections only. The native
-server binds every address before serving and drains active requests on SIGTERM.
+`0.0.0.0:8080,[::]:8080`. On hosts with IPv6 disabled, set
+`CCC_LISTEN_ADDR=0.0.0.0:8080`. IPv6 listeners accept IPv6 connections only.
+The native server binds every address before serving and drains active requests
+on SIGTERM or SIGINT.
 
-The container's health check targets `localhost:80`. Keep port 80 available
-inside the container when changing its listen addresses.
+The container's health check targets `localhost:8080`. When changing its listen
+addresses, keep a wildcard or loopback listener on port 8080 inside the container.
 
 ```sh
 docker build --tag ccc-native .
-docker run --rm --publish 8080:80 ccc-native
+docker run --rm --publish 8080:8080 ccc-native
 ```
