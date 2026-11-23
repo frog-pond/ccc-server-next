@@ -5,3 +5,13 @@
 !ccc-schema/
 !e2e/
 !trifecta-freshness/
+# Cargo loads these workspace members even when building only ccc-native.
+# The build fetches their pinned Trifecta draft from Git until #438 lands.
+!experiments/native/Cargo.toml
+!experiments/native/src/
+!experiments/route/Cargo.toml
+!experiments/route/src/
+!experiments/worker/Cargo.toml
+!experiments/worker/src/
+!experiments/worker/build.rs
+!experiments/worker/examples/

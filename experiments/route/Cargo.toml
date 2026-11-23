@@ -1,0 +1,21 @@
+[package]
+name = "fixture-experiment-route"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bytes.workspace = true
+futures-util.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+thiserror = "2"
+trifecta.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.80"

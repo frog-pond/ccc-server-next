@@ -1,0 +1,538 @@
+pub mod fixture_experiment_route
+pub enum fixture_experiment_route::Fixture
+pub fixture_experiment_route::Fixture::Redirect
+pub fixture_experiment_route::Fixture::Value
+impl fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::from_object_name(&str) -> core::result::Result<Self, fixture_experiment_route::UnknownFixture>
+pub fn fixture_experiment_route::Fixture::from_route_path(&str) -> core::result::Result<Self, fixture_experiment_route::UnknownFixture>
+pub const fn fixture_experiment_route::Fixture::object_name(self) -> &'static str
+pub const fn fixture_experiment_route::Fixture::segment(self) -> &'static str
+impl core::clone::Clone for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::Fixture
+impl core::cmp::PartialEq for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::eq(&self, &Self) -> bool
+impl core::fmt::Debug for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::Fixture
+impl core::marker::StructuralPartialEq for fixture_experiment_route::Fixture
+impl core::str::traits::FromStr for fixture_experiment_route::Fixture
+pub type fixture_experiment_route::Fixture::Err = fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::Fixture::from_str(&str) -> core::result::Result<Self, Self::Err>
+impl serde_core::ser::Serialize for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::serialize<S: serde_core::ser::Serializer>(&self, S) -> core::result::Result<<S as serde_core::ser::Serializer>::Ok, <S as serde_core::ser::Serializer>::Error>
+impl<'de> serde_core::de::Deserialize<'de> for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::deserialize<D: serde_core::de::Deserializer<'de>>(D) -> core::result::Result<Self, <D as serde_core::de::Deserializer>::Error>
+impl core::marker::Forget for fixture_experiment_route::Fixture
+impl core::marker::Freeze for fixture_experiment_route::Fixture
+impl core::marker::Move for fixture_experiment_route::Fixture
+impl core::marker::Send for fixture_experiment_route::Fixture
+impl core::marker::Sync for fixture_experiment_route::Fixture
+impl core::marker::Unpin for fixture_experiment_route::Fixture
+impl core::marker::UnsafeUnpin for fixture_experiment_route::Fixture
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::Fixture
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::Fixture
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::Fixture where U: core::convert::From<T>
+pub fn fixture_experiment_route::Fixture::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::Fixture where U: core::convert::Into<T>
+pub type fixture_experiment_route::Fixture::Error = never
+pub fn fixture_experiment_route::Fixture::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::Fixture where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::Fixture::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::Fixture::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::Fixture where T: core::clone::Clone
+pub type fixture_experiment_route::Fixture::Owned = T
+pub fn fixture_experiment_route::Fixture::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::Fixture::to_owned(&self) -> T
+impl<T> core::any::Any for fixture_experiment_route::Fixture where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::Fixture::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::Fixture where T: ?core::marker::Sized
+pub fn fixture_experiment_route::Fixture::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::Fixture where T: ?core::marker::Sized
+pub fn fixture_experiment_route::Fixture::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::Fixture where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::Fixture::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::Fixture
+pub fn fixture_experiment_route::Fixture::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for fixture_experiment_route::Fixture where T: for<'de> serde_core::de::Deserialize<'de>
+pub enum fixture_experiment_route::FixtureSourceError<E>
+pub fixture_experiment_route::FixtureSourceError::Fetch(E)
+pub fixture_experiment_route::FixtureSourceError::HttpStatus(fixture_experiment_route::NonSuccessStatus)
+pub fixture_experiment_route::FixtureSourceError::InvalidStatus(fixture_experiment_route::InvalidNonSuccessStatus)
+impl<E: core::fmt::Debug> core::fmt::Debug for fixture_experiment_route::FixtureSourceError<E>
+pub fn fixture_experiment_route::FixtureSourceError<E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E> core::error::Error for fixture_experiment_route::FixtureSourceError<E> where E: core::error::Error + 'static, Self: core::fmt::Debug + core::fmt::Display
+pub fn fixture_experiment_route::FixtureSourceError<E>::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl<E> core::fmt::Display for fixture_experiment_route::FixtureSourceError<E>
+pub fn fixture_experiment_route::FixtureSourceError<E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<E> core::marker::Forget for fixture_experiment_route::FixtureSourceError<E>
+impl<E> core::marker::Freeze for fixture_experiment_route::FixtureSourceError<E> where E: core::marker::Freeze
+impl<E> core::marker::Move for fixture_experiment_route::FixtureSourceError<E>
+impl<E> core::marker::Send for fixture_experiment_route::FixtureSourceError<E> where E: core::marker::Send
+impl<E> core::marker::Sync for fixture_experiment_route::FixtureSourceError<E> where E: core::marker::Sync
+impl<E> core::marker::Unpin for fixture_experiment_route::FixtureSourceError<E> where E: core::marker::Unpin
+impl<E> core::marker::UnsafeUnpin for fixture_experiment_route::FixtureSourceError<E> where E: core::marker::UnsafeUnpin
+impl<E> core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::FixtureSourceError<E> where E: core::panic::unwind_safe::RefUnwindSafe
+impl<E> core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::FixtureSourceError<E> where E: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::FixtureSourceError<E> where U: core::convert::From<T>
+pub fn fixture_experiment_route::FixtureSourceError<E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::FixtureSourceError<E> where U: core::convert::Into<T>
+pub type fixture_experiment_route::FixtureSourceError<E>::Error = never
+pub fn fixture_experiment_route::FixtureSourceError<E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::FixtureSourceError<E> where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::FixtureSourceError<E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::FixtureSourceError<E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::string::ToString for fixture_experiment_route::FixtureSourceError<E> where T: core::fmt::Display + ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureSourceError<E>::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for fixture_experiment_route::FixtureSourceError<E> where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureSourceError<E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::FixtureSourceError<E> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureSourceError<E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::FixtureSourceError<E> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureSourceError<E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for fixture_experiment_route::FixtureSourceError<E>
+pub fn fixture_experiment_route::FixtureSourceError<E>::from(T) -> T
+pub enum fixture_experiment_route::ObjectReply
+pub fixture_experiment_route::ObjectReply::AlarmSchedulingFailed
+pub fixture_experiment_route::ObjectReply::Complete
+pub fixture_experiment_route::ObjectReply::Complete::result: fixture_experiment_route::RefreshOutcome
+pub fixture_experiment_route::ObjectReply::InvalidObject
+pub fixture_experiment_route::ObjectReply::ObjectCallFailed
+pub fixture_experiment_route::ObjectReply::Pending
+pub fixture_experiment_route::ObjectReply::StorageUnavailable
+pub fixture_experiment_route::ObjectReply::StoredRecordInvalid
+impl core::clone::Clone for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::ObjectReply
+impl core::cmp::PartialEq for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::eq(&self, &Self) -> bool
+impl core::convert::From<fixture_experiment_route::RefreshOutcome> for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::from(fixture_experiment_route::RefreshOutcome) -> Self
+impl core::fmt::Debug for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::ObjectReply
+impl core::marker::StructuralPartialEq for fixture_experiment_route::ObjectReply
+impl serde_core::ser::Serialize for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for fixture_experiment_route::ObjectReply
+impl core::marker::Freeze for fixture_experiment_route::ObjectReply
+impl core::marker::Move for fixture_experiment_route::ObjectReply
+impl core::marker::Send for fixture_experiment_route::ObjectReply
+impl core::marker::Sync for fixture_experiment_route::ObjectReply
+impl core::marker::Unpin for fixture_experiment_route::ObjectReply
+impl core::marker::UnsafeUnpin for fixture_experiment_route::ObjectReply
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::ObjectReply
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::ObjectReply
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::ObjectReply where U: core::convert::From<T>
+pub fn fixture_experiment_route::ObjectReply::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::ObjectReply where U: core::convert::Into<T>
+pub type fixture_experiment_route::ObjectReply::Error = never
+pub fn fixture_experiment_route::ObjectReply::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::ObjectReply where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::ObjectReply::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::ObjectReply::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::ObjectReply where T: core::clone::Clone
+pub type fixture_experiment_route::ObjectReply::Owned = T
+pub fn fixture_experiment_route::ObjectReply::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::ObjectReply::to_owned(&self) -> T
+impl<T> core::any::Any for fixture_experiment_route::ObjectReply where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::ObjectReply::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::ObjectReply where T: ?core::marker::Sized
+pub fn fixture_experiment_route::ObjectReply::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::ObjectReply where T: ?core::marker::Sized
+pub fn fixture_experiment_route::ObjectReply::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::ObjectReply where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::ObjectReply::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::from(T) -> T
+pub enum fixture_experiment_route::RefreshFailure
+pub fixture_experiment_route::RefreshFailure::Decode
+pub fixture_experiment_route::RefreshFailure::Fetch
+pub fixture_experiment_route::RefreshFailure::FixtureSetup
+pub fixture_experiment_route::RefreshFailure::HttpStatus
+pub fixture_experiment_route::RefreshFailure::HttpStatus::status: fixture_experiment_route::NonSuccessStatus
+pub fixture_experiment_route::RefreshFailure::InvalidStatus
+pub fixture_experiment_route::RefreshFailure::Pipeline
+pub fixture_experiment_route::RefreshFailure::ReadBody
+pub fixture_experiment_route::RefreshFailure::Timeout
+impl core::clone::Clone for fixture_experiment_route::RefreshFailure
+pub fn fixture_experiment_route::RefreshFailure::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::RefreshFailure
+impl core::cmp::PartialEq for fixture_experiment_route::RefreshFailure
+pub fn fixture_experiment_route::RefreshFailure::eq(&self, &Self) -> bool
+impl core::fmt::Debug for fixture_experiment_route::RefreshFailure
+pub fn fixture_experiment_route::RefreshFailure::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::RefreshFailure
+impl core::marker::StructuralPartialEq for fixture_experiment_route::RefreshFailure
+impl serde_core::ser::Serialize for fixture_experiment_route::RefreshFailure
+pub fn fixture_experiment_route::RefreshFailure::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for fixture_experiment_route::RefreshFailure
+impl core::marker::Freeze for fixture_experiment_route::RefreshFailure
+impl core::marker::Move for fixture_experiment_route::RefreshFailure
+impl core::marker::Send for fixture_experiment_route::RefreshFailure
+impl core::marker::Sync for fixture_experiment_route::RefreshFailure
+impl core::marker::Unpin for fixture_experiment_route::RefreshFailure
+impl core::marker::UnsafeUnpin for fixture_experiment_route::RefreshFailure
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::RefreshFailure
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::RefreshFailure
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::RefreshFailure where U: core::convert::From<T>
+pub fn fixture_experiment_route::RefreshFailure::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::RefreshFailure where U: core::convert::Into<T>
+pub type fixture_experiment_route::RefreshFailure::Error = never
+pub fn fixture_experiment_route::RefreshFailure::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::RefreshFailure where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::RefreshFailure::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::RefreshFailure::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::RefreshFailure where T: core::clone::Clone
+pub type fixture_experiment_route::RefreshFailure::Owned = T
+pub fn fixture_experiment_route::RefreshFailure::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::RefreshFailure::to_owned(&self) -> T
+impl<T> core::any::Any for fixture_experiment_route::RefreshFailure where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailure::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::RefreshFailure where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailure::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::RefreshFailure where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailure::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::RefreshFailure where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::RefreshFailure::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::RefreshFailure
+pub fn fixture_experiment_route::RefreshFailure::from(T) -> T
+pub enum fixture_experiment_route::RefreshJob
+pub fixture_experiment_route::RefreshJob::ReadFixture(fixture_experiment_route::Fixture)
+impl core::clone::Clone for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::RefreshJob
+impl core::cmp::PartialEq for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::eq(&self, &Self) -> bool
+impl core::fmt::Debug for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::RefreshJob
+impl core::marker::StructuralPartialEq for fixture_experiment_route::RefreshJob
+impl serde_core::ser::Serialize for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'de> serde_core::de::Deserialize<'de> for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::deserialize<__D>(__D) -> core::result::Result<Self, <__D as serde_core::de::Deserializer>::Error> where __D: serde_core::de::Deserializer<'de>
+impl core::marker::Forget for fixture_experiment_route::RefreshJob
+impl core::marker::Freeze for fixture_experiment_route::RefreshJob
+impl core::marker::Move for fixture_experiment_route::RefreshJob
+impl core::marker::Send for fixture_experiment_route::RefreshJob
+impl core::marker::Sync for fixture_experiment_route::RefreshJob
+impl core::marker::Unpin for fixture_experiment_route::RefreshJob
+impl core::marker::UnsafeUnpin for fixture_experiment_route::RefreshJob
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::RefreshJob
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::RefreshJob
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::RefreshJob where U: core::convert::From<T>
+pub fn fixture_experiment_route::RefreshJob::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::RefreshJob where U: core::convert::Into<T>
+pub type fixture_experiment_route::RefreshJob::Error = never
+pub fn fixture_experiment_route::RefreshJob::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::RefreshJob where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::RefreshJob::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::RefreshJob::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::RefreshJob where T: core::clone::Clone
+pub type fixture_experiment_route::RefreshJob::Owned = T
+pub fn fixture_experiment_route::RefreshJob::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::RefreshJob::to_owned(&self) -> T
+impl<T> core::any::Any for fixture_experiment_route::RefreshJob where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshJob::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::RefreshJob where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshJob::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::RefreshJob where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshJob::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::RefreshJob where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::RefreshJob::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::RefreshJob
+pub fn fixture_experiment_route::RefreshJob::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for fixture_experiment_route::RefreshJob where T: for<'de> serde_core::de::Deserialize<'de>
+pub enum fixture_experiment_route::RefreshOutcome
+pub fixture_experiment_route::RefreshOutcome::Failed
+pub fixture_experiment_route::RefreshOutcome::Failed::failure: fixture_experiment_route::RefreshFailure
+pub fixture_experiment_route::RefreshOutcome::Value
+pub fixture_experiment_route::RefreshOutcome::Value::value: u32
+impl core::clone::Clone for fixture_experiment_route::RefreshOutcome
+pub fn fixture_experiment_route::RefreshOutcome::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::RefreshOutcome
+impl core::cmp::PartialEq for fixture_experiment_route::RefreshOutcome
+pub fn fixture_experiment_route::RefreshOutcome::eq(&self, &Self) -> bool
+impl core::convert::From<fixture_experiment_route::RefreshOutcome> for fixture_experiment_route::ObjectReply
+pub fn fixture_experiment_route::ObjectReply::from(fixture_experiment_route::RefreshOutcome) -> Self
+impl core::fmt::Debug for fixture_experiment_route::RefreshOutcome
+pub fn fixture_experiment_route::RefreshOutcome::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::RefreshOutcome
+impl core::marker::StructuralPartialEq for fixture_experiment_route::RefreshOutcome
+impl serde_core::ser::Serialize for fixture_experiment_route::RefreshOutcome
+pub fn fixture_experiment_route::RefreshOutcome::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for fixture_experiment_route::RefreshOutcome
+impl core::marker::Freeze for fixture_experiment_route::RefreshOutcome
+impl core::marker::Move for fixture_experiment_route::RefreshOutcome
+impl core::marker::Send for fixture_experiment_route::RefreshOutcome
+impl core::marker::Sync for fixture_experiment_route::RefreshOutcome
+impl core::marker::Unpin for fixture_experiment_route::RefreshOutcome
+impl core::marker::UnsafeUnpin for fixture_experiment_route::RefreshOutcome
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::RefreshOutcome
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::RefreshOutcome
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::RefreshOutcome where U: core::convert::From<T>
+pub fn fixture_experiment_route::RefreshOutcome::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::RefreshOutcome where U: core::convert::Into<T>
+pub type fixture_experiment_route::RefreshOutcome::Error = never
+pub fn fixture_experiment_route::RefreshOutcome::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::RefreshOutcome where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::RefreshOutcome::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::RefreshOutcome::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::RefreshOutcome where T: core::clone::Clone
+pub type fixture_experiment_route::RefreshOutcome::Owned = T
+pub fn fixture_experiment_route::RefreshOutcome::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::RefreshOutcome::to_owned(&self) -> T
+impl<T> core::any::Any for fixture_experiment_route::RefreshOutcome where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshOutcome::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::RefreshOutcome where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshOutcome::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::RefreshOutcome where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshOutcome::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::RefreshOutcome where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::RefreshOutcome::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::RefreshOutcome
+pub fn fixture_experiment_route::RefreshOutcome::from(T) -> T
+pub struct fixture_experiment_route::FailedRefresh
+pub fixture_experiment_route::FailedRefresh::cause: trifecta::operation::Error
+pub fixture_experiment_route::FailedRefresh::failure: fixture_experiment_route::RefreshFailure
+impl core::error::Error for fixture_experiment_route::FailedRefresh
+pub fn fixture_experiment_route::FailedRefresh::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for fixture_experiment_route::FailedRefresh
+pub fn fixture_experiment_route::FailedRefresh::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for fixture_experiment_route::FailedRefresh
+pub fn fixture_experiment_route::FailedRefresh::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Forget for fixture_experiment_route::FailedRefresh
+impl core::marker::Freeze for fixture_experiment_route::FailedRefresh
+impl core::marker::Move for fixture_experiment_route::FailedRefresh
+impl core::marker::Send for fixture_experiment_route::FailedRefresh
+impl core::marker::Sync for fixture_experiment_route::FailedRefresh
+impl core::marker::Unpin for fixture_experiment_route::FailedRefresh
+impl core::marker::UnsafeUnpin for fixture_experiment_route::FailedRefresh
+impl !core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::FailedRefresh
+impl !core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::FailedRefresh
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::FailedRefresh where U: core::convert::From<T>
+pub fn fixture_experiment_route::FailedRefresh::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::FailedRefresh where U: core::convert::Into<T>
+pub type fixture_experiment_route::FailedRefresh::Error = never
+pub fn fixture_experiment_route::FailedRefresh::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::FailedRefresh where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::FailedRefresh::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::FailedRefresh::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::string::ToString for fixture_experiment_route::FailedRefresh where T: core::fmt::Display + ?core::marker::Sized
+pub fn fixture_experiment_route::FailedRefresh::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for fixture_experiment_route::FailedRefresh where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::FailedRefresh::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::FailedRefresh where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FailedRefresh::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::FailedRefresh where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FailedRefresh::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for fixture_experiment_route::FailedRefresh
+pub fn fixture_experiment_route::FailedRefresh::from(T) -> T
+pub struct fixture_experiment_route::FixtureOperation<P, E>
+impl<P, E> fixture_experiment_route::FixtureOperation<P, E> where P: core::marker::Send + core::marker::Sync + 'static, E: core::error::Error + core::marker::Send + core::marker::Sync + 'static
+pub async fn fixture_experiment_route::FixtureOperation<P, E>::perform(&self, P) -> core::result::Result<u32, fixture_experiment_route::FailedRefresh>
+impl<P, E> core::marker::Forget for fixture_experiment_route::FixtureOperation<P, E>
+impl<P, E> core::marker::Freeze for fixture_experiment_route::FixtureOperation<P, E> where trifecta::operation::Operation<P, u32>: core::marker::Freeze, core::marker::PhantomData<fn() -> E>: core::marker::Freeze
+impl<P, E> core::marker::Move for fixture_experiment_route::FixtureOperation<P, E>
+impl<P, E> core::marker::Send for fixture_experiment_route::FixtureOperation<P, E> where trifecta::operation::Operation<P, u32>: core::marker::Send, core::marker::PhantomData<fn() -> E>: core::marker::Send
+impl<P, E> core::marker::Sync for fixture_experiment_route::FixtureOperation<P, E> where trifecta::operation::Operation<P, u32>: core::marker::Sync, core::marker::PhantomData<fn() -> E>: core::marker::Sync
+impl<P, E> core::marker::Unpin for fixture_experiment_route::FixtureOperation<P, E> where trifecta::operation::Operation<P, u32>: core::marker::Unpin, core::marker::PhantomData<fn() -> E>: core::marker::Unpin
+impl<P, E> core::marker::UnsafeUnpin for fixture_experiment_route::FixtureOperation<P, E> where trifecta::operation::Operation<P, u32>: core::marker::UnsafeUnpin, core::marker::PhantomData<fn() -> E>: core::marker::UnsafeUnpin
+impl<P, E> !core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::FixtureOperation<P, E>
+impl<P, E> !core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::FixtureOperation<P, E>
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::FixtureOperation<P, E> where U: core::convert::From<T>
+pub fn fixture_experiment_route::FixtureOperation<P, E>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::FixtureOperation<P, E> where U: core::convert::Into<T>
+pub type fixture_experiment_route::FixtureOperation<P, E>::Error = never
+pub fn fixture_experiment_route::FixtureOperation<P, E>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::FixtureOperation<P, E> where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::FixtureOperation<P, E>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::FixtureOperation<P, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for fixture_experiment_route::FixtureOperation<P, E> where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureOperation<P, E>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::FixtureOperation<P, E> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureOperation<P, E>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::FixtureOperation<P, E> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::FixtureOperation<P, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for fixture_experiment_route::FixtureOperation<P, E>
+pub fn fixture_experiment_route::FixtureOperation<P, E>::from(T) -> T
+pub struct fixture_experiment_route::InvalidNonSuccessStatus(_)
+impl core::clone::Clone for fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::cmp::PartialEq for fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::eq(&self, &Self) -> bool
+impl core::error::Error for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::fmt::Debug for fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::StructuralPartialEq for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Forget for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Freeze for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Move for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Send for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Sync for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::Unpin for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::marker::UnsafeUnpin for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::InvalidNonSuccessStatus
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::InvalidNonSuccessStatus
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::InvalidNonSuccessStatus where U: core::convert::From<T>
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::InvalidNonSuccessStatus where U: core::convert::Into<T>
+pub type fixture_experiment_route::InvalidNonSuccessStatus::Error = never
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::InvalidNonSuccessStatus where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::InvalidNonSuccessStatus::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::InvalidNonSuccessStatus where T: core::clone::Clone
+pub type fixture_experiment_route::InvalidNonSuccessStatus::Owned = T
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::to_owned(&self) -> T
+impl<T> alloc::string::ToString for fixture_experiment_route::InvalidNonSuccessStatus where T: core::fmt::Display + ?core::marker::Sized
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for fixture_experiment_route::InvalidNonSuccessStatus where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::InvalidNonSuccessStatus where T: ?core::marker::Sized
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::InvalidNonSuccessStatus where T: ?core::marker::Sized
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::InvalidNonSuccessStatus where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::InvalidNonSuccessStatus::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::InvalidNonSuccessStatus::from(T) -> T
+pub struct fixture_experiment_route::NonSuccessStatus(_)
+impl core::clone::Clone for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::NonSuccessStatus
+impl core::cmp::PartialEq for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::eq(&self, &Self) -> bool
+impl core::convert::TryFrom<u16> for fixture_experiment_route::NonSuccessStatus
+pub type fixture_experiment_route::NonSuccessStatus::Error = fixture_experiment_route::InvalidNonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::try_from(u16) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::NonSuccessStatus
+impl core::marker::StructuralPartialEq for fixture_experiment_route::NonSuccessStatus
+impl serde_core::ser::Serialize for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for fixture_experiment_route::NonSuccessStatus
+impl core::marker::Freeze for fixture_experiment_route::NonSuccessStatus
+impl core::marker::Move for fixture_experiment_route::NonSuccessStatus
+impl core::marker::Send for fixture_experiment_route::NonSuccessStatus
+impl core::marker::Sync for fixture_experiment_route::NonSuccessStatus
+impl core::marker::Unpin for fixture_experiment_route::NonSuccessStatus
+impl core::marker::UnsafeUnpin for fixture_experiment_route::NonSuccessStatus
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::NonSuccessStatus
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::NonSuccessStatus
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::NonSuccessStatus where U: core::convert::From<T>
+pub fn fixture_experiment_route::NonSuccessStatus::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::NonSuccessStatus where U: core::convert::Into<T>
+pub type fixture_experiment_route::NonSuccessStatus::Error = never
+pub fn fixture_experiment_route::NonSuccessStatus::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::NonSuccessStatus where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::NonSuccessStatus::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::NonSuccessStatus::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::NonSuccessStatus where T: core::clone::Clone
+pub type fixture_experiment_route::NonSuccessStatus::Owned = T
+pub fn fixture_experiment_route::NonSuccessStatus::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::NonSuccessStatus::to_owned(&self) -> T
+impl<T> alloc::string::ToString for fixture_experiment_route::NonSuccessStatus where T: core::fmt::Display + ?core::marker::Sized
+pub fn fixture_experiment_route::NonSuccessStatus::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for fixture_experiment_route::NonSuccessStatus where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::NonSuccessStatus::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::NonSuccessStatus where T: ?core::marker::Sized
+pub fn fixture_experiment_route::NonSuccessStatus::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::NonSuccessStatus where T: ?core::marker::Sized
+pub fn fixture_experiment_route::NonSuccessStatus::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::NonSuccessStatus where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::NonSuccessStatus::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::NonSuccessStatus
+pub fn fixture_experiment_route::NonSuccessStatus::from(T) -> T
+pub struct fixture_experiment_route::RefreshFailureEvent<'a>
+impl fixture_experiment_route::RefreshFailureEvent<'static>
+pub const fn fixture_experiment_route::RefreshFailureEvent<'static>::timeout(fixture_experiment_route::Fixture) -> Self
+impl<'a> fixture_experiment_route::RefreshFailureEvent<'a>
+pub const fn fixture_experiment_route::RefreshFailureEvent<'a>::new(fixture_experiment_route::Fixture, fixture_experiment_route::RefreshFailure, &'a str) -> Self
+impl<'a> core::fmt::Debug for fixture_experiment_route::RefreshFailureEvent<'a>
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> serde_core::ser::Serialize for fixture_experiment_route::RefreshFailureEvent<'a>
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'a> core::marker::Forget for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::Freeze for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::Move for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::Send for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::Sync for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::Unpin for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::marker::UnsafeUnpin for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::RefreshFailureEvent<'a>
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::RefreshFailureEvent<'a> where U: core::convert::From<T>
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::RefreshFailureEvent<'a> where U: core::convert::Into<T>
+pub type fixture_experiment_route::RefreshFailureEvent<'a>::Error = never
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::RefreshFailureEvent<'a> where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::RefreshFailureEvent<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for fixture_experiment_route::RefreshFailureEvent<'a> where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::RefreshFailureEvent<'a> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::RefreshFailureEvent<'a> where T: ?core::marker::Sized
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for fixture_experiment_route::RefreshFailureEvent<'a>
+pub fn fixture_experiment_route::RefreshFailureEvent<'a>::from(T) -> T
+pub struct fixture_experiment_route::UnknownFixture
+impl core::clone::Clone for fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::UnknownFixture::clone(&self) -> Self
+impl core::cmp::Eq for fixture_experiment_route::UnknownFixture
+impl core::cmp::PartialEq for fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::UnknownFixture::eq(&self, &Self) -> bool
+impl core::error::Error for fixture_experiment_route::UnknownFixture
+impl core::fmt::Debug for fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::UnknownFixture::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::UnknownFixture::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for fixture_experiment_route::UnknownFixture
+impl core::marker::StructuralPartialEq for fixture_experiment_route::UnknownFixture
+impl core::marker::Forget for fixture_experiment_route::UnknownFixture
+impl core::marker::Freeze for fixture_experiment_route::UnknownFixture
+impl core::marker::Move for fixture_experiment_route::UnknownFixture
+impl core::marker::Send for fixture_experiment_route::UnknownFixture
+impl core::marker::Sync for fixture_experiment_route::UnknownFixture
+impl core::marker::Unpin for fixture_experiment_route::UnknownFixture
+impl core::marker::UnsafeUnpin for fixture_experiment_route::UnknownFixture
+impl core::panic::unwind_safe::RefUnwindSafe for fixture_experiment_route::UnknownFixture
+impl core::panic::unwind_safe::UnwindSafe for fixture_experiment_route::UnknownFixture
+impl<T, U> core::convert::Into<U> for fixture_experiment_route::UnknownFixture where U: core::convert::From<T>
+pub fn fixture_experiment_route::UnknownFixture::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for fixture_experiment_route::UnknownFixture where U: core::convert::Into<T>
+pub type fixture_experiment_route::UnknownFixture::Error = never
+pub fn fixture_experiment_route::UnknownFixture::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for fixture_experiment_route::UnknownFixture where U: core::convert::TryFrom<T>
+pub type fixture_experiment_route::UnknownFixture::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn fixture_experiment_route::UnknownFixture::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for fixture_experiment_route::UnknownFixture where T: core::clone::Clone
+pub type fixture_experiment_route::UnknownFixture::Owned = T
+pub fn fixture_experiment_route::UnknownFixture::clone_into(&self, &mut T)
+pub fn fixture_experiment_route::UnknownFixture::to_owned(&self) -> T
+impl<T> alloc::string::ToString for fixture_experiment_route::UnknownFixture where T: core::fmt::Display + ?core::marker::Sized
+pub fn fixture_experiment_route::UnknownFixture::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for fixture_experiment_route::UnknownFixture where T: 'static + ?core::marker::Sized
+pub fn fixture_experiment_route::UnknownFixture::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for fixture_experiment_route::UnknownFixture where T: ?core::marker::Sized
+pub fn fixture_experiment_route::UnknownFixture::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for fixture_experiment_route::UnknownFixture where T: ?core::marker::Sized
+pub fn fixture_experiment_route::UnknownFixture::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for fixture_experiment_route::UnknownFixture where T: core::clone::Clone
+pub unsafe fn fixture_experiment_route::UnknownFixture::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for fixture_experiment_route::UnknownFixture
+pub fn fixture_experiment_route::UnknownFixture::from(T) -> T
+pub const fixture_experiment_route::REFRESH_DEADLINE: core::time::Duration
+pub fn fixture_experiment_route::buffered_fixture_body(bytes::bytes::Bytes) -> trifecta::body::BodyWithMetadata<()>
+pub fn fixture_experiment_route::fixture_operation<P, S, A, E>(S, A) -> fixture_experiment_route::FixtureOperation<P, E> where P: core::marker::Send + core::marker::Sync + 'static, S: trifecta::source::Source<P, Error = fixture_experiment_route::FixtureSourceError<E>>, A: trifecta::body::AdaptResponse<<S as trifecta::source::Source>::Response, Metadata = ()>, E: core::error::Error + core::marker::Send + core::marker::Sync + 'static

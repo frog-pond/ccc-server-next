@@ -105,10 +105,79 @@ jobs:
       - run: mise run check:api
       - run: mise run test:tools
 
+  fixture-native:
+    name: Build and test the native fixture server
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and test the native entry point
+        run: |
+          cargo fetch --locked --target host-tuple
+          cargo +stable build --locked -p fixture-experiment-native
+          cargo +stable test --locked --offline -p fixture-experiment-native -p fixture-experiment-route
+      - name: Check the loopback fixture route
+        run: |
+          python3 -u experiments/fixtures.py > "$RUNNER_TEMP/fixture.log" 2>&1 &
+          fixture_pid=$!
+          "$CARGO_TARGET_DIR/debug/fixture-experiment-native" > "$RUNNER_TEMP/native.log" 2>&1 &
+          native_pid=$!
+          cleanup() {
+            result=$?
+            kill "$native_pid" "$fixture_pid" 2>/dev/null || true
+            wait "$native_pid" "$fixture_pid" 2>/dev/null || true
+            if [ "$result" -ne 0 ]; then
+              cat "$RUNNER_TEMP/fixture.log" "$RUNNER_TEMP/native.log"
+            fi
+          }
+          trap cleanup EXIT
+
+          request() {
+            curl --noproxy '*' --fail --silent --show-error --max-time 3 \
+              --retry 5 --retry-connrefused --retry-delay 1 "$@"
+          }
+          test "$(request http://127.0.0.1:18787/value)" = '42'
+          check_reply() {
+            actual=$(request --write-out $'\n%{http_code} %{content_type}' "http://127.0.0.1:18788/experiment/$1")
+            expected="$2"$'\n200 application/json'
+            diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual")
+          }
+          check_reply value '{"state":"complete","result":{"outcome":"value","value":42}}'
+          check_reply redirect '{"state":"complete","result":{"outcome":"failed","failure":{"kind":"http_status","status":302}}}'
+          if grep -F 'GET /redirect-target ' "$RUNNER_TEMP/fixture.log"; then
+            exit 1
+          fi
+
+  fixture-worker:
+    name: Build and lint the fixture Worker for WASM
+    runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the WASM target and Clippy
+        run: |
+          rustup target add wasm32-unknown-unknown
+          rustup component add clippy
+      - name: Build the Worker with the pinned build tool
+        working-directory: experiments/worker
+        run: |
+          npm run worker-build:install
+          npm run worker-build -- . --locked
+          test -s build/index.js
+          test -s build/index_bg.wasm
+      - name: Lint the Worker and shared route for WASM
+        run: cargo clippy --locked --target wasm32-unknown-unknown -p worker-experiment -p fixture-experiment-route --lib
+
   ci:
     name: ci
     # List every other job in needs so this status covers the whole workflow.
-    needs: [build, native-image, structure]
+    needs: [build, native-image, structure, fixture-native, fixture-worker]
     if: always()
     runs-on: ubuntu-latest
     steps:

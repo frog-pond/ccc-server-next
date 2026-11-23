@@ -1,7 +1,9 @@
 [graph]
-# The native server and e2e executable need a runtime and HTTP client.
-# Check the dependency graph of the shared crates.
-exclude = ["ccc-native", "e2e"]
+# The supported builds are the Linux container and the Worker WASM target.
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+# The native servers and e2e executable use native HTTP clients and Tokio.
+# The fixture Worker entry point uses the Workers SDK and worker-sys.
+exclude = ["ccc-native", "e2e", "fixture-experiment-native", "worker-experiment"]
 
 [bans]
 multiple-versions = "allow"

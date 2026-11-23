@@ -64,7 +64,7 @@ shared checks on `wasm32-unknown-unknown` locally, make Node.js available and
 run the following commands. Use `#[wasm_bindgen_test(unsupported = test)]`
 for shared tests so both runners execute them. The Wasm check also compares the
 test names reported by the host and Wasm runners. In each crate with shared
-tests, add `wasm-bindgen-test = "=0.3.77"` to the unconditional
+tests, add `wasm-bindgen-test = "=0.3.80"` to the unconditional
 `[dev-dependencies]` table. It matches the Wasm runner pinned in
 `.config/mise/config.toml`. Renovate updates the two pins together.
 

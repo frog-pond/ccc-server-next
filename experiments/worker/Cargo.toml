@@ -1,0 +1,40 @@
+[package]
+name = "worker-experiment"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+autoexamples = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+toolchain-probes = []
+
+[[example]]
+name = "wasm_probes"
+required-features = ["toolchain-probes"]
+
+[lints]
+workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bytes.workspace = true
+fixture-experiment-route = { path = "../route" }
+futures-util.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+thiserror = "2"
+trifecta.workspace = true
+trifecta-freshness = { path = "../../trifecta-freshness" }
+url.workspace = true
+# Match the SDK with the workspace test runner and wasm-bindgen-test pins.
+worker = "=0.9.0"
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.80"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+reqwest = { version = "=0.13.4", default-features = false }
