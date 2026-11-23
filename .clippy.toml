@@ -11,6 +11,11 @@ disallowed-methods = [
     { path = "std::env::vars", reason = "Read configuration in the entry point and pass it to the library" },
     { path = "std::env::vars_os", reason = "Read configuration in the entry point and pass it to the library" },
     { path = "std::env::args", reason = "Parse command-line arguments in the entry point and pass options to the library" },
+    { path = "std::env::args_os", reason = "Parse command-line arguments in the entry point and pass options to the library" },
+    { path = "std::env::current_dir", reason = "Resolve paths in the entry point and pass them to the library" },
+    { path = "std::env::temp_dir", reason = "Choose the temporary directory in the entry point and pass it to the library" },
     { path = "std::time::SystemTime::now", reason = "Pass the current time to the library" },
+    { path = "std::time::SystemTime::elapsed", reason = "Pass the current time to the library and compute the difference from that value" },
     { path = "std::time::Instant::now", reason = "Read the monotonic clock in the entry point and pass timing information to the library" },
+    { path = "std::time::Instant::elapsed", reason = "Pass the current monotonic time to the library and compute the difference from that value" },
 ]
