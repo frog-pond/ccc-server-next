@@ -1,0 +1,15 @@
+[package]
+name = "ccc-native"
+version = "0.1.0"
+description = "Native HTTP entry point for the CCC API"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version = "1.85"
+
+[lints]
+workspace = true
+
+[dependencies]
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+tokio = { workspace = true, features = ["net"] }
