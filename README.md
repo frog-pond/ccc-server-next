@@ -58,11 +58,12 @@ built for Wasm, on `wasm32-unknown-unknown`.
 CI runs the host workspace and the shared crates on stable and beta. To run the
 shared checks on `wasm32-unknown-unknown` locally, make Node.js available and
 run the following commands. Use `#[wasm_bindgen_test(unsupported = test)]`
-for shared tests so both runners execute them.
+for shared tests so both runners execute them. The Wasm check also compares the
+test names reported by the host and Wasm runners.
 
 ```sh
 rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
-cargo fetch --locked --target wasm32-unknown-unknown
+cargo fetch --locked --target host-tuple --target wasm32-unknown-unknown
 MISE_OFFLINE=true MISE_AUTO_INSTALL=false CARGO_NET_OFFLINE=true mise run check:wasm
 ```

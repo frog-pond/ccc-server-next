@@ -45,7 +45,8 @@ jobs:
           rustup target add wasm32-unknown-unknown
           mise install github:wasm-bindgen/wasm-bindgen
       - name: Fetch dependencies for offline tests
-        run: cargo fetch --locked --target ${{ matrix.target.triple }}
+        # The Wasm job also lists host tests to compare test discovery.
+        run: cargo fetch --locked --target host-tuple --target ${{ matrix.target.triple }}
       - name: Check shared crates on Wasm
         if: matrix.target.name == 'wasm32-unknown-unknown'
         env:
@@ -91,6 +92,7 @@ jobs:
 
   ci:
     name: ci
+    # List every other job in needs so this status covers the whole workflow.
     needs: [build, structure]
     if: always()
     runs-on: ubuntu-latest
