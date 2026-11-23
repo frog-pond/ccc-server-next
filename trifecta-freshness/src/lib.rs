@@ -21,15 +21,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
-// Remove these exceptions when the reviewed signatures get bodies (#439).
-#![allow(
-	unused_variables,
-	clippy::missing_panics_doc,
-	clippy::needless_pass_by_value,
-	clippy::todo
-)]
 
 use core::{fmt, num::NonZeroU32, time::Duration};
+
+#[cfg(all(test, feature = "std"))]
+mod tests;
 
 /// Why a value's freshness record could not be built.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -44,7 +40,9 @@ pub enum Error {
 
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		todo!()
+		match self {
+			Self::PeriodEndsBeforeFetch => f.write_str("validity period ends at or before fetch start"),
+		}
 	}
 }
 
@@ -109,11 +107,18 @@ pub trait Timestamp: Copy + Ord {
 #[cfg(feature = "std")]
 impl Timestamp for std::time::SystemTime {
 	fn saturating_add_duration(self, duration: Duration) -> Self {
-		todo!()
+		let ceiling = std::time::UNIX_EPOCH
+			.checked_add(Duration::from_secs(253_402_300_799))
+			.unwrap_or(self);
+		self
+			.checked_add(duration)
+			.unwrap_or(ceiling)
+			.min(ceiling)
+			.max(self)
 	}
 
 	fn checked_duration_since(self, earlier: Self) -> Option<Duration> {
-		todo!()
+		self.duration_since(earlier).ok()
 	}
 }
 
@@ -124,11 +129,11 @@ impl Timestamp for std::time::SystemTime {
 #[cfg(feature = "jiff")]
 impl Timestamp for jiff::Timestamp {
 	fn saturating_add_duration(self, duration: Duration) -> Self {
-		todo!()
+		self.saturating_add(duration).unwrap_or(Self::MAX)
 	}
 
 	fn checked_duration_since(self, earlier: Self) -> Option<Duration> {
-		todo!()
+		Duration::try_from(self.duration_since(earlier)).ok()
 	}
 }
 
@@ -192,7 +197,7 @@ pub struct FreshnessPolicy<T> {
 }
 
 /// The record a cache backend keeps for one resource beside its optional value.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Entry<T, E> {
 	/// Time recorded when the entry is created, and on a read more than
 	/// [`TOUCH_EVERY`] later (see [`record_read`]).
@@ -220,7 +225,7 @@ impl<T: Timestamp> CachedValueMetadata<T> {
 	/// Build the record for a value whose fetch began at `fetch_started_at`.
 	///
 	/// `period_ends_at` is the end of the validity period containing that start,
-	/// absent when the source has no periods. `fresh_for` is the value's own
+	/// or `None` when no period end was stored. `fresh_for` is the value's own
 	/// freshness interval, the reference's
 	/// [`ttlFor`](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L208),
 	/// including zero when the value expires at once; absence uses
@@ -236,35 +241,43 @@ impl<T: Timestamp> CachedValueMetadata<T> {
 		period_ends_at: Option<T>,
 		fresh_for: Option<Duration>,
 	) -> Result<Self, Error> {
-		todo!()
+		if period_ends_at.is_some_and(|end| end <= fetch_started_at) {
+			return Err(Error::PeriodEndsBeforeFetch);
+		}
+		Ok(Self {
+			fetch_started_at,
+			period_ends_at,
+			fresh_for,
+		})
 	}
 
 	/// When the successful fetch began.
 	#[must_use]
 	pub fn fetch_started_at(&self) -> T {
-		todo!()
+		self.fetch_started_at
 	}
 
 	/// The end of the validity period that contains the fetch's start, strictly
-	/// after it, or `None` when the source has no periods. It decides only
-	/// whether the value is fresh or stale; it has no effect on whether the
+	/// after it, or `None` when no period end was stored. With a
+	/// [period function](FreshnessPolicy::period_end), a value with no stored
+	/// end is never fresh or stale. The period has no effect on whether the
 	/// value may be served as a fallback, which
 	/// [`FreshnessPolicy::may_serve_fallback`] decides by age alone.
 	#[must_use]
 	pub fn period_ends_at(&self) -> Option<T> {
-		todo!()
+		self.period_ends_at
 	}
 
 	/// The value's own freshness interval, if its source computed one.
 	#[must_use]
 	pub fn fresh_for(&self) -> Option<Duration> {
-		todo!()
+		self.fresh_for
 	}
 }
 
 /// A recorded fetch failure. Backoff can end while the record persists; it is
 /// cleared only by a successful fetch.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Failure<T, E> {
 	/// Consecutive failed fetches, including the latest, clamped at `u32::MAX`.
 	pub consecutive_failures: NonZeroU32,
@@ -287,7 +300,7 @@ pub struct Failure<T, E> {
 /// otherwise. A refresher that sidetracks the request, such as a Durable Object
 /// alarm, lets the reader be answered with the cached value at once, as the
 /// reference does.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub enum ReadAction<'a, T, E> {
 	/// Serve the cached value as fresh. Fresh values are served even during
 	/// backoff.
@@ -358,20 +371,20 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// otherwise [`Self::fresh_for`]. Backoff is active while
 	/// `backoff_until > now`.
 	///
+	/// "Within the age limit" is inclusive, as in [`Self::may_serve_fallback`]:
+	/// a value whose signed age equals [`Self::serve_cached_after_failure`] is
+	/// within it, and every value is within no limit.
+	///
 	/// In order:
 	/// 1. A current value younger than its freshness interval is served fresh,
-	///    even during backoff. If `now` is at or after its refresh point (see
-	///    [`Self::refresh_ahead`]) and no backoff is active, the read also asks
-	///    for a refresh.
+	///    even during backoff. If its signed age has reached its refresh point
+	///    (see [`Self::refresh_ahead`]) and no backoff is active, the read also
+	///    asks for a refresh.
 	/// 2. A current value younger than its freshness interval plus
 	///    [`Self::stale_window`] (saturating) asks for a refresh when no failure is
 	///    recorded, regardless of the age limit. With a failure recorded, it is
 	///    served after the failure during backoff, or asks for a refresh after
 	///    backoff, if it is within the age limit.
-	///
-	/// "Within the age limit" is inclusive, as in [`Self::may_serve_fallback`]:
-	/// a value whose signed age equals [`Self::serve_cached_after_failure`] is
-	/// within it, and every value is within no limit.
 	/// 3. Otherwise, during backoff, a value within the age limit is served after
 	///    the failure, and without one the recorded error is reported.
 	/// 4. Otherwise the read fetches, keeping a value within the age limit as the
@@ -380,7 +393,35 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L106-L130).
 	#[must_use]
 	pub fn on_read<'a, E>(&self, now: T, entry: Option<&'a Entry<T, E>>) -> ReadAction<'a, T, E> {
-		todo!()
+		let failure = entry.and_then(|entry| entry.failure.as_ref());
+		let backing_off = failure.filter(|failure| failure.backoff_until > now);
+		let Some(cached) = entry.and_then(|entry| entry.cached.as_ref()) else {
+			return backing_off.map_or(ReadAction::FetchWithoutFallback, |failure| {
+				ReadAction::ReportCachedError(&failure.last_error)
+			});
+		};
+
+		let fetch_started_at = cached.fetch_started_at;
+		let age = now.checked_duration_since(fetch_started_at);
+		let fresh_for = cached.fresh_for.unwrap_or(self.fresh_for);
+		let current = self.period_is_current(now, cached);
+		let fresh = current && age.is_none_or(|age| age < fresh_for);
+		let stale = current && age.is_none_or(|age| age < fresh_for.saturating_add(self.stale_window));
+		let fallback = self.age_allows_fallback(age);
+		match backing_off {
+			None if fresh && self.reached_refresh_point(age, fresh_for) => {
+				ReadAction::ServeFreshAndRequestRefresh { fetch_started_at }
+			}
+			_ if fresh => ReadAction::ServeFresh { fetch_started_at },
+			Some(_) if fallback => ReadAction::ServeCachedAfterFailure { fetch_started_at },
+			Some(failure) => ReadAction::ReportCachedError(&failure.last_error),
+			None if stale && failure.is_none() => ReadAction::RequestRefresh { fetch_started_at },
+			None if stale && fallback => ReadAction::RequestRefreshAfterFailure { fetch_started_at },
+			None if fallback => ReadAction::FetchWithStaleFallback {
+				fallback_fetch_started_at: fetch_started_at,
+			},
+			None => ReadAction::FetchWithoutFallback,
+		}
 	}
 
 	/// What to record about a value from a successful fetch that began at
@@ -402,7 +443,11 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 		started_at: T,
 		fresh_for: Option<Duration>,
 	) -> Result<CachedValueMetadata<T>, Error> {
-		todo!()
+		CachedValueMetadata::new(
+			started_at,
+			self.period_end.map(|end| end(started_at)),
+			fresh_for,
+		)
 	}
 
 	/// Whether a kept value whose fetch began at `fallback_fetch_started_at` may
@@ -411,7 +456,7 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// matter.
 	#[must_use]
 	pub fn may_serve_fallback(&self, now: T, fallback_fetch_started_at: T) -> bool {
-		todo!()
+		self.age_allows_fallback(now.checked_duration_since(fallback_fetch_started_at))
 	}
 
 	/// A hint for a refresher that schedules: when to set its next refresh, as
@@ -422,7 +467,8 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// During backoff, when backoff ends: the earliest a retry is allowed.
 	/// Otherwise, for a cached value, its fetch start plus the age of its refresh
 	/// point (see [`Self::refresh_ahead`]), and without one, `now` plus
-	/// [`Self::fresh_for`]. A time at or before `now` means a refresh is due.
+	/// [`Self::fresh_for`]. A time at or before `now` calls for checking
+	/// eligibility now. [`Self::may_refresh`] still decides whether it can run.
 	/// Period ends are not scheduled, as in the reference.
 	///
 	/// A time past the [`Timestamp`] type's ceiling comes back as the ceiling,
@@ -433,7 +479,24 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L239-L249).
 	#[must_use]
 	pub fn next_refresh_hint<E>(&self, now: T, entry: &Entry<T, E>) -> Option<T> {
-		todo!()
+		if is_idle(now, entry.last_read) {
+			return None;
+		}
+		if let Some(failure) = entry
+			.failure
+			.as_ref()
+			.filter(|failure| failure.backoff_until > now)
+		{
+			return Some(failure.backoff_until);
+		}
+		Some(entry.cached.as_ref().map_or_else(
+			|| now.saturating_add_duration(self.fresh_for),
+			|cached| {
+				cached
+					.fetch_started_at
+					.saturating_add_duration(self.refresh_point(cached.fresh_for.unwrap_or(self.fresh_for)))
+			},
+		))
 	}
 
 	/// Whether a refresher may run a refresh now. False when there is no entry,
@@ -457,8 +520,49 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// [alarm]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L251-L260
 	#[must_use]
 	pub fn may_refresh<E>(&self, now: T, entry: Option<&Entry<T, E>>) -> bool {
-		todo!()
+		entry.is_some_and(|entry| {
+			!is_idle(now, entry.last_read)
+				&& entry
+					.failure
+					.as_ref()
+					.is_none_or(|failure| failure.backoff_until <= now)
+				&& entry.cached.as_ref().is_none_or(|cached| {
+					!self.period_is_current(now, cached)
+						|| self.reached_refresh_point(
+							now.checked_duration_since(cached.fetch_started_at),
+							cached.fresh_for.unwrap_or(self.fresh_for),
+						)
+				})
+		})
 	}
+
+	fn period_is_current(&self, now: T, cached: &CachedValueMetadata<T>) -> bool {
+		self.period_end.is_none() || cached.period_ends_at.is_some_and(|end| end > now)
+	}
+
+	fn age_allows_fallback(&self, age: Option<Duration>) -> bool {
+		self
+			.serve_cached_after_failure
+			.is_none_or(|limit| age.is_none_or(|age| age <= limit))
+	}
+
+	fn reached_refresh_point(&self, age: Option<Duration>, fresh_for: Duration) -> bool {
+		age.is_some_and(|age| age >= self.refresh_point(fresh_for))
+	}
+
+	fn refresh_point(&self, fresh_for: Duration) -> Duration {
+		if self.refresh_ahead < fresh_for {
+			fresh_for.saturating_sub(self.refresh_ahead)
+		} else {
+			fresh_for
+		}
+	}
+}
+
+fn is_idle<T: Timestamp>(now: T, last_read: T) -> bool {
+	now
+		.checked_duration_since(last_read)
+		.is_some_and(|age| age > IDLE_AFTER)
 }
 
 /// The time to record as the entry's last read, if any: `now` when there is no
@@ -473,7 +577,13 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L92-L104).
 #[must_use]
 pub fn record_read<T: Timestamp, E>(now: T, entry: Option<&Entry<T, E>>) -> Option<T> {
-	todo!()
+	entry
+		.is_none_or(|entry| {
+			now
+				.checked_duration_since(entry.last_read)
+				.is_some_and(|age| age > TOUCH_EVERY)
+		})
+		.then_some(now)
 }
 
 /// The failure record after a fetch that began at `started_at` failed with
@@ -482,6 +592,8 @@ pub fn record_read<T: Timestamp, E>(now: T, entry: Option<&Entry<T, E>>) -> Opti
 /// The count is one more than `previous_failures`, or one without them,
 /// clamped at `u32::MAX`. Backoff ends at `started_at` plus
 /// [`backoff_delay`] for the new count, saturating at the time type's ceiling.
+/// Pass the largest `retry_after` noted during the fetch, or zero when none
+/// was sent. It is passed to [`backoff_delay`].
 /// These rules use no source setting, so this is a function, not a policy
 /// method.
 ///
@@ -493,7 +605,14 @@ pub fn failure_after<T: Timestamp, E>(
 	error: E,
 	retry_after: Duration,
 ) -> Failure<T, E> {
-	todo!()
+	let consecutive_failures =
+		previous_failures.map_or(NonZeroU32::MIN, |count| count.saturating_add(1));
+	Failure {
+		consecutive_failures,
+		backoff_until: started_at
+			.saturating_add_duration(backoff_delay(consecutive_failures, retry_after)),
+		last_error: error,
+	}
 }
 
 /// How long a source is held off after its `consecutive_failures`-th failure in
@@ -510,5 +629,7 @@ pub fn failure_after<T: Timestamp, E>(
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L220-L225).
 #[must_use]
 pub fn backoff_delay(consecutive_failures: NonZeroU32, retry_after: Duration) -> Duration {
-	todo!()
+	let exponent = (consecutive_failures.get() - 1).min(7);
+	let exponential = (MIN_BACKOFF * (1 << exponent)).min(MAX_BACKOFF);
+	exponential.max(retry_after.min(MAX_RETRY_AFTER))
 }

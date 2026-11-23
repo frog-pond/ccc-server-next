@@ -1475,6 +1475,7 @@ name = "trifecta-freshness"
 version = "0.1.0"
 dependencies = [
  "jiff",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

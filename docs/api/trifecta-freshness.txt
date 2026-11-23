@@ -69,6 +69,8 @@ pub fn trifecta_freshness::ReadAction<'a, T, E>::eq(&self, &Self) -> bool
 impl<'a, T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::ReadAction<'a, T, E>
 impl<'a, T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::ReadAction<'a, T, E>
 pub fn trifecta_freshness::ReadAction<'a, T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a, T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::ReadAction<'a, T, E>
+pub fn trifecta_freshness::ReadAction<'a, T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
 impl<T: core::marker::Copy, E> core::clone::Clone for trifecta_freshness::ReadAction<'_, T, E>
 pub fn trifecta_freshness::ReadAction<'_, T, E>::clone(&self) -> Self
 impl<T: core::marker::Copy, E> core::marker::Copy for trifecta_freshness::ReadAction<'_, T, E>
@@ -163,6 +165,9 @@ pub fn trifecta_freshness::Entry<T, E>::eq(&self, &Self) -> bool
 impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::Entry<T, E>
 impl<T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::Entry<T, E>
 pub fn trifecta_freshness::Entry<T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::Entry<T, E>
+pub fn trifecta_freshness::Entry<T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy, E: core::marker::Copy> core::marker::Copy for trifecta_freshness::Entry<T, E>
 impl<T, E> core::marker::Forget for trifecta_freshness::Entry<T, E>
 impl<T, E> core::marker::Freeze for trifecta_freshness::Entry<T, E> where T: core::marker::Freeze, core::option::Option<trifecta_freshness::CachedValueMetadata<T>>: core::marker::Freeze, core::option::Option<trifecta_freshness::Failure<T, E>>: core::marker::Freeze
 impl<T, E> core::marker::Move for trifecta_freshness::Entry<T, E>
@@ -206,6 +211,9 @@ pub fn trifecta_freshness::Failure<T, E>::eq(&self, &Self) -> bool
 impl<T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::Failure<T, E>
 impl<T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::Failure<T, E>
 pub fn trifecta_freshness::Failure<T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::hash::Hash, E: core::hash::Hash> core::hash::Hash for trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::Failure<T, E>::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl<T: core::marker::Copy, E: core::marker::Copy> core::marker::Copy for trifecta_freshness::Failure<T, E>
 impl<T, E> core::marker::Forget for trifecta_freshness::Failure<T, E>
 impl<T, E> core::marker::Freeze for trifecta_freshness::Failure<T, E> where T: core::marker::Freeze, E: core::marker::Freeze
 impl<T, E> core::marker::Move for trifecta_freshness::Failure<T, E>

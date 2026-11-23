@@ -20,3 +20,6 @@ jiff = ["dep:jiff"]
 
 [dependencies]
 jiff = { version = "0.2", optional = true, default-features = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.77"

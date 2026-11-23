@@ -34,6 +34,7 @@ mise trust
 
 ```sh
 rustup toolchain install nightly-2026-11-22 --profile minimal # public API listings
+rustup target add wasm32-unknown-unknown
 mise run check             # lint, test, check docs, dependencies and API listings
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
@@ -42,6 +43,8 @@ mise run reference:drift   # what changed in the reference since the recorded co
 After changing a library's public API, run `mise run update:api` and commit the
 updated listings in [`docs/api/`](docs/api/). The listings cover workspace
 libraries with all features enabled on the host.
+`mise run check` also compiles `trifecta-freshness` for Wasm without `std`,
+with and without `jiff`.
 
 CI runs the host workspace and the shared crates on stable and beta. To run the
 shared tests on `wasm32-unknown-unknown` locally, make Node.js available and run
@@ -49,7 +52,6 @@ the following commands. Use `#[wasm_bindgen_test::wasm_bindgen_test]` for tests
 that should execute in Wasm.
 
 ```sh
-rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
 mise run test -- --target wasm32-unknown-unknown --exclude e2e
 ```
