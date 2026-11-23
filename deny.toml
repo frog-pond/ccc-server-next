@@ -1,7 +1,8 @@
 [graph]
-# The e2e executable makes HTTP requests to the servers it compares.
-# The native HTTP integration owns reqwest. It is forbidden elsewhere in the graph.
-exclude = ["e2e", "trifecta-reqwest"]
+# The native server and e2e executable need a runtime and HTTP client.
+# The native Trifecta HTTP source also uses reqwest.
+# Check the dependency graph of the shared crates.
+exclude = ["ccc-native", "e2e", "trifecta-reqwest"]
 
 [bans]
 multiple-versions = "allow"

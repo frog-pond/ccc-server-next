@@ -1,1 +1,91 @@
 pub mod ccc_schema
+pub mod ccc_schema::routing
+pub enum ccc_schema::routing::RouteErrorMessage
+pub ccc_schema::routing::RouteErrorMessage::MethodNotAllowed
+pub ccc_schema::routing::RouteErrorMessage::NotFound
+impl core::clone::Clone for ccc_schema::routing::RouteErrorMessage
+pub fn ccc_schema::routing::RouteErrorMessage::clone(&self) -> Self
+impl core::cmp::Eq for ccc_schema::routing::RouteErrorMessage
+impl core::cmp::PartialEq for ccc_schema::routing::RouteErrorMessage
+pub fn ccc_schema::routing::RouteErrorMessage::eq(&self, &Self) -> bool
+impl core::fmt::Debug for ccc_schema::routing::RouteErrorMessage
+pub fn ccc_schema::routing::RouteErrorMessage::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ccc_schema::routing::RouteErrorMessage
+impl core::marker::StructuralPartialEq for ccc_schema::routing::RouteErrorMessage
+impl serde_core::ser::Serialize for ccc_schema::routing::RouteErrorMessage
+pub fn ccc_schema::routing::RouteErrorMessage::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for ccc_schema::routing::RouteErrorMessage
+impl core::marker::Freeze for ccc_schema::routing::RouteErrorMessage
+impl core::marker::Move for ccc_schema::routing::RouteErrorMessage
+impl core::marker::Send for ccc_schema::routing::RouteErrorMessage
+impl core::marker::Sync for ccc_schema::routing::RouteErrorMessage
+impl core::marker::Unpin for ccc_schema::routing::RouteErrorMessage
+impl core::marker::UnsafeUnpin for ccc_schema::routing::RouteErrorMessage
+impl core::panic::unwind_safe::RefUnwindSafe for ccc_schema::routing::RouteErrorMessage
+impl core::panic::unwind_safe::UnwindSafe for ccc_schema::routing::RouteErrorMessage
+impl<T, U> core::convert::Into<U> for ccc_schema::routing::RouteErrorMessage where U: core::convert::From<T>
+pub fn ccc_schema::routing::RouteErrorMessage::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ccc_schema::routing::RouteErrorMessage where U: core::convert::Into<T>
+pub type ccc_schema::routing::RouteErrorMessage::Error = never
+pub fn ccc_schema::routing::RouteErrorMessage::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for ccc_schema::routing::RouteErrorMessage where U: core::convert::TryFrom<T>
+pub type ccc_schema::routing::RouteErrorMessage::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ccc_schema::routing::RouteErrorMessage::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ccc_schema::routing::RouteErrorMessage where T: core::clone::Clone
+pub type ccc_schema::routing::RouteErrorMessage::Owned = T
+pub fn ccc_schema::routing::RouteErrorMessage::clone_into(&self, &mut T)
+pub fn ccc_schema::routing::RouteErrorMessage::to_owned(&self) -> T
+impl<T> core::any::Any for ccc_schema::routing::RouteErrorMessage where T: 'static + ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorMessage::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ccc_schema::routing::RouteErrorMessage where T: ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorMessage::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ccc_schema::routing::RouteErrorMessage where T: ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorMessage::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ccc_schema::routing::RouteErrorMessage where T: core::clone::Clone
+pub unsafe fn ccc_schema::routing::RouteErrorMessage::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ccc_schema::routing::RouteErrorMessage
+pub fn ccc_schema::routing::RouteErrorMessage::from(T) -> T
+pub struct ccc_schema::routing::RouteErrorBody
+pub ccc_schema::routing::RouteErrorBody::error: ccc_schema::routing::RouteErrorMessage
+impl core::clone::Clone for ccc_schema::routing::RouteErrorBody
+pub fn ccc_schema::routing::RouteErrorBody::clone(&self) -> Self
+impl core::cmp::Eq for ccc_schema::routing::RouteErrorBody
+impl core::cmp::PartialEq for ccc_schema::routing::RouteErrorBody
+pub fn ccc_schema::routing::RouteErrorBody::eq(&self, &Self) -> bool
+impl core::fmt::Debug for ccc_schema::routing::RouteErrorBody
+pub fn ccc_schema::routing::RouteErrorBody::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ccc_schema::routing::RouteErrorBody
+impl core::marker::StructuralPartialEq for ccc_schema::routing::RouteErrorBody
+impl serde_core::ser::Serialize for ccc_schema::routing::RouteErrorBody
+pub fn ccc_schema::routing::RouteErrorBody::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Forget for ccc_schema::routing::RouteErrorBody
+impl core::marker::Freeze for ccc_schema::routing::RouteErrorBody
+impl core::marker::Move for ccc_schema::routing::RouteErrorBody
+impl core::marker::Send for ccc_schema::routing::RouteErrorBody
+impl core::marker::Sync for ccc_schema::routing::RouteErrorBody
+impl core::marker::Unpin for ccc_schema::routing::RouteErrorBody
+impl core::marker::UnsafeUnpin for ccc_schema::routing::RouteErrorBody
+impl core::panic::unwind_safe::RefUnwindSafe for ccc_schema::routing::RouteErrorBody
+impl core::panic::unwind_safe::UnwindSafe for ccc_schema::routing::RouteErrorBody
+impl<T, U> core::convert::Into<U> for ccc_schema::routing::RouteErrorBody where U: core::convert::From<T>
+pub fn ccc_schema::routing::RouteErrorBody::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ccc_schema::routing::RouteErrorBody where U: core::convert::Into<T>
+pub type ccc_schema::routing::RouteErrorBody::Error = never
+pub fn ccc_schema::routing::RouteErrorBody::try_from(U) -> core::result::Result<T, never>
+impl<T, U> core::convert::TryInto<U> for ccc_schema::routing::RouteErrorBody where U: core::convert::TryFrom<T>
+pub type ccc_schema::routing::RouteErrorBody::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ccc_schema::routing::RouteErrorBody::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ccc_schema::routing::RouteErrorBody where T: core::clone::Clone
+pub type ccc_schema::routing::RouteErrorBody::Owned = T
+pub fn ccc_schema::routing::RouteErrorBody::clone_into(&self, &mut T)
+pub fn ccc_schema::routing::RouteErrorBody::to_owned(&self) -> T
+impl<T> core::any::Any for ccc_schema::routing::RouteErrorBody where T: 'static + ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorBody::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ccc_schema::routing::RouteErrorBody where T: ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorBody::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ccc_schema::routing::RouteErrorBody where T: ?core::marker::Sized
+pub fn ccc_schema::routing::RouteErrorBody::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ccc_schema::routing::RouteErrorBody where T: core::clone::Clone
+pub unsafe fn ccc_schema::routing::RouteErrorBody::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ccc_schema::routing::RouteErrorBody
+pub fn ccc_schema::routing::RouteErrorBody::from(T) -> T
