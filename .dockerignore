@@ -5,7 +5,12 @@
 !ccc-schema/
 !e2e/
 !trifecta-freshness/
-!experiments/*/Cargo.toml
-!experiments/*/src/
+# Cargo loads these workspace members even when building only ccc-native.
+!experiments/native/Cargo.toml
+!experiments/native/src/
+!experiments/route/Cargo.toml
+!experiments/route/src/
+!experiments/worker/Cargo.toml
+!experiments/worker/src/
 !experiments/worker/build.rs
 !experiments/worker/examples/
