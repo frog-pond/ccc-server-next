@@ -51,6 +51,9 @@ jobs:
       - name: Check documentation
         run: mise run doc -- ${{ matrix.target.args }}
       - name: Test
+        env:
+          MISE_OFFLINE: 'true'
+          MISE_AUTO_INSTALL: 'false'
         run: mise run test -- ${{ matrix.target.args }}
 
   structure:

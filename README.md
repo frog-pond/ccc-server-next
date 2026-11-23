@@ -35,10 +35,18 @@ mise trust
 
 ```sh
 rustup toolchain install nightly-2026-11-22 --profile minimal # public API listings
-cargo fetch --locked       # cache dependencies before running tests offline
+mise install               # download the pinned tools
+cargo fetch --locked       # download the locked Rust dependencies
 mise run check             # lint, test, check docs, dependencies and API listings
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
+```
+
+`mise install` and `cargo fetch --locked` use the network during setup.
+After setup, run the tests without network access as CI does.
+
+```sh
+MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test
 ```
 
 After changing a library's public API, run `mise run update:api` and commit the
@@ -53,5 +61,5 @@ that should execute in Wasm.
 ```sh
 rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
-mise run test -- --target wasm32-unknown-unknown --exclude e2e
+MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test -- --target wasm32-unknown-unknown --exclude e2e
 ```
