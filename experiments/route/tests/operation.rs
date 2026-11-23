@@ -100,7 +100,7 @@ fn pipeline_decodes_one_or_more_chunks() {
 }
 
 #[test]
-fn pipeline_preserves_the_source_and_body_failure_categories() {
+fn pipeline_preserves_source_failure_categories() {
 	let status = NonSuccessStatus::try_from(302).unwrap();
 	assert_eq!(
 		run(Sample::Status(302)),
@@ -108,6 +108,10 @@ fn pipeline_preserves_the_source_and_body_failure_categories() {
 	);
 	assert_eq!(run(Sample::Status(0)), Err(RefreshFailure::InvalidStatus));
 	assert_eq!(run(Sample::TransportFailure), Err(RefreshFailure::Fetch));
+}
+
+#[test]
+fn pipeline_preserves_body_failure_categories() {
 	assert_eq!(run(Sample::UnusableResponse), Err(RefreshFailure::ReadBody));
 	assert_eq!(run(Sample::UnusableStream), Err(RefreshFailure::ReadBody));
 }

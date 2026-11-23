@@ -34,6 +34,9 @@ struct RouteState {
 /// A failure before or during the native server's loopback listener.
 #[derive(Debug, thiserror::Error)]
 pub(super) enum NativeError {
+	/// Tokio could not initialize the native runtime or its I/O drivers.
+	#[error("could not initialize the Tokio runtime")]
+	Runtime(#[source] std::io::Error),
 	/// The redirect-disabled HTTP client could not be constructed.
 	#[error("could not configure the fixture HTTP client")]
 	Client(#[source] reqwest::Error),
@@ -51,7 +54,6 @@ pub(super) enum NativeError {
 ///
 /// Returns a [`NativeError`] if the HTTP client, fixture URL, or listener
 /// cannot be initialized, or if the listener fails while serving.
-#[tokio::main]
 pub(super) async fn run() -> Result<(), NativeError> {
 	let source = NativeSource::new().map_err(NativeError::Client)?;
 	let state = RouteState {

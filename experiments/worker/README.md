@@ -3,6 +3,10 @@
 Use Rust 1.98 or newer with the `wasm32-unknown-unknown` target, Node.js, and
 Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.9.0.
 
+The crates under `experiments/` belong to the #452 prototype. They do not set
+the design for the production builds. They pin the Trifecta draft through a
+Git dependency. Port or remove the experiment when Trifecta lands.
+
 ## Local setup
 
 From the repository root, run `python3 experiments/fixtures.py` to start the
@@ -23,20 +27,15 @@ cd experiments/worker
 npm ci
 npm run worker-build:install
 npm run worker-build
-npm run dev
 ```
 
 Setup and the first build can download tools from npm and GitHub, in addition
 to Cargo dependencies. Warm the build before applying the loopback-only runtime
 restriction below.
 
-The `dev` script sets the following variables. Use them for any direct Wrangler
-invocation for this experiment. They disable telemetry, error reports,
-Miniflare's `cf.json` download, and the banner's npm update check.
-
-```sh
-WRANGLER_SEND_METRICS=false WRANGLER_SEND_ERROR_REPORTS=false CLOUDFLARE_CF_FETCH_ENABLED=false WRANGLER_HIDE_BANNER=true wrangler dev --local
-```
+Start Wrangler with the guarded `npm run dev` command below. It uses the pinned
+local Wrangler and disables telemetry, error reports, Miniflare's `cf.json`
+download, and the banner's npm update check.
 
 Wrangler uses the crate-local worker-build binary and the local `FIXTURES`
 binding with its SQLite migration.
@@ -46,7 +45,7 @@ the Worker. The Worker may first return a pending reply while its alarm runs.
 The completed responses share HTTP 200 and an `application/json` body. The
 value is 42 and the redirect reports `http_status` 302. The fixture log should
 show no request to `/redirect-target`. An unknown fixture returns 404. A non-GET
-request for a known fixture returns 405 with `Allow: GET`.
+request for a known fixture, including `PROPFIND`, returns 405 with `Allow: GET`.
 
 Each completed attempt schedules another refresh in five seconds. The Worker
 serves the cached reply during that refresh. A failed refresh preserves the last

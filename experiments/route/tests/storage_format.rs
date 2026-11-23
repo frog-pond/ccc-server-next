@@ -23,21 +23,27 @@ fn refresh_job_json_is_stable() {
 }
 
 #[test]
-fn fixture_names_identify_the_same_parameters_on_each_boundary() {
-	for (fixture, segment, object) in [
-		(Fixture::Value, "value", "fixture-value"),
-		(Fixture::Redirect, "redirect", "fixture-redirect"),
-	] {
+fn fixture_segments_identify_the_route_parameter() {
+	for (fixture, segment) in [(Fixture::Value, "value"), (Fixture::Redirect, "redirect")] {
 		assert_eq!(segment.parse(), Ok(fixture));
 		assert_eq!(
 			Fixture::from_route_path(&format!("/experiment/{segment}")),
 			Ok(fixture)
 		);
-		assert_eq!(fixture.object_name(), object);
-		assert_eq!(Fixture::from_object_name(object), Ok(fixture));
 	}
 	assert!(Fixture::from_route_path("/experiment/missing").is_err());
 	assert!(Fixture::from_route_path("/experiment/value/extra").is_err());
+}
+
+#[test]
+fn object_names_identify_the_fixture() {
+	for (fixture, object) in [
+		(Fixture::Value, "fixture-value"),
+		(Fixture::Redirect, "fixture-redirect"),
+	] {
+		assert_eq!(fixture.object_name(), object);
+		assert_eq!(Fixture::from_object_name(object), Ok(fixture));
+	}
 }
 
 #[test]
@@ -107,6 +113,11 @@ fn object_call_failure_uses_the_object_reply_format() {
 		&ObjectReply::ObjectCallFailed,
 		r#"{"state":"object_call_failed"}"#,
 	);
+}
+
+#[test]
+fn invalid_object_identity_uses_its_own_reply() {
+	assert_storage_format(&ObjectReply::InvalidObject, r#"{"state":"invalid_object"}"#);
 }
 
 #[test]

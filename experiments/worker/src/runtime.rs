@@ -22,8 +22,8 @@ use trifecta::{
 };
 use worker::{
 	durable_object, event, send::SendFuture, wasm_bindgen, web_sys::AbortController, AbortSignal,
-	Context, Date, Delay, DurableObject, Env, Fetch, Headers, Method, Request, RequestInit,
-	RequestRedirect, Response, SqlStorage, SqlStorageValue, State, Storage,
+	Context, Date, Delay, DurableObject, Env, Fetch, Headers, Request, RequestInit, RequestRedirect,
+	Response, SqlStorage, SqlStorageValue, State, Storage,
 };
 
 use address::LoopbackUrl;
@@ -47,7 +47,7 @@ pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Res
 	let Ok(fixture) = Fixture::from_route_path(&request.path()) else {
 		return Response::empty().map(|response| response.with_status(404));
 	};
-	if request.method() != Method::Get {
+	if request.inner().method() != "GET" {
 		let headers = Headers::new();
 		headers.set("Allow", "GET")?;
 		return Response::empty().map(|response| response.with_status(405).with_headers(headers));
@@ -60,8 +60,8 @@ pub async fn fetch(request: Request, env: Env, _context: Context) -> worker::Res
 				event: "worker_experiment.object_call_failed",
 				fixture: Some(fixture),
 				object_name: None,
-				operation: failure.operation.name(),
-				kind: "object_call",
+				operation: EventOperation::Call(failure.operation),
+				kind: EventKind::ObjectCall,
 				cause: (&failure.cause).into(),
 			});
 			reply(ObjectReply::ObjectCallFailed)
@@ -86,7 +86,8 @@ async fn call_fixture_object(
 		.map_err(|cause| ObjectCallOperation::FetchWithRequest.failure(cause))
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 enum ObjectCallOperation {
 	ResolveBinding,
 	GetByName,
@@ -94,14 +95,6 @@ enum ObjectCallOperation {
 }
 
 impl ObjectCallOperation {
-	const fn name(self) -> &'static str {
-		match self {
-			Self::ResolveBinding => "resolve_binding",
-			Self::GetByName => "get_by_name",
-			Self::FetchWithRequest => "fetch_with_request",
-		}
-	}
-
 	const fn failure(self, cause: worker::Error) -> ObjectCallFailure {
 		ObjectCallFailure {
 			operation: self,
@@ -138,7 +131,7 @@ impl DurableObject for FixtureObject {
 
 	async fn fetch(&self, request: Request) -> worker::Result<Response> {
 		let Some(owner) = self.fetch_owner() else {
-			return reply(ObjectReply::StoredRecordInvalid);
+			return reply(ObjectReply::InvalidObject);
 		};
 		let Ok(requested) = Fixture::from_route_path(&request.path()) else {
 			return Response::empty().map(|response| response.with_status(404));
@@ -157,7 +150,7 @@ impl DurableObject for FixtureObject {
 			Ok(Ok(ReadReply::Complete(payload))) => completed_response(payload),
 			Ok(Ok(ReadReply::Pending)) => reply(ObjectReply::Pending),
 			Ok(Err(failure)) => log_and_reply(owner, &failure),
-			Err(error) => log_and_reply(owner, &StorageOperation::Gate.failure(error)),
+			Err(error) => log_and_reply(owner, &StorageOperation::ConcurrencyGate.failure(error)),
 		}
 	}
 
@@ -200,8 +193,8 @@ impl FixtureObject {
 		if owner.is_none() {
 			log_object_failure(
 				None,
-				"identify_object",
-				"invalid_object",
+				EventOperation::IdentifyObject,
+				EventKind::InvalidObject,
 				"fetch reached an unnamed object",
 			);
 		}
@@ -220,8 +213,8 @@ impl FixtureObject {
 						event: "worker_experiment.object_failed",
 						fixture: None,
 						object_name: Some(name),
-						operation: "identify_object",
-						kind: "invalid_object",
+						operation: EventOperation::IdentifyObject,
+						kind: EventKind::InvalidObject,
 						cause: "object has an unrecognized fixture name",
 					});
 				})
@@ -405,21 +398,15 @@ impl Records {
 				payload TEXT NOT NULL CHECK (json_valid(payload)),
 				refresh_after_ms INTEGER NOT NULL,
 				state TEXT NOT NULL CHECK (state IN ('value', 'failed', 'stale'))
-			) STRICT;
-			INSERT INTO fixture_cache (id, payload, refresh_after_ms, state)
-			SELECT 1, payload, 0, json_extract(payload, '$.result.outcome')
-			FROM fixture_records
-			WHERE name = 'outcome' AND NOT EXISTS (SELECT 1 FROM fixture_cache)
-			AND json_extract(payload, '$.state') = 'complete'
-			AND json_extract(payload, '$.result.outcome') IN ('value', 'failed')",
+			) STRICT",
 				None,
 			)
-			.map_err(|cause| StorageOperation::Open.failure(cause))?;
+			.map_err(|cause| StorageOperation::OpenStorage.failure(cause))?;
 		Ok(Self(sql))
 	}
 
 	fn read(&self, record: Record) -> Result<Option<String>, ObjectFailure> {
-		let on_error = |cause| StorageOperation::Read(record).failure(cause);
+		let on_error = |cause| StorageOperation::read(record).failure(cause);
 		let cursor = self
 			.0
 			.exec(
@@ -458,7 +445,7 @@ impl Records {
 			 ON CONFLICT(name) DO UPDATE SET payload = excluded.payload",
 				vec![record.key().into(), payload.into()],
 			)
-			.map_err(|cause| StorageOperation::Write(record).failure(cause))?;
+			.map_err(|cause| StorageOperation::write(record).failure(cause))?;
 		Ok(())
 	}
 	fn read_outcome(&self) -> Result<Option<CachedOutcome>, ObjectFailure> {
@@ -493,7 +480,7 @@ impl Records {
 	}
 
 	fn outcome_row(&self, query: &str) -> Result<Option<Vec<SqlStorageValue>>, ObjectFailure> {
-		let on_error = |cause| StorageOperation::Read(Record::Outcome).failure(cause);
+		let on_error = |cause| StorageOperation::read(Record::Outcome).failure(cause);
 		self
 			.0
 			.exec(query, None)
@@ -505,7 +492,7 @@ impl Records {
 	}
 
 	fn write_outcome(&self, outcome: RefreshOutcome, deadline: i64) -> Result<(), ObjectFailure> {
-		let on_error = |cause| StorageOperation::Write(Record::Outcome).failure(cause);
+		let on_error = |cause| StorageOperation::write(Record::Outcome).failure(cause);
 		let state = match outcome {
 			RefreshOutcome::Value { .. } => CacheState::Value,
 			RefreshOutcome::Failed { .. } => {
@@ -541,7 +528,7 @@ impl Records {
 			 WHERE id = 1 AND state IN ('value', 'stale')",
 				vec![deadline.into()],
 			)
-			.map_err(|cause| StorageOperation::Write(Record::Outcome).failure(cause))?;
+			.map_err(|cause| StorageOperation::write(Record::Outcome).failure(cause))?;
 		Ok(update.rows_written() != 0)
 	}
 }
@@ -568,7 +555,7 @@ fn reply(reply: ObjectReply) -> worker::Result<Response> {
 		ObjectReply::StorageUnavailable
 		| ObjectReply::AlarmSchedulingFailed
 		| ObjectReply::ObjectCallFailed => 503,
-		ObjectReply::StoredRecordInvalid => 500,
+		ObjectReply::StoredRecordInvalid | ObjectReply::InvalidObject => 500,
 	};
 	Response::from_json(&reply).map(|response| response.with_status(status))
 }
@@ -754,25 +741,30 @@ fn read_fixture_body(
 	SendFuture::new(async move { response.bytes().await.map(Bytes::from) })
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 enum StorageOperation {
-	Open,
-	Read(Record),
-	Write(Record),
+	OpenStorage,
+	ReadJob,
+	ReadOutcome,
+	WriteJob,
+	WriteOutcome,
 	ReadAlarm,
-	Gate,
+	ConcurrencyGate,
 }
 
 impl StorageOperation {
-	const fn name(self) -> &'static str {
-		match self {
-			Self::Open => "open_storage",
-			Self::Read(Record::Job) => "read_job",
-			Self::Read(Record::Outcome) => "read_outcome",
-			Self::Write(Record::Job) => "write_job",
-			Self::Write(Record::Outcome) => "write_outcome",
-			Self::ReadAlarm => "read_alarm",
-			Self::Gate => "concurrency_gate",
+	const fn read(record: Record) -> Self {
+		match record {
+			Record::Job => Self::ReadJob,
+			Record::Outcome => Self::ReadOutcome,
+		}
+	}
+
+	const fn write(record: Record) -> Self {
+		match record {
+			Record::Job => Self::WriteJob,
+			Record::Outcome => Self::WriteOutcome,
 		}
 	}
 
@@ -824,38 +816,65 @@ impl ObjectFailure {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum EventOperation {
+	IdentifyObject,
+	ScheduleAlarm,
+	DecodeJob,
+	ValidateJob,
+	#[serde(untagged)]
+	Storage(StorageOperation),
+	#[serde(untagged)]
+	Call(ObjectCallOperation),
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum EventKind {
+	ObjectCall,
+	InvalidObject,
+	Storage,
+	ScheduleAlarm,
+	DecodeRecord,
+	EncodeRecord,
+}
+
+#[derive(Serialize)]
 struct ObjectFailureEvent<'a> {
 	event: &'static str,
 	fixture: Option<Fixture>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	object_name: Option<&'a str>,
-	operation: &'static str,
-	kind: &'static str,
+	operation: EventOperation,
+	kind: EventKind,
 	cause: &'a str,
 }
 
 /// Records the fixture and operation before reporting a failed reply or
 /// propagating a storage error to the alarm runtime for retry.
 fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
+	use EventKind as Kind;
+	use EventOperation as Operation;
+
+	let log = |operation, kind, cause: &str| log_object_failure(fixture, operation, kind, cause);
 	match failure {
 		ObjectFailure::Storage { operation, cause } => {
-			log_object_failure(fixture, operation.name(), "storage", cause.into());
+			log(Operation::Storage(*operation), Kind::Storage, cause.into());
 		}
 		ObjectFailure::ScheduleAlarm(cause) => {
-			log_object_failure(fixture, "schedule_alarm", "schedule_alarm", cause.into());
+			log(Operation::ScheduleAlarm, Kind::ScheduleAlarm, cause.into());
 		}
 		ObjectFailure::DecodeJob(cause) => {
-			log_object_failure(fixture, "decode_job", "decode_record", &cause.to_string());
+			log(Operation::DecodeJob, Kind::DecodeRecord, &cause.to_string());
 		}
 		ObjectFailure::RecordType(record) => log_invalid_record(fixture, *record, failure),
 		ObjectFailure::InvalidCacheState => log_invalid_record(fixture, Record::Outcome, failure),
 		ObjectFailure::JobFixtureMismatch(job) => {
-			log_object_failure(fixture, "validate_job", "decode_record", job.segment());
+			log(Operation::ValidateJob, Kind::DecodeRecord, job.segment());
 		}
-		ObjectFailure::Encode { record, cause } => log_object_failure(
-			fixture,
-			StorageOperation::Write(*record).name(),
-			"encode_record",
+		ObjectFailure::Encode { record, cause } => log(
+			Operation::Storage(StorageOperation::write(*record)),
+			Kind::EncodeRecord,
 			&cause.to_string(),
 		),
 	}
@@ -864,16 +883,16 @@ fn record_object_failure(fixture: Option<Fixture>, failure: &ObjectFailure) {
 fn log_invalid_record(fixture: Option<Fixture>, record: Record, failure: &ObjectFailure) {
 	log_object_failure(
 		fixture,
-		StorageOperation::Read(record).name(),
-		"decode_record",
+		EventOperation::Storage(StorageOperation::read(record)),
+		EventKind::DecodeRecord,
 		&failure.to_string(),
 	);
 }
 
 fn log_object_failure(
 	fixture: Option<Fixture>,
-	operation: &'static str,
-	kind: &'static str,
+	operation: EventOperation,
+	kind: EventKind,
 	cause: &str,
 ) {
 	log_event(&ObjectFailureEvent {

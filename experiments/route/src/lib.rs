@@ -245,9 +245,12 @@ pub enum ObjectReply {
 	/// The Worker could not resolve or call the fixture's Durable Object.
 	#[serde(rename = "object_call_failed")]
 	ObjectCallFailed,
-	/// The stored job could not be decoded or belonged to a different fixture.
+	/// A stored job or outcome was malformed, or the job named a different fixture.
 	#[serde(rename = "stored_record_invalid")]
 	StoredRecordInvalid,
+	/// The Durable Object handling a fetch had no recognized fixture identity.
+	#[serde(rename = "invalid_object")]
+	InvalidObject,
 }
 
 impl From<RefreshOutcome> for ObjectReply {
@@ -351,7 +354,7 @@ where
 
 /// A classified fixture failure and the original Trifecta diagnostic for logs.
 #[derive(Debug, thiserror::Error)]
-#[error("{cause}")]
+#[error("fixture refresh failed")]
 pub struct FailedRefresh {
 	/// The failure safe to include in a response or persist in SQLite.
 	pub failure: RefreshFailure,
