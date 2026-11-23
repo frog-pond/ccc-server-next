@@ -63,8 +63,10 @@ and logs `worker_experiment.stale_value_served` when the policy selects it
 after a failure. The first retry is due 30 seconds after the failed fetch
 started. A successful refresh replaces the value and clears the failure.
 Alarms stop when the freshness crate considers the fixture idle. If SQLite
-rejects a read-time write, the object logs the failure and uses the new time
-in memory for the read and alarm. A later read retries the write.
+rejects a read-time write, the object logs the failure and keeps the new time
+in memory on this object instance for the read and alarm. A later read
+retries the write. If the object is evicted before the alarm fires and the
+write is still pending, the alarm sees the older stored time.
 
 Both builds share a five-second deadline covering the source, response
 adapter, and transform.

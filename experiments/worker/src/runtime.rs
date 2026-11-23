@@ -301,6 +301,13 @@ enum ReadReply {
 	Complete(String),
 }
 
+enum AlarmNeed {
+	/// Bring the next alarm forward to this read if it would run later.
+	RefreshNow,
+	/// Keep an existing alarm or schedule the policy's next refresh.
+	KeepWarm,
+}
+
 async fn read_or_schedule(
 	storage: &Storage,
 	owner: Fixture,
@@ -314,16 +321,8 @@ async fn read_or_schedule(
 	let stored = load_for_read(&records, owner, now, unwritten_read)?;
 	let entry = stored.policy_entry();
 	let action = FIXTURE_POLICY.on_read(now, Some(&entry));
-	let response = stored.for_read(owner, action)?;
-	if let Err(failure) = ensure_alarm(
-		storage,
-		alarm_running,
-		now,
-		&entry,
-		requests_refresh(action),
-	)
-	.await
-	{
+	let (response, alarm_need) = stored.for_read(owner, action)?;
+	if let Err(failure) = ensure_alarm(storage, alarm_running, now, &entry, alarm_need).await {
 		match response {
 			ReadReply::Pending => return Err(failure),
 			ReadReply::Complete(_) => record_object_failure(Some(owner), &failure),
@@ -357,17 +356,6 @@ fn load_for_read(
 	Ok(stored)
 }
 
-fn requests_refresh(action: ReadAction<'_, SystemTime, ()>) -> bool {
-	matches!(
-		action,
-		ReadAction::FetchWithoutFallback
-			| ReadAction::FetchWithStaleFallback { .. }
-			| ReadAction::RequestRefresh { .. }
-			| ReadAction::RequestRefreshAfterFailure { .. }
-			| ReadAction::ServeFreshAndRequestRefresh { .. }
-	)
-}
-
 fn worker_time() -> Result<SystemTime, ObjectFailure> {
 	time_from_millis(Date::now().as_millis()).ok_or(ObjectFailure::InvalidClock)
 }
@@ -396,7 +384,7 @@ async fn ensure_alarm(
 	running: &Cell<bool>,
 	now: SystemTime,
 	entry: &FixtureEntry,
-	request_refresh: bool,
+	need: AlarmNeed,
 ) -> Result<(), ObjectFailure> {
 	if running.get() {
 		return Ok(());
@@ -405,16 +393,17 @@ async fn ensure_alarm(
 		.get_alarm()
 		.await
 		.map_err(|cause| StorageOperation::ReadAlarm.failure(cause))?;
-	let deadline = if request_refresh {
-		let now_ms = storage_millis(now)?;
-		scheduled
-			.is_none_or(|millis| millis > now_ms)
-			.then_some(now)
-	} else {
-		scheduled
+	let deadline = match need {
+		AlarmNeed::RefreshNow => {
+			let now_ms = storage_millis(now)?;
+			scheduled
+				.is_none_or(|millis| millis > now_ms)
+				.then_some(now)
+		}
+		AlarmNeed::KeepWarm => scheduled
 			.is_none()
 			.then(|| FIXTURE_POLICY.next_refresh_hint(now, entry))
-			.flatten()
+			.flatten(),
 	};
 	if let Some(deadline) = deadline {
 		schedule_refresh(storage, deadline).await?;
@@ -489,25 +478,30 @@ impl StoredEntry {
 		self,
 		fixture: Fixture,
 		action: ReadAction<'_, SystemTime, ()>,
-	) -> Result<ReadReply, ObjectFailure> {
-		match action {
-			ReadAction::ServeFresh { .. }
-			| ReadAction::ServeFreshAndRequestRefresh { .. }
-			| ReadAction::RequestRefresh { .. } => self.complete_value(fixture, None),
-			ReadAction::RequestRefreshAfterFailure { .. }
-			| ReadAction::ServeCachedAfterFailure { .. } => {
-				self.complete_value(fixture, Some(StaleReason::RefreshFailed))
+	) -> Result<(ReadReply, AlarmNeed), ObjectFailure> {
+		Ok(match action {
+			ReadAction::ServeFresh { .. } => (self.complete_value(fixture, None)?, AlarmNeed::KeepWarm),
+			ReadAction::ServeFreshAndRequestRefresh { .. } | ReadAction::RequestRefresh { .. } => {
+				(self.complete_value(fixture, None)?, AlarmNeed::RefreshNow)
 			}
-			ReadAction::ReportCachedError(()) => self
-				.failure
-				.map(|failure| ReadReply::Complete(failure.last_error))
-				.ok_or(ObjectFailure::MissingEntry),
+			ReadAction::RequestRefreshAfterFailure { .. } => (
+				self.complete_value(fixture, Some(StaleReason::RefreshFailed))?,
+				AlarmNeed::RefreshNow,
+			),
+			ReadAction::ServeCachedAfterFailure { .. } => (
+				self.complete_value(fixture, Some(StaleReason::RefreshFailed))?,
+				AlarmNeed::KeepWarm,
+			),
+			ReadAction::ReportCachedError(()) => (
+				ReadReply::Complete(self.failure.ok_or(ObjectFailure::MissingEntry)?.last_error),
+				AlarmNeed::KeepWarm,
+			),
 			// The experiment has no waiting readers. A later read applies the
 			// policy again after the alarm records its success or failure.
 			ReadAction::FetchWithStaleFallback { .. } | ReadAction::FetchWithoutFallback => {
-				Ok(ReadReply::Pending)
+				(ReadReply::Pending, AlarmNeed::RefreshNow)
 			}
-		}
+		})
 	}
 
 	fn complete_value(

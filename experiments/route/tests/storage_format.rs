@@ -4,7 +4,7 @@ use fixture_experiment_route::{
 	Fixture, InvalidNonSuccessStatus, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob,
 	RefreshOutcome,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen_test::wasm_bindgen_test;
 
 #[allow(
@@ -64,27 +64,68 @@ fn refresh_outcome_json_is_stable() -> Result<(), InvalidNonSuccessStatus> {
 		&RefreshOutcome::Value { value: 42 },
 		r#"{"outcome":"value","value":42}"#,
 	);
-	let status = NonSuccessStatus::try_from(302)?;
-	for (failure, json) in [
-		(RefreshFailure::Fetch, r#"{"kind":"fetch"}"#),
-		(RefreshFailure::Timeout, r#"{"kind":"timeout"}"#),
-		(
-			RefreshFailure::InvalidStatus,
-			r#"{"kind":"invalid_status"}"#,
-		),
-		(RefreshFailure::FixtureSetup, r#"{"kind":"fixture_setup"}"#),
-		(
-			RefreshFailure::HttpStatus { status },
-			r#"{"kind":"http_status","status":302}"#,
-		),
-		(RefreshFailure::ReadBody, r#"{"kind":"read_body"}"#),
-		(RefreshFailure::Decode, r#"{"kind":"decode"}"#),
-		(RefreshFailure::Pipeline, r#"{"kind":"pipeline"}"#),
-	] {
+	for (failure, json) in failure_cases(NonSuccessStatus::try_from(302)?) {
 		assert_storage_format(
 			&RefreshOutcome::Failed { failure },
 			&format!(r#"{{"outcome":"failed","failure":{json}}}"#),
 		);
+	}
+	Ok(())
+}
+
+fn failure_cases(status: NonSuccessStatus) -> [(RefreshFailure, &'static str); 8] {
+	[
+		RefreshFailure::Fetch,
+		RefreshFailure::Timeout,
+		RefreshFailure::InvalidStatus,
+		RefreshFailure::FixtureSetup,
+		RefreshFailure::HttpStatus { status },
+		RefreshFailure::ReadBody,
+		RefreshFailure::Decode,
+		RefreshFailure::Pipeline,
+	]
+	.map(|failure| {
+		let json = match failure {
+			RefreshFailure::Fetch => r#"{"kind":"fetch"}"#,
+			RefreshFailure::Timeout => r#"{"kind":"timeout"}"#,
+			RefreshFailure::InvalidStatus => r#"{"kind":"invalid_status"}"#,
+			RefreshFailure::FixtureSetup => r#"{"kind":"fixture_setup"}"#,
+			RefreshFailure::HttpStatus { .. } => r#"{"kind":"http_status","status":302}"#,
+			RefreshFailure::ReadBody => r#"{"kind":"read_body"}"#,
+			RefreshFailure::Decode => r#"{"kind":"decode"}"#,
+			RefreshFailure::Pipeline => r#"{"kind":"pipeline"}"#,
+		};
+		(failure, json)
+	})
+}
+
+#[wasm_bindgen_test(unsupported = test)]
+fn serialized_failure_kinds_are_listed_in_the_sql_check() -> Result<(), Box<dyn std::error::Error>>
+{
+	#[derive(Deserialize)]
+	struct FailureKind<'a> {
+		kind: &'a str,
+	}
+
+	let sql = include_str!("../../worker/src/fixture_storage.sql");
+	let check = sql
+		.split_once("CONSTRAINT completed_failure CHECK (")
+		.map_or("", |(_, check)| check);
+	let kinds = check
+		.split_once("json_extract(failure_payload, '$.result.failure.kind') IN (")
+		.and_then(|(_, list)| list.split_once(") IS TRUE"))
+		.map_or("", |(list, _)| list);
+	for (failure, _) in failure_cases(NonSuccessStatus::try_from(302)?) {
+		let json = serde_json::to_string(&failure)?;
+		let FailureKind { kind } = serde_json::from_str(&json)?;
+		let admitted = if let RefreshFailure::HttpStatus { .. } = failure {
+			let branch = format!("WHEN '{kind}' THEN");
+			check.lines().any(|line| line.trim() == branch)
+		} else {
+			let literal = format!("'{kind}'");
+			kinds.split(',').any(|item| item.trim() == literal)
+		};
+		assert!(admitted, "completed_failure CHECK must admit {kind}");
 	}
 	Ok(())
 }
