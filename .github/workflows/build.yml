@@ -62,6 +62,9 @@ jobs:
       - name: Test documentation
         if: matrix.target.name == 'host'
         run: mise run test:doc
+      - name: Check builds without std
+        if: matrix.target.name == 'wasm32-unknown-unknown'
+        run: mise run check:features
 
   structure:
     name: Check formatting, dependencies and public API listings
