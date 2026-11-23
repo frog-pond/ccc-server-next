@@ -60,24 +60,25 @@ The native server accepts `GET /ping` on any host and returns plain-text
 `pong`. The reference Worker restricts this route to Node-era hosts. The native
 server accepts `localhost` so the container can check its own health. Other
 methods, including `HEAD`, receive 405. An unmatched GET receives 404.
-[#453](https://github.com/frog-pond/ccc-server-next/issues/453)
+[#453](https://github.com/frog-pond/ccc-server-next/issues/453#issuecomment-7089629578)
 
-Native `/ping` currently omits `Cache-Control` and `ETag`. The shared response
-layer adds both. [#449](https://github.com/frog-pond/ccc-server-next/issues/449)
+Native `/ping` currently omits `Cache-Control` and `ETag`. [#449](https://github.com/frog-pond/ccc-server-next/issues/449) adds both.
 
 The native upstream client identifies itself as `ccc-native/<crate version>`.
 The reference Worker sends `ccc-server/2.0`. This difference identifies the
-native build that sent a request. [#453](https://github.com/frog-pond/ccc-server-next/issues/453)
+native build that sent a request. [#453](https://github.com/frog-pond/ccc-server-next/issues/453#issuecomment-7089629578)
 
 Set `CCC_LISTEN_ADDR` to a comma-separated list of IP addresses with ports,
 such as `0.0.0.0:8080,[::]:8080`. An unset or blank value selects
 `0.0.0.0:8080,[::]:8080`. On hosts with IPv6 disabled, set
 `CCC_LISTEN_ADDR=0.0.0.0:8080`. IPv6 listeners accept IPv6 connections only.
 The native server binds every address before serving and drains active requests
-on SIGTERM or SIGINT.
+for up to eight seconds on SIGTERM or SIGINT. A second signal ends the wait immediately.
 
-The container's health check targets `localhost:8080`. When changing its listen
-addresses, keep a wildcard or loopback listener on port 8080 inside the container.
+The container runs `ccc-native healthcheck`. The command requests `/ping` on the
+configured addresses, using loopback for wildcards. It exits successfully when
+one listener returns HTTP 200 with the exact body `pong`. The default health
+check uses loopback on port 8080.
 
 ```sh
 docker build --tag ccc-native .
