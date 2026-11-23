@@ -25,7 +25,7 @@ jobs:
           - name: host
             args: ''
           - name: wasm32-unknown-unknown
-            args: --target wasm32-unknown-unknown --exclude e2e
+            args: --target wasm32-unknown-unknown --exclude ccc-native --exclude e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

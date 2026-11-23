@@ -12,4 +12,5 @@ workspace = true
 
 [dependencies]
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+reqwest = { workspace = true }
 tokio = { workspace = true, features = ["net"] }
