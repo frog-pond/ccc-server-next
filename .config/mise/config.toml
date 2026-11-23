@@ -47,10 +47,10 @@ run = "cargo fmt --all"
 run = "cargo fmt --all -- --check"
 
 [tasks.test]
-run = "cargo test --workspace --all-features --all-targets --locked --no-fail-fast"
+run = "cargo test --workspace --all-features --all-targets --locked --offline --no-fail-fast"
 
 [tasks."test:doc"]
-run = "cargo test --workspace --all-features --locked --doc"
+run = "cargo test --workspace --all-features --locked --offline --doc"
 
 [tasks."test:tools"]
 description = "Check board rules and workspace structure offline"

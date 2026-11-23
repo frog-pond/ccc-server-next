@@ -62,7 +62,7 @@ Full wording and reasons are in `docs/review/rubric.md`. Reviews check against t
 | Whether a route is finished | Worked out from merged pull requests | Never keep a list of finished routes in a file. |
 | What is in progress | The project board "@rye's Rearchitecting Push" | `tools/board` reads it. |
 | A pull request's review | The "Review" section of its description | Edited in place for each round. No comment per review. |
-| Grants of autonomy and driver handoffs | The driver's session (a T3 thread, or another host's session) | The handoff identifies each issue's worker session. |
+| Grants of autonomy, driver handoffs, and the driver's questions for the maintainer | The driver's session (a T3 thread, or another host's session) | Ask questions about an issue's design in that issue's session. The handoff identifies each issue's worker session. |
 | Worker reports and issue design discussions | The issue's own top-level session | The report is the worker's final message. The maintainer can open the session and talk to the worker directly. `docs/agent-hosts.md` says how on each host. |
 | Discussion and exploration | The conversation | Anything a person reading the issue later needs goes in a row above. |
 

@@ -14,6 +14,7 @@ The previous attempt's crates have been removed from this branch. They are still
 |---|---|
 | `AGENTS.md` | How the server is built and how to work in this repository. Written for coding agents, and the quickest orientation for people too. |
 | `docs/reference/` | What the reference implementation serves and how it behaves, as of a recorded reference commit. |
+| [Conversion fixtures](fixtures/ccc-server/README.md) | Reference inputs and expected outputs for offline Rust tests. |
 | `docs/review/rubric.md` | The rules a change is reviewed against. |
 | `docs/agent-hosts.md` | How to run the agents' procedures from T3 Code, Claude Code, the Codex CLI or by hand. |
 | `docs/delegation-levels.md` | How much a coordinating agent may do on its own, and how the maintainer grants it. |
@@ -33,10 +34,20 @@ mise trust
 ```
 
 ```sh
+mise install               # download the pinned tools
 mise run setup:api         # install the pinned nightly and its Wasm target for API listings
+cargo fetch --locked --target host-tuple # download host dependencies, including test dependencies
 mise run check             # run the host and repository checks
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
+```
+
+`mise install` and `cargo fetch --locked --target <target>` use the network
+during setup. Fetch dependencies for each target you plan to test, as CI does.
+After setup, run the tests without network access as CI does.
+
+```sh
+MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test
 ```
 
 After changing a library's public API, run `mise run update:api` and commit the
@@ -52,5 +63,6 @@ for shared tests so both runners execute them.
 ```sh
 rustup target add wasm32-unknown-unknown
 mise install github:wasm-bindgen/wasm-bindgen
-mise run check:wasm
+cargo fetch --locked --target wasm32-unknown-unknown
+MISE_OFFLINE=true MISE_AUTO_INSTALL=false CARGO_NET_OFFLINE=true mise run check:wasm
 ```

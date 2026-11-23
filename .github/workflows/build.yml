@@ -15,13 +15,17 @@ env:
 
 jobs:
   build:
-    name: Build and test (${{ matrix.rust }}, ${{ matrix.target }})
+    name: Build and test (${{ matrix.rust }}, ${{ matrix.target.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         rust: [stable, beta]
-        target: [host, wasm32-unknown-unknown]
+        target:
+          - name: host
+            triple: host-tuple
+          - name: wasm32-unknown-unknown
+            triple: wasm32-unknown-unknown
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -36,28 +40,34 @@ jobs:
         with:
           install: false
       - name: Set up Wasm tests
-        if: matrix.target == 'wasm32-unknown-unknown'
+        if: matrix.target.name == 'wasm32-unknown-unknown'
         run: |
           rustup target add wasm32-unknown-unknown
           mise install github:wasm-bindgen/wasm-bindgen
+      - name: Fetch dependencies for offline tests
+        run: cargo fetch --locked --target ${{ matrix.target.triple }}
       - name: Check shared crates on Wasm
-        if: matrix.target == 'wasm32-unknown-unknown'
+        if: matrix.target.name == 'wasm32-unknown-unknown'
+        env:
+          MISE_OFFLINE: 'true'
+          CARGO_NET_OFFLINE: 'true'
         run: mise run check:wasm
       - name: Build
-        if: matrix.target == 'host'
+        if: matrix.target.name == 'host'
         run: cargo build --workspace --all-features --locked
       - name: Lint
-        if: matrix.target == 'host'
+        if: matrix.target.name == 'host'
         run: mise run clippy
       - name: Check documentation
-        if: matrix.target == 'host'
+        if: matrix.target.name == 'host'
         run: mise run doc
       - name: Test
-        if: matrix.target == 'host'
-        run: mise run test
-      - name: Test documentation
-        if: matrix.target == 'host'
-        run: mise run test:doc
+        if: matrix.target.name == 'host'
+        env:
+          MISE_OFFLINE: 'true'
+        run: |
+          mise run test
+          mise run test:doc
 
   structure:
     name: Check formatting, dependencies and public API listings
