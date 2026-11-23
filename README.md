@@ -14,6 +14,7 @@ The previous attempt's crates have been removed from this branch. They are still
 |---|---|
 | `AGENTS.md` | How the server is built and how to work in this repository. Written for coding agents, and the quickest orientation for people too. |
 | `docs/reference/` | What the reference implementation serves and how it behaves, as of a recorded reference commit. |
+| [Conversion fixtures](fixtures/ccc-server/README.md) | Reference inputs and expected outputs for offline Rust tests. |
 | `docs/review/rubric.md` | The rules a change is reviewed against. |
 | `docs/agent-hosts.md` | How to run the agents' procedures from T3 Code, Claude Code, the Codex CLI or by hand. |
 | `docs/delegation-levels.md` | How much a coordinating agent may do on its own, and how the maintainer grants it. |
@@ -34,6 +35,7 @@ mise trust
 
 ```sh
 rustup toolchain install nightly-2026-11-22 --profile minimal # public API listings
+cargo fetch --locked       # cache dependencies before running tests offline
 mise run check             # lint, test, check docs, dependencies and API listings
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
