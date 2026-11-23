@@ -21,12 +21,13 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 
 Before you stop, read the worker sessions again as in "Look" below and act on new reports. Send each reminder or request for a decision separately before the handoff.
 
-The handoff is the last message in the driver's session. It is a single record, with one self-contained line per issue and pull request. Use an "In flight" line for work that still needs tending and a "State" line for work that finished. Name the topic in place of the issue for a standalone pull request.
+The handoff is the last message in the driver's session. It is a single record, with one self-contained line per issue and pull request. Use an "In flight" line for work that still needs tending and a "State" line for work that finished. Name the topic in place of the issue for a standalone pull request or a decision that belongs to no issue.
 
 ```
 Level: <the grant this session ran under, and whether it reached its end point>
-In flight: <issue, pull request or "no pull request yet", state, worker link and thread ID (or session name and ID where available), worktree path, level, next step, and where any open question was asked>
+In flight: <issue, pull request or "no pull request yet", state, worker link and thread ID (or session name and ID where available, or "handoff pending"), worktree path if known, level, next step, and where any open question was asked>
 State: <issue, pull request, and what finished>
+Waiting on the maintainer: <topic outside any issue, decision needed, and where it was asked for>
 Next: <what the next session should do first>
 ```
 
@@ -41,8 +42,8 @@ At level 4 or 5, use the same format for the summary at the end point. Include "
    - findings outstanding: send them to the issue's worker session;
    - a draft: leave it, unless its types are waiting for review;
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
-3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Start at most three at once, and never two that touch the same crate's public types. Among ready issues, take higher Priority first (Urgent, then High, then Medium, then Low), and within the same priority, what unblocks the most other issues. An issue with no Priority comes after Low; list it for the maintainer, as `board-maintenance` says.
-4. **Hand over.** Start a top-level session for each issue, named for the issue and in its own worktree (`docs/agent-hosts.md`). Give it the request below. If your host cannot start the session, give the maintainer the exact command and request to run. Share the session link and keep its thread ID, or record the session name and ID where available, so the maintainer can open it and talk to the worker directly. Use that same session for follow-ups on the issue.
+3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Among those issues, skip any with a worker session you are already tracking or a handoff the maintainer has yet to run. This applies even while the board still marks the issue ready. Start at most three at once, and never two that touch the same crate's public types. Among ready issues, take higher Priority first (Urgent, then High, then Medium, then Low), and within the same priority, what unblocks the most other issues. An issue with no Priority comes after Low; list it for the maintainer, as `board-maintenance` says.
+4. **Hand over.** Start a top-level session for each issue, named for the issue and in its own worktree (`docs/agent-hosts.md`). Give it the request below and record the session as soon as the host accepts the launch, even if it is queued. If your host cannot start the session, give the maintainer the exact command and request to run. Record the handoff as pending until the session starts. Share the session link and keep its thread ID, or record the session name and ID where available, so the maintainer can open it and talk to the worker directly. Use that same session for follow-ups on the issue.
 5. **Record.** Set statuses on the board, and follow `board-maintenance` again after pull requests open or merge. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
 6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Record where each pending decision was asked for in the handoff.
 
@@ -60,9 +61,9 @@ Report: the pull request URL, the head commit, what you checked for each
 Read the worker's report in its session. Send a follow-up in that same session:
 
 ```
-Continue issue #<N> in frog-pond/ccc-server-next on branch <branch>, following the
-work-issue skill. <Name the pull request if open. Give the failing check, the
-findings to fix with file:line, or the decision that lets the work continue.>
+Continue issue #<N> in frog-pond/ccc-server-next, following the work-issue skill.
+<Name the branch if it exists and the pull request if open. Give the failing
+check, the findings to fix with file:line, or the decision that lets the work continue.>
 Report the new head commit and what you changed.
 ```
 
@@ -92,7 +93,7 @@ Read workers' questions in their reports and answer what your level allows in th
 
 Before tending that issue again, read its worker session for the maintainer's answer. Record the answer or that the question is still open.
 
-Send each progress update, finding, question and reminder to the maintainer in a message about one issue and its pull request. If the pull request has yet to open, name the issue and say so. For a standalone topic pull request, name the topic and pull request. The end-of-session handoff above is the exception, including the end-point summary at levels 4 and 5.
+When a progress update, finding, question or reminder is about an issue or pull request, keep the message to that issue and its pull request. If the pull request has yet to open, name the issue and say so. For a standalone pull request, name the topic and pull request. The end-of-session handoff above is the exception, including the end-point summary at levels 4 and 5. Ask for the level and end point together as described under "Starting a session", even when the grant covers several issues.
 
 What goes to the maintainer depends on your level, and the list in `docs/delegation-levels.md` goes to them at every level.
 

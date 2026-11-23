@@ -7,11 +7,11 @@ The driver is Claude: coordinating is the work Claude does best here. Codex work
 | What the skills need | T3 Code | Claude app (Code tab) | Claude Code CLI | Codex CLI | By hand |
 |---|---|---|---|---|---|
 | A **session** for the driver | A thread named `Driver: <the work>` | A session named `Driver: <the work>` | A named session (`claude -n "Driver: <the work>"`, resumed with `claude -r`) | A session, resumed with `codex resume` | Any conversation you keep |
-| **Start a worker** on one issue, in its own checkout | Call `t3_thread_launch` with a title naming the issue, the request as `message`, and `workspaceStrategy: { type: "worktree", baseRef: "origin/<base>", startFromOrigin: true }` for the base the board prints. Pass a Codex `modelSelection` as shown below. Keep the returned thread ID and link. | Give the maintainer the worktree and Codex CLI commands below, with the request. | Give the maintainer the Codex CLI launch command below and the request. Prepare the worktree from the shell if you can. | Give the maintainer the launch command and request below to run in a terminal. | Use the Codex CLI recipe below. |
+| **Start a worker** on one issue, in its own checkout | Call `t3_thread_launch` with a title naming the issue, the request as `message`, and `workspaceStrategy: { type: "worktree", baseRef: "origin/<base>", startFromOrigin: true }` for the base the board prints. Pass a Codex `modelSelection` as shown below. Keep the returned thread ID and link. | Follow the Codex CLI recipe below. | Follow the Codex CLI recipe below. | Give the maintainer the launch command and request below to run in a terminal. | Use the Codex CLI recipe below. |
 | A **worker's report** | Read the worker thread with `t3_thread_read`, even if it has no pull request. Use `t3_thread_wait` if you need to wait for it. | Ask the maintainer for the report from the worker session. | Ask the maintainer for the report from the worker session. | Read the report in the worker session if you can access it. Otherwise ask the maintainer for it. | Read the report in the worker session. |
 | **Send a follow-up** to a worker | Use `t3_thread_send` with the worker's thread ID. | Give the maintainer the Codex CLI resume command and the follow-up request. | Give the maintainer the Codex CLI resume command and the follow-up request. | Give the maintainer the resume command and follow-up request below. | Return to the worker session and send the request. |
 | A **reviewer from the other vendor** | `delegate_task` to the other provider | Run the review from a terminal using one of the CLI commands in this row. | `codex review --base <base>` with the pull request's base branch, or `codex exec` with the review request | `claude -p` with the review request and the contents of `.claude/agents/arch-reviewer.md` | Either command, from the worktree being reviewed |
-| The **previous driver's handoff** | Search threads for `Driver:` and read the last message | Ask the maintainer to copy the last message from the previous driver session in the sidebar. | Ask the maintainer to run `claude --resume "<driver session name or ID>"` and copy the last message. | Ask the maintainer to run `codex resume -C "<driver worktree>" "<driver session ID>"` and copy the last message. | Ask the person who ran it for its last message |
+| The **previous driver's handoff** | Search threads for `Driver:` and read the last message | Use [Work across sessions](https://code.claude.com/docs/en/desktop#work-across-sessions) to find the previous Code-tab driver session and read its last message. If you cannot read it, ask the maintainer to copy it. | Ask the maintainer to run `claude --resume "<driver session name or ID>"` and copy the last message. | Ask the maintainer to run `codex resume -C "<driver worktree>" "<driver session ID>"` and copy the last message. | Ask the person who ran it for its last message |
 
 ## Choose the Codex model in T3 Code
 
@@ -29,13 +29,13 @@ Use `orchestrator_capabilities` to find an available Codex provider instance and
 
 ## Start or resume a Codex CLI worker
 
-From the repository, run `git worktree add "../ccc-server-next-<N>" "origin/<base>"` for the base the board prints. If you cannot prepare the worktree yourself, give the maintainer that command too. Fill in the issue number, base and absolute worktree path in the commands you hand over. Give the maintainer the complete first request from `drive-rearchitecture` with the launch command:
+From the repository, run `git fetch origin`, then `git worktree add "../ccc-server-next-<N>" "origin/<base>"` for the base the board prints. If you cannot prepare the worktree yourself, give the maintainer both commands. Fill in the issue number, base and absolute worktree path in the commands you hand over. Give the maintainer the complete first request from `drive-rearchitecture` with the launch command:
 
 ```sh
 codex -C "<worktree>" -s workspace-write
 ```
 
-The maintainer pastes the request into that session. Record the session ID shown by `codex resume` along with the worktree path. To read the report or give a follow-up, return to that session:
+The maintainer pastes the request into that session. Once the session starts, ask the maintainer for its ID and record it with the worktree path. On exit, Codex prints a `codex resume` command with the ID. To read the report or give a follow-up, return to that session:
 
 ```sh
 codex resume -C "<worktree>" "<session ID>"
