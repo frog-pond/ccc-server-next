@@ -1,6 +1,7 @@
 [graph]
 # The e2e executable makes HTTP requests to the servers it compares.
-exclude = ["e2e"]
+# The native HTTP integration owns reqwest. It is forbidden elsewhere in the graph.
+exclude = ["e2e", "trifecta-reqwest"]
 
 [bans]
 multiple-versions = "allow"

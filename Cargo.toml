@@ -3,6 +3,9 @@ resolver = "2"
 members = [
 	"ccc-schema",
 	"e2e",
+	"trifecta",
+	"trifecta-fixtures",
+	"trifecta-reqwest",
 ]
 
 [workspace.lints.clippy]

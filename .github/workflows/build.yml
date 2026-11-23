@@ -52,6 +52,9 @@ jobs:
         run: mise run doc -- ${{ matrix.target.args }}
       - name: Test
         run: mise run test -- ${{ matrix.target.args }}
+      - name: Test documentation
+        if: matrix.target.name == 'host'
+        run: mise run test:doc
 
   structure:
     name: Check formatting, dependencies and public API listings
