@@ -1,26 +1,30 @@
 //! Native entry point for running the CCC API as an HTTP server.
 
+mod healthcheck;
 mod server;
 
 use std::{
 	error::Error,
-	ffi::OsStr,
+	ffi::{OsStr, OsString},
 	fmt,
 	future::{ready, Ready},
-	io,
-	net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+	io::{self, Write},
+	net::{AddrParseError, Ipv4Addr, Ipv6Addr, SocketAddr},
 	process::ExitCode,
 	time::{Duration, SystemTime},
 };
 
 use axum::{
-	http::{Method, StatusCode},
+	extract::Request,
+	http::{Method, StatusCode, Uri},
+	middleware::{self, Next},
 	response::{IntoResponse, Response},
 	routing::any,
 	Json, Router,
 };
 use ccc_schema::routing::{RouteErrorBody, RouteErrorMessage};
-use reqwest::{redirect::Policy, Client};
+use reqwest::{redirect::Policy, Client, Url};
+use tower::Layer;
 
 /// The native HTTP client identifies itself by the binary crate's name and version.
 const UPSTREAM_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
@@ -36,12 +40,22 @@ struct NonEmpty<T> {
 	rest: Vec<T>,
 }
 
+/// The two commands supported by the native binary.
+enum Mode {
+	Serve,
+	Healthcheck,
+}
+
 /// Provides a sampled wall-clock timestamp to a route when it needs one.
 type Clock = fn() -> SystemTime;
 
 /// Why the native process could not start or continue serving HTTP.
 #[derive(Debug)]
 enum ServerError {
+	/// The command line is neither empty nor the single healthcheck command.
+	InvalidArguments,
+	/// The health check cannot discover the port chosen by a different process.
+	HealthcheckEphemeralPort(SocketAddr),
 	/// The address list cannot be decoded as Unicode.
 	ListenAddressEncoding,
 	/// One list entry is not an IP address with a port.
@@ -68,7 +82,9 @@ enum ServerError {
 	},
 	/// The listener returned an unexpected I/O error while serving.
 	ListenerIo {
+		/// The listener’s actual bound address.
 		address: SocketAddr,
+		/// The I/O error returned by Axum.
 		source: io::Error,
 	},
 	/// A listener finished serving ahead of the shutdown signal.
@@ -80,6 +96,11 @@ enum ServerError {
 impl fmt::Display for ServerError {
 	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
+			Self::InvalidArguments => formatter.write_str("usage: ccc-native [healthcheck]"),
+			Self::HealthcheckEphemeralPort(address) => write!(
+				formatter,
+				"healthcheck needs a fixed port, but {address} requests an ephemeral port"
+			),
 			Self::ListenAddressEncoding => formatter.write_str("CCC_LISTEN_ADDR is not valid Unicode"),
 			Self::ListenAddressSyntax { value, .. } => {
 				write!(formatter, "invalid CCC_LISTEN_ADDR entry {value:?}")
@@ -104,7 +125,10 @@ impl fmt::Display for ServerError {
 impl Error for ServerError {
 	fn source(&self) -> Option<&(dyn Error + 'static)> {
 		match self {
-			Self::ListenAddressEncoding | Self::ListenerStopped(_) => None,
+			Self::InvalidArguments
+			| Self::HealthcheckEphemeralPort(_)
+			| Self::ListenAddressEncoding
+			| Self::ListenerStopped(_) => None,
 			Self::ListenAddressSyntax { source, .. } => Some(source),
 			Self::Runtime(source)
 			| Self::SignalHandler(source)
@@ -148,6 +172,10 @@ fn parse_config(value: Option<&OsStr>) -> Result<Config, ServerError> {
 	Ok(Config { listen_addresses })
 }
 
+/// Parses one address list entry, ignoring surrounding whitespace.
+///
+/// # Errors
+/// Returns an error carrying the entry if it is not an IP socket address.
 fn parse_address(value: &str) -> Result<SocketAddr, ServerError> {
 	let value = value.trim();
 	value
@@ -208,93 +236,145 @@ fn unmatched_path(method: Method) -> Ready<RoutingFailure> {
 	}))
 }
 
+/// Normalizes the path before Axum selects a route, following the Worker’s
+/// WHATWG URL parsing. The request’s authority and query remain intact.
+async fn normalize_path(mut request: Request, next: Next) -> Response {
+	if let Some(uri) = normalized_uri(request.uri()) {
+		*request.uri_mut() = uri;
+	}
+	next.run(request).await
+}
+
+fn normalized_uri(uri: &Uri) -> Option<Uri> {
+	let path = uri.path();
+	if !path.starts_with('/') {
+		return None;
+	}
+	let parsed = Url::parse(&format!("http://ccc.invalid{path}")).ok()?;
+	if parsed.path() == path {
+		return None;
+	}
+	let path_and_query = uri.query().map_or_else(
+		|| parsed.path().to_owned(),
+		|query| format!("{}?{query}", parsed.path()),
+	);
+	let mut parts = uri.clone().into_parts();
+	parts.path_and_query = Some(path_and_query.parse().ok()?);
+	Uri::from_parts(parts).ok()
+}
+
 /// The health route is static. Future upstream routes can use the injected
 /// clock and client when the router assembles them.
 fn router(_clock: Clock, _http_client: Client) -> Router {
-	Router::new()
+	let routes = Router::new()
 		.route(
 			"/ping",
 			any(method_not_allowed).get(ping).head(method_not_allowed),
 		)
-		.fallback(unmatched_path)
+		.fallback(unmatched_path);
+	Router::new().fallback_service(middleware::from_fn(normalize_path).layer(routes))
 }
 
-async fn healthcheck(config: &Config, client: &Client) -> bool {
-	for address in
-		std::iter::once(&config.listen_addresses.first).chain(&config.listen_addresses.rest)
-	{
-		let check = async {
-			let response = client.get(healthcheck_url(*address)).send().await?;
-			Ok::<_, reqwest::Error>(
-				response.status() == StatusCode::OK && response.bytes().await? == "pong",
-			)
-		};
-		if matches!(
-			tokio::time::timeout(Duration::from_millis(500), check).await,
-			Ok(Ok(true))
-		) {
-			return true;
+/// Parses the optional command name.
+///
+/// # Errors
+/// Returns an error if any command is unrecognized or takes extra arguments.
+fn parse_mode(mut args: impl Iterator<Item = OsString>) -> Result<Mode, ServerError> {
+	match args.next() {
+		None => Ok(Mode::Serve),
+		Some(command) if command == OsStr::new("healthcheck") && args.next().is_none() => {
+			Ok(Mode::Healthcheck)
 		}
+		Some(_) => Err(ServerError::InvalidArguments),
 	}
-	false
 }
 
-fn healthcheck_url(mut address: SocketAddr) -> String {
-	if address.ip().is_unspecified() {
-		address.set_ip(if address.is_ipv4() {
-			IpAddr::V4(Ipv4Addr::LOCALHOST)
-		} else {
-			IpAddr::V6(Ipv6Addr::LOCALHOST)
-		});
-	}
-	format!("http://{address}/ping")
-}
-
-async fn run(config: Config, probe: bool, clock: Clock) -> Result<ExitCode, ServerError> {
-	let client = build_http_client()?;
-	if probe {
-		let healthy = tokio::time::timeout(Duration::from_secs(1), healthcheck(&config, &client))
-			.await
-			.unwrap_or(false);
-		return Ok(if healthy {
+/// Runs the selected mode inside the process runtime.
+///
+/// # Errors
+/// Returns configuration, HTTP client initialization, or server errors.
+async fn run(config: Config, mode: Mode, clock: Clock) -> Result<ExitCode, ServerError> {
+	match mode {
+		Mode::Serve => {
+			server::run(config, router(clock, build_http_client()?)).await?;
+			Ok(ExitCode::SUCCESS)
+		}
+		Mode::Healthcheck => Ok(if healthcheck::run(&config).await? {
 			ExitCode::SUCCESS
 		} else {
 			ExitCode::FAILURE
-		});
+		}),
 	}
-	server::run(config, router(clock, client)).await?;
-	Ok(ExitCode::SUCCESS)
 }
 
 fn main() -> ExitCode {
 	match start() {
 		Ok(exit) => exit,
 		Err(error) => {
-			eprintln!("{error}");
-			let mut cause = error.source();
-			while let Some(error) = cause {
-				eprintln!("  caused by {error}");
-				cause = error.source();
-			}
+			report_failure(&error);
 			ExitCode::FAILURE
 		}
 	}
 }
 
+/// Formats the cause chain as one field without dropping intermediate errors.
+struct ErrorCauses<'a>(&'a dyn Error);
+
+impl fmt::Display for ErrorCauses<'_> {
+	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let mut cause = self.0.source();
+		let mut separator = "";
+		while let Some(error) = cause {
+			write!(formatter, "{separator}{error}")?;
+			separator = ": ";
+			cause = error.source();
+		}
+		Ok(())
+	}
+}
+
+fn report_failure(error: &ServerError) {
+	if matches!(error, ServerError::Tracing(_)) {
+		let mut stderr = io::stderr().lock();
+		let _ = writeln!(stderr, "{error}");
+		let mut cause = error.source();
+		while let Some(error) = cause {
+			let _ = writeln!(stderr, "  caused by {error}");
+			cause = error.source();
+		}
+	} else {
+		tracing::error!(
+			name: "ccc.native.server_failed",
+			event = "ccc.native.server_failed",
+			error = %error,
+			causes = %ErrorCauses(error),
+			"Native process failed",
+		);
+	}
+}
+
+/// Installs process services and runs the selected native command.
+///
+/// # Errors
+/// Returns tracing, command-line, configuration, runtime, or command errors.
 #[allow(
 	clippy::disallowed_methods,
 	reason = "The entry point supplies the wall clock to the native router"
 )]
 fn start() -> Result<ExitCode, ServerError> {
-	let subscriber = tracing_subscriber::fmt().with_writer(io::stderr).finish();
+	let subscriber = tracing_subscriber::fmt()
+		.with_writer(io::stderr)
+		// The formatter otherwise uses eprintln! to report a failed log write.
+		.log_internal_errors(false)
+		.finish();
 	tracing::subscriber::set_global_default(subscriber).map_err(ServerError::Tracing)?;
+	let mode = parse_mode(std::env::args_os().skip(1))?;
 	let config = parse_config(std::env::var_os("CCC_LISTEN_ADDR").as_deref())?;
-	let probe = std::env::args_os().nth(1).as_deref() == Some(OsStr::new("healthcheck"));
 	let runtime = tokio::runtime::Builder::new_multi_thread()
 		.enable_all()
 		.build()
 		.map_err(ServerError::Runtime)?;
-	let result = runtime.block_on(run(config, probe, SystemTime::now));
+	let result = runtime.block_on(run(config, mode, SystemTime::now));
 	runtime.shutdown_background();
 	result
 }

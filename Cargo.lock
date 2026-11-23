@@ -156,6 +156,9 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "ccc-schema",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "reqwest",
  "socket2",
  "tokio",
@@ -169,6 +172,7 @@ name = "ccc-schema"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "wasm-bindgen-test",
 ]
 

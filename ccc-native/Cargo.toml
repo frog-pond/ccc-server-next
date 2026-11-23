@@ -13,11 +13,13 @@ workspace = true
 [dependencies]
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "tracing"] }
 ccc-schema = { path = "../ccc-schema" }
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
 reqwest = { workspace = true }
 socket2 = "0.6.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
-tokio = { workspace = true, features = ["net", "signal", "sync"] }
+tokio = { workspace = true, features = ["net", "rt", "signal", "sync", "time"] }
 
-[dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

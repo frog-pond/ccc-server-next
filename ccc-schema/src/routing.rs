@@ -25,3 +25,25 @@ pub enum RouteErrorMessage {
 	#[serde(rename = "method not allowed")]
 	MethodNotAllowed,
 }
+
+#[cfg(test)]
+mod tests {
+	use super::{RouteErrorBody, RouteErrorMessage};
+
+	#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+	#[cfg_attr(not(target_arch = "wasm32"), test)]
+	fn route_errors_serialize_to_the_reference_bytes() {
+		for (error, expected) in [
+			(RouteErrorMessage::NotFound, r#"{"error":"not found"}"#),
+			(
+				RouteErrorMessage::MethodNotAllowed,
+				r#"{"error":"method not allowed"}"#,
+			),
+		] {
+			assert_eq!(
+				serde_json::to_vec(&RouteErrorBody { error }).expect("serialize route error"),
+				expected.as_bytes()
+			);
+		}
+	}
+}

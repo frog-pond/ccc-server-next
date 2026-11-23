@@ -79,6 +79,8 @@ The container runs `ccc-native healthcheck`. The command requests `/ping` on the
 configured addresses, using loopback for wildcards. It exits successfully when
 one listener returns HTTP 200 with the exact body `pong`. The default health
 check uses loopback on port 8080.
+The command requires fixed listener ports. It cannot discover the port assigned
+to the server by the operating system when the configuration uses port 0.
 
 ```sh
 docker build --tag ccc-native .

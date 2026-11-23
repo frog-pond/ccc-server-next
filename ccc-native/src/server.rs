@@ -27,6 +27,16 @@ impl Listener for LoggingListener {
 		loop {
 			match self.socket.accept().await {
 				Ok(connection) => return connection,
+				Err(error)
+					if matches!(
+						error.kind(),
+						io::ErrorKind::ConnectionRefused
+							| io::ErrorKind::ConnectionAborted
+							| io::ErrorKind::ConnectionReset
+					) =>
+				{
+					tracing::debug!(address = %self.address, %error, "Connection closed before accept");
+				}
 				Err(error) => {
 					tracing::warn!(
 						name: "ccc.native.accept_failed",
@@ -49,6 +59,10 @@ impl Listener for LoggingListener {
 
 /// Opens a nonblocking socket with address reuse and a backlog of 1024.
 /// An IPv6 socket accepts only IPv6 so both families can share a port.
+///
+/// # Errors
+/// Returns an error if creating, configuring, binding, listening on, or
+/// registering the socket fails.
 fn bind_socket(address: SocketAddr) -> io::Result<LoggingListener> {
 	let socket = Socket::new(
 		Domain::for_address(address),
@@ -69,6 +83,10 @@ fn bind_socket(address: SocketAddr) -> io::Result<LoggingListener> {
 	})
 }
 
+/// Binds the whole list before any listener starts serving.
+///
+/// # Errors
+/// Returns the configured address and the cause if any bind fails.
 fn bind_listeners(config: Config) -> Result<NonEmpty<LoggingListener>, ServerError> {
 	let bind = |address| bind_socket(address).map_err(|source| ServerError::Bind { address, source });
 	Ok(NonEmpty {
@@ -82,6 +100,10 @@ fn bind_listeners(config: Config) -> Result<NonEmpty<LoggingListener>, ServerErr
 	})
 }
 
+/// Waits for all listener tasks to finish.
+///
+/// # Errors
+/// Returns the first listener failure or task join error.
 async fn wait_for_listeners(
 	tasks: &mut JoinSet<Result<(), ServerError>>,
 ) -> Result<(), ServerError> {
@@ -91,6 +113,10 @@ async fn wait_for_listeners(
 	Ok(())
 }
 
+/// Serves one address until the shared shutdown notification arrives.
+///
+/// # Errors
+/// Returns an error if Axum reports an I/O failure or stops before shutdown.
 async fn serve_listener(
 	listener: LoggingListener,
 	router: Router,
@@ -113,6 +139,9 @@ async fn serve_listener(
 
 /// Starts one copy of the router per listener. A first signal triggers graceful
 /// shutdown. A second signal or an eight-second deadline ends the wait.
+///
+/// # Errors
+/// Returns an error if a listener or its task fails.
 async fn serve(
 	listeners: NonEmpty<LoggingListener>,
 	router: Router,
@@ -130,12 +159,12 @@ async fn serve(
 	tokio::select! {
 		biased;
 		() = shutdown() => {
-			tracing::info!(name: "ccc.native.shutdown_forced", "Received a second shutdown signal");
+			tracing::info!(name: "ccc.native.shutdown_forced", event = "ccc.native.shutdown_forced", "Received a second shutdown signal");
 			Ok(())
 		}
 		result = wait_for_listeners(&mut tasks) => result,
 		() = tokio::time::sleep(Duration::from_secs(8)) => {
-			tracing::warn!(name: "ccc.native.shutdown_timeout", "Graceful shutdown reached the eight-second limit");
+			tracing::warn!(name: "ccc.native.shutdown_timeout", event = "ccc.native.shutdown_timeout", "Graceful shutdown reached the eight-second limit");
 			Ok(())
 		}
 	}
