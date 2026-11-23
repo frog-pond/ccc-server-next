@@ -42,7 +42,7 @@ run = "cargo fmt --all -- --check"
 run = "cargo test --workspace --all-features --all-targets --locked --offline --no-fail-fast"
 
 [tasks."test:doc"]
-run = "cargo test --workspace --all-features --locked --doc"
+run = "cargo test --workspace --all-features --locked --offline --doc"
 
 [tasks."test:tools"]
 description = "Test the rules in tools/board offline"
