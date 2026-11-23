@@ -42,7 +42,9 @@ struct NonEmpty<T> {
 
 /// The two commands supported by the native binary.
 enum Mode {
+	/// Start the HTTP server.
 	Serve,
+	/// Probe the configured listeners and exit.
 	Healthcheck,
 }
 
@@ -245,6 +247,7 @@ async fn normalize_path(mut request: Request, next: Next) -> Response {
 	next.run(request).await
 }
 
+/// Returns a replacement URI only when URL parsing changes the request path.
 fn normalized_uri(uri: &Uri) -> Option<Uri> {
 	let path = uri.path();
 	if !path.starts_with('/') {
@@ -292,7 +295,9 @@ fn parse_mode(mut args: impl Iterator<Item = OsString>) -> Result<Mode, ServerEr
 /// Runs the selected mode inside the process runtime.
 ///
 /// # Errors
-/// Returns configuration, HTTP client initialization, or server errors.
+/// Returns `HealthcheckEphemeralPort` in health-check mode. In serve mode,
+/// returns HTTP client initialization errors or signal, bind, and listener
+/// errors from `server::run`.
 async fn run(config: Config, mode: Mode, clock: Clock) -> Result<ExitCode, ServerError> {
 	match mode {
 		Mode::Serve => {
@@ -333,6 +338,7 @@ impl fmt::Display for ErrorCauses<'_> {
 	}
 }
 
+/// Records the failure and causes, falling back to stderr before tracing is installed.
 fn report_failure(error: &ServerError) {
 	if matches!(error, ServerError::Tracing(_)) {
 		let mut stderr = io::stderr().lock();
@@ -381,3 +387,19 @@ fn start() -> Result<ExitCode, ServerError> {
 
 #[cfg(test)]
 mod routing_tests;
+
+#[cfg(test)]
+mod tests {
+	use std::ffi::OsString;
+
+	use super::{parse_mode, ServerError};
+
+	#[test]
+	fn healthcheck_rejects_extra_arguments() {
+		let args = ["healthcheck", "x"].into_iter().map(OsString::from);
+		assert!(matches!(
+			parse_mode(args),
+			Err(ServerError::InvalidArguments)
+		));
+	}
+}

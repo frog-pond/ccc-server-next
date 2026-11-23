@@ -42,6 +42,7 @@ pub(super) async fn run(config: &Config) -> Result<bool, ServerError> {
 	)
 }
 
+/// Opens one configured socket and validates its HTTP health response.
 async fn probe(mut address: SocketAddr) -> Option<bool> {
 	if address.ip().is_unspecified() {
 		address.set_ip(if address.is_ipv4() {
