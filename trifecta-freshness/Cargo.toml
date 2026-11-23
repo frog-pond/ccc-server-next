@@ -1,0 +1,25 @@
+[package]
+name = "trifecta-freshness"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Cache freshness, backoff, and refresh timing rules"
+repository = "https://github.com/frog-pond/ccc-server-next"
+keywords = ["cache", "freshness", "backoff"]
+categories = ["caching"]
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = []
+jiff = ["dep:jiff"]
+
+[dependencies]
+jiff = { version = "0.2", optional = true, default-features = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.80"

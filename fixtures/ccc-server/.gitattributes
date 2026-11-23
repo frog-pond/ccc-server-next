@@ -1,0 +1,6 @@
+# Keep the exact bytes of the copied reference blobs across checkouts.
+source/** -text
+workers/** -text
+# The iCalendar folds lines and the RSS capture contains whitespace-only lines.
+workers/test/fixtures/carleton-sumo.ics -whitespace
+workers/test/fixtures/carletonian-feed.xml -whitespace

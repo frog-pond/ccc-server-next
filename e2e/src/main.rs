@@ -1,3 +1,5 @@
+//! Compares responses from the candidate server and reference servers.
+
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use reqwest::{
@@ -13,26 +15,26 @@ enum RouteGroup {
 	CarletonOnly,
 }
 
-fn get_substitutions(mode: &RouteGroup, route: &str, token: &str) -> Vec<&'static str> {
+fn get_substitutions(
+	mode: &RouteGroup,
+	route: &str,
+	token: &str,
+) -> Result<&'static [&'static str], String> {
 	use RouteGroup::CarletonOnly;
 
 	match (mode, route, token) {
-		(_, "food/item/:itemId", ":itemId") => vec!["36221", "13207271", "22061885"],
-		(_, "food/menu/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
-		(_, "food/cafe/:cafeId", ":cafeId") => vec!["261", "262", "263", "35", "36", "24", "458"],
-
-		(CarletonOnly, "convos/upcoming/:id", ":id") => vec![],
-
-		// A panic in this case prompts us to fill out the substitution grid.
-		//
-		// To do so, add a new match arm for the mode, route, and specific path segment you want to add to.
-		_ => {
-			panic!("unknown substitution {token} for route {route} in group {mode:?}");
+		(_, "food/item/:itemId", ":itemId") => Ok(&["36221", "13207271", "22061885"]),
+		(_, "food/menu/:cafeId" | "food/cafe/:cafeId", ":cafeId") => {
+			Ok(&["261", "262", "263", "35", "36", "24", "458"])
 		}
+		(CarletonOnly, "convos/upcoming/:id", ":id") => Ok(&[]),
+		_ => Err(format!(
+			"unknown substitution {token} for route {route} in group {mode:?}"
+		)),
 	}
 }
 
-fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
+fn substitute(mode: &RouteGroup, route: &str) -> Result<Vec<String>, String> {
 	let parts: Vec<&str> = route.split('/').collect();
 
 	// NOTE: We could probably do this with less moving parts if I flagged parts to substitute and then just performed the substitutions based off that math.
@@ -51,13 +53,11 @@ fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
 					continue;
 				}
 
-				let mut this_route: Vec<&str> = parts.clone();
-
-				let substitutions = get_substitutions(mode, &route, part);
-
-				for substitution in substitutions {
-					this_route[idx] = substitution;
-
+				let mut this_route = parts.clone();
+				for &substitution in get_substitutions(mode, route, part)? {
+					*this_route
+						.get_mut(idx)
+						.ok_or_else(|| format!("missing segment {idx} for route {route}"))? = substitution;
 					let new_string = this_route.join("/");
 
 					if new_string.contains("/:") {
@@ -69,26 +69,23 @@ fn substitute(mode: &RouteGroup, route: String) -> Vec<String> {
 			}
 		}
 
-		good
+		Ok(good)
 	} else {
-		vec![route]
+		Ok(vec![route.to_owned()])
 	}
 }
 
-fn routes(mode: &RouteGroup) -> impl Iterator<Item = String> {
-	let vec: Vec<String> = match mode {
-		RouteGroup::CccShared => include_str!("../CCC_ROUTES").lines().map(ToOwned::to_owned),
-		RouteGroup::StOlafOnly => include_str!("../STOLAF_ROUTES")
-			.lines()
-			.map(ToOwned::to_owned),
-		RouteGroup::CarletonOnly => include_str!("../CARLETON_ROUTES")
-			.lines()
-			.map(ToOwned::to_owned),
+fn routes(mode: &RouteGroup) -> Result<Vec<String>, String> {
+	let configured_routes = match mode {
+		RouteGroup::CccShared => include_str!("../CCC_ROUTES"),
+		RouteGroup::StOlafOnly => include_str!("../STOLAF_ROUTES"),
+		RouteGroup::CarletonOnly => include_str!("../CARLETON_ROUTES"),
+	};
+	let mut routes = Vec::new();
+	for route in configured_routes.lines() {
+		routes.extend(substitute(mode, route)?);
 	}
-	.flat_map(|configured_route| substitute(mode, configured_route))
-	.collect();
-
-	vec.into_iter()
+	Ok(routes)
 }
 
 fn test_targets() -> Result<Vec<ServerTarget>, url::ParseError> {
@@ -158,7 +155,7 @@ struct TestPlan {
 }
 
 impl TestPlan {
-	fn generate(targets: Vec<ServerTarget>) -> Self {
+	fn generate(targets: Vec<ServerTarget>) -> Result<Self, String> {
 		// "targets" in this case is still structured in terms of (base_url, supported_modes).
 		// to turn this into a "plan", we need to normalize in terms of (mode_route, servers_to_test).
 
@@ -198,14 +195,14 @@ impl TestPlan {
 		// "Mode" comes with a Set<Route> -- ultimately, we want {(Mode, Route): Set<Url>}.
 		// Some routes (e.g. ping) will be identical between Carleton/StOlaf, but some (/spaces/hours) will not.
 
-		let plan: BTreeMap<(RouteGroup, String), BTreeSet<Url>> = targets
-			.into_iter()
-			.flat_map(|(mode, base_urls)| {
-				routes(&mode).map(move |route| ((mode.clone(), route), base_urls.clone()))
-			})
-			.collect();
+		let mut plan = BTreeMap::new();
+		for (mode, base_urls) in targets {
+			for route in routes(&mode)? {
+				plan.insert((mode.clone(), route), base_urls.clone());
+			}
+		}
 
-		Self { plan, target_types }
+		Ok(Self { plan, target_types })
 	}
 }
 
@@ -255,7 +252,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 	let targets = test_targets()?;
 
-	let test_plan = TestPlan::generate(targets);
+	let test_plan = TestPlan::generate(targets)?;
 	type Response = Result<(Version, StatusCode, HeaderMap, String), reqwest::Error>;
 
 	for ((mode, route), servers) in test_plan.plan {
@@ -343,12 +340,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 			for candidate_result in candidate_results
 				.get(&route)
-				.expect("no reference results for route")
+				.ok_or_else(|| format!("no candidate results for route {route}"))?
 				.values()
 			{
 				for reference_result in reference_results
 					.get(&route)
-					.expect("no reference results for route")
+					.ok_or_else(|| format!("no reference results for route {route}"))?
 					.values()
 				{
 					let candidate_result = &candidate_result;
@@ -387,8 +384,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 								}
 							}
 						}
-						(_, _) => {
-							panic!("reference result for url {url} was an error");
+						(Err(error), _) | (_, Err(error)) => {
+							return Err(format!("request for route {route} failed: {error}").into());
 						}
 					}
 				}
