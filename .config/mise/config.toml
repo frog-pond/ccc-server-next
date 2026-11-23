@@ -1,14 +1,36 @@
 [env]
 _.file = '.env'
 
+[tools]
+"npm:wrangler" = "4.166.0"
+"cargo:worker-build" = "0.9.0"
+"aqua:EmbarkStudios/cargo-deny" = "0.22.0"
+"cargo:cargo-public-api" = "0.52.0"
+"github:wasm-bindgen/wasm-bindgen" = "0.2.127"
+
 [tasks.build]
 run = "cargo build"
 
 [tasks.check]
-depends = ["clippy", "fmt-check", "test", "test:tools"]
+depends = ["clippy", "fmt-check", "test", "test:tools", "doc", "check:dependencies", "check:api"]
+
+[tasks.doc]
+run = "cargo doc --workspace --all-features --locked --no-deps"
+env = { RUSTDOCFLAGS = "-D warnings" }
+
+[tasks."check:dependencies"]
+run = "cargo deny --all-features --locked check bans"
+
+[tasks."check:api"]
+description = "Check committed public API listings"
+run = "python3 tools/public-api --check"
+
+[tasks."update:api"]
+description = "Regenerate public API listings"
+run = "python3 tools/public-api"
 
 [tasks.clippy]
-run = "cargo clippy --workspace --all-features --all-targets"
+run = "cargo clippy --workspace --all-features --all-targets --locked"
 
 [tasks.fmt]
 run = "cargo fmt --all"
@@ -17,7 +39,7 @@ run = "cargo fmt --all"
 run = "cargo fmt --all -- --check"
 
 [tasks.test]
-run = "cargo test --workspace --all-features --all-targets --no-fail-fast"
+run = "cargo test --workspace --all-features --all-targets --locked --no-fail-fast"
 
 [tasks."test:tools"]
 description = "Test the rules in tools/board offline"
