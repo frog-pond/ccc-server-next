@@ -11,6 +11,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from workspace import (
     ROOT,
+    test_listing_errors,
     test_name_differences,
     wasm_exclusions,
     workspace_members,
@@ -120,13 +121,36 @@ class TestAttributeCases(unittest.TestCase):
                 self.assertEqual(list(incompatible_test_lines(code)), [])
 
     def test_compares_test_names_per_binary(self):
-        host = {"schema (lib/schema)": {"tests::shared", "tests::host"}}
-        wasm = {"schema (lib/schema)": {"tests::shared", "tests::wasm"}}
+        host = {("schema", "lib/schema"): {"tests::shared", "tests::host"}}
+        wasm = {("schema", "lib/schema"): {"tests::shared", "tests::wasm"}}
         self.assertEqual(test_name_differences(host, host), [])
         self.assertEqual(test_name_differences(host, wasm), [
             "schema (lib/schema): host only: tests::host",
             "schema (lib/schema): Wasm only: tests::wasm",
         ])
+
+    def test_rejects_missing_test_binaries_on_either_target(self):
+        schema = {("schema", "lib/schema"): {"tests::shared"}}
+        freshness = {("freshness", "lib/freshness"): {"tests::shared"}}
+        self.assertEqual(test_listing_errors({"schema", "freshness"}, schema, freshness), [
+            "freshness: no test binary listed on host",
+            "schema: no test binary listed on Wasm",
+        ])
+        self.assertEqual(test_listing_errors({"schema"}, {}, {}), [
+            "schema: no test binary listed on host",
+            "schema: no test binary listed on Wasm",
+            "The host runner listed no shared tests",
+        ])
+
+    def test_rejects_empty_test_names_even_when_binaries_are_listed(self):
+        listing = {("schema", "lib/schema"): set()}
+        self.assertEqual(test_listing_errors({"schema"}, listing, listing), [
+            "The host runner listed no shared tests",
+        ])
+
+    def test_accepts_an_empty_binary_when_shared_tests_are_listed(self):
+        listing = {("schema", "lib/schema"): {"tests::shared"}, ("other", "lib/other"): set()}
+        self.assertEqual(test_listing_errors({"schema", "other"}, listing, listing), [])
 
 
 class WorkspaceTests(unittest.TestCase):

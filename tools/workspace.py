@@ -26,6 +26,13 @@ def wasm_exclusions(metadata):
     return metadata["metadata"]["wasm"]["exclude"]
 
 
+def list_test_names(executable, runner, *flags):
+    output = subprocess.check_output(
+        [*runner, executable, "--list", *flags], cwd=ROOT, text=True,
+    )
+    return {line.removesuffix(": test") for line in output.splitlines() if line.endswith(": test")}
+
+
 def listed_tests(packages, exclusions, target_args, runner):
     artifacts = subprocess.check_output(
         ["cargo", "test", "--workspace", "--all-features", "--all-targets",
@@ -35,6 +42,7 @@ def listed_tests(packages, exclusions, target_args, runner):
         text=True,
     )
     tests = {}
+    ignored = {}
     for line in artifacts.splitlines():
         artifact = json.loads(line)
         if artifact["reason"] != "compiler-artifact" or not artifact["profile"]["test"]:
@@ -43,22 +51,32 @@ def listed_tests(packages, exclusions, target_args, runner):
             continue
         target = artifact["target"]
         kind = "/".join(target["kind"])
-        binary = f'{packages[artifact["package_id"]]} ({kind}/{target["name"]})'
-        output = subprocess.check_output(
-            [*runner, artifact["executable"], "--list"], cwd=ROOT, text=True,
-        )
-        tests[binary] = {line.removesuffix(": test") for line in output.splitlines()
-                         if line.endswith(": test")}
-    return tests
+        binary = (packages[artifact["package_id"]], f'{kind}/{target["name"]}')
+        tests[binary] = list_test_names(artifact["executable"], runner)
+        ignored[binary] = list_test_names(artifact["executable"], runner, "--ignored")
+    return tests, ignored
+
+
+def test_listing_errors(expected_packages, host, wasm):
+    errors = []
+    for platform, listing in (("host", host), ("Wasm", wasm)):
+        listed_packages = {package for package, _ in listing}
+        for package in sorted(expected_packages - listed_packages):
+            errors.append(f"{package}: no test binary listed on {platform}")
+    if not any(host.values()):
+        errors.append("The host runner listed no shared tests")
+    return errors
 
 
 def test_name_differences(host, wasm):
     differences = []
     for binary in sorted(host.keys() | wasm.keys()):
+        package, target = binary
+        label = f"{package} ({target})"
         host_tests = host.get(binary, set())
         wasm_tests = wasm.get(binary, set())
-        differences.extend(f"{binary}: host only: {name}" for name in sorted(host_tests - wasm_tests))
-        differences.extend(f"{binary}: Wasm only: {name}" for name in sorted(wasm_tests - host_tests))
+        differences.extend(f"{label}: host only: {name}" for name in sorted(host_tests - wasm_tests))
+        differences.extend(f"{label}: Wasm only: {name}" for name in sorted(wasm_tests - host_tests))
     return differences
 
 
@@ -76,14 +94,20 @@ def check_wasm():
     for task in ("clippy", "doc", "test"):
         subprocess.run(["mise", "run", task, "--", *args], cwd=ROOT, check=True)
 
-    packages = {package["id"]: package["name"] for package in workspace_members(metadata)
-                if package["name"] not in excluded}
-    host = listed_tests(packages, exclusions, [], [])
-    wasm = listed_tests(packages, exclusions, target_args, ["wasm-bindgen-test-runner"])
-    differences = test_name_differences(host, wasm)
-    if differences:
-        sys.exit("Shared tests differ between the host and Wasm:\n" + "\n".join(differences))
-    print(f"Host and Wasm list the same {sum(map(len, host.values()))} shared tests.")
+    shared = [package for package in workspace_members(metadata) if package["name"] not in excluded]
+    packages = {package["id"]: package["name"] for package in shared}
+    expected = {package["name"] for package in shared
+                if any(target["test"] for target in package["targets"])}
+    host, host_ignored = listed_tests(packages, exclusions, [], [])
+    wasm, wasm_ignored = listed_tests(packages, exclusions, target_args, ["wasm-bindgen-test-runner"])
+    errors = test_listing_errors(expected, host, wasm)
+    errors.extend(test_name_differences(host, wasm))
+    errors.extend(f"Ignored test mismatch: {difference}" for difference in test_name_differences(
+        host_ignored, wasm_ignored,
+    ))
+    if errors:
+        sys.exit("Shared test discovery check failed:\n" + "\n".join(errors))
+    print(f"Host and Wasm agree on {sum(map(len, host.values()))} shared tests and which are ignored.")
 
 
 if __name__ == "__main__":

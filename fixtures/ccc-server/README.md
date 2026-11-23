@@ -62,6 +62,10 @@ upstream type, call the same conversion as the route, serialize the app
 response, and compare JSON values. This comparison ignores object key order
 and whitespace while preserving array order, field presence and values.
 
+Add `wasm-bindgen-test = "=0.3.77"` under the crate's unconditional
+`[dev-dependencies]`. It matches the runner pinned in `.config/mise/config.toml`.
+Renovate updates the two pins together.
+
 For example, in the WordPress conversion test, with `Posts` and `Feed`
 standing for the crate's upstream and app response types:
 
