@@ -1,7 +1,10 @@
 //! Native entry point for running the CCC API as an HTTP server.
 
-// The draft exposes the signatures for review before wiring up the server.
-#![allow(dead_code, unused_variables)]
+#![allow(
+	dead_code,
+	unused_variables,
+	reason = "Draft signatures are not wired together yet"
+)]
 #![allow(clippy::todo, reason = "Signatures are under review in draft PR #487")]
 
 use std::{
@@ -14,16 +17,36 @@ use std::{
 	time::SystemTime,
 };
 
-use axum::{http::Method, response::Response, Router};
+use axum::{
+	extract::Request,
+	http::{Method, StatusCode},
+	middleware::Next,
+	response::Response,
+	Json, Router,
+};
+use ccc_schema::error::RouteErrorBody;
 use reqwest::Client;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, runtime::Runtime};
+
+/// The native HTTP client identifies itself by the binary crate's name and version.
+const UPSTREAM_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 /// Process settings parsed by the native entry point before starting the listener.
 struct Config {
 	/// Every IP address and port at which the process accepts HTTP connections.
-	/// A successful configuration parse always supplies at least one address.
-	listen_addresses: Vec<SocketAddr>,
+	listen_addresses: NonEmpty<SocketAddr>,
 }
+
+/// One or more items, maintaining the first item through parsing and binding.
+struct NonEmpty<T> {
+	/// The required first item.
+	first: T,
+	/// Any additional items in their original order.
+	rest: Vec<T>,
+}
+
+/// The server's Tokio runtime, constructed with I/O and time drivers enabled.
+struct ServerRuntime(Runtime);
 
 /// Provides the current wall-clock time to native handlers. A handler that
 /// needs time passes the sampled timestamp to shared library code.
@@ -45,7 +68,7 @@ enum ServerError {
 	Runtime(io::Error),
 	/// The upstream HTTP client could not be initialized.
 	HttpClient(reqwest::Error),
-	/// The process could not register the SIGTERM handler.
+	/// The process could not register a SIGTERM or SIGINT handler.
 	SignalHandler(io::Error),
 	/// The TCP listener could not bind to the configured address.
 	Bind {
@@ -70,7 +93,7 @@ impl std::error::Error for ServerError {
 
 /// Parses the value of `CCC_LISTEN_ADDR` supplied by the entry point.
 /// A comma-separated list accepts surrounding whitespace per entry.
-/// An unset or blank value selects both `0.0.0.0:80` and `[::]:80`.
+/// An unset or blank value selects both `0.0.0.0:8080` and `[::]:8080`.
 ///
 /// # Errors
 ///
@@ -80,8 +103,8 @@ fn parse_config(value: Option<&OsStr>) -> Result<Config, ServerError> {
 	todo!("review draft")
 }
 
-/// Builds the native client for upstream requests. It returns redirects to the
-/// caller without following them.
+/// Builds the native client with the upstream User-Agent set to the crate name
+/// and version. The client returns redirects without following them.
 ///
 /// # Errors
 ///
@@ -96,13 +119,18 @@ fn ping() -> Ready<&'static str> {
 }
 
 /// Returns the JSON 405 response for a method the native router does not serve.
-fn method_not_allowed() -> Ready<Response> {
+fn method_not_allowed() -> Ready<(StatusCode, Json<RouteErrorBody>)> {
 	todo!("review draft")
 }
 
 /// Returns the JSON 404 response for an unmatched GET. Other methods receive
 /// the same JSON 405 response as they would on a matched path.
-fn unmatched_path(method: Method) -> Ready<Response> {
+fn unmatched_path(method: Method) -> Ready<(StatusCode, Json<RouteErrorBody>)> {
+	todo!("review draft")
+}
+
+/// Removes Axum's Allow header from every 405 to match the reference Worker.
+async fn strip_allow_on_405(request: Request, next: Next) -> Response {
 	todo!("review draft")
 }
 
@@ -113,29 +141,49 @@ fn router(clock: Clock, http_client: Client) -> Router {
 	todo!("review draft")
 }
 
-/// Binds every configured address before serving begins. IPv6 sockets accept
-/// only IPv6 connections so IPv4 and IPv6 listeners can share a port number.
+/// Builds the Tokio runtime with I/O and time drivers enabled.
+///
+/// # Errors
+/// Returns an error if Tokio cannot initialize the runtime.
+fn build_runtime() -> Result<ServerRuntime, ServerError> {
+	todo!("review draft")
+}
+
+/// Binds every configured address and registers each listener on the supplied
+/// runtime. The sockets use `SO_REUSEADDR` and a requested backlog of 1024.
+/// IPv6 sockets accept only IPv6 connections so both families can share a port.
 ///
 /// # Errors
 ///
 /// Returns the attempted address and I/O error if any listener cannot be opened.
-fn bind_listeners(config: &Config) -> Result<Vec<TcpListener>, ServerError> {
+fn bind_listeners(
+	runtime: &ServerRuntime,
+	config: &Config,
+) -> Result<NonEmpty<TcpListener>, ServerError> {
 	todo!("review draft")
 }
 
-/// Registers SIGTERM and provides a future that completes on receipt.
+/// Registers SIGTERM and SIGINT on the supplied runtime. The returned future
+/// completes when the first of the two signals arrives.
 ///
 /// # Errors
 ///
 /// Returns an error if the process cannot register the signal handler.
-fn install_shutdown_signal() -> Result<impl Future<Output = ()> + Send + 'static, ServerError> {
+fn install_shutdown_signal(
+	runtime: &ServerRuntime,
+) -> Result<impl Future<Output = ()> + Send + 'static, ServerError> {
 	Ok(async { todo!("review draft") })
 }
 
-/// Serves the same router on every bound listener. When shutdown resolves,
-/// all listeners stop accepting and the server waits for in-flight requests.
-async fn serve(
-	listeners: Vec<TcpListener>,
+/// Serves the same router on every bound listener on the supplied runtime.
+/// One task awaits the shutdown future and broadcasts completion through
+/// a Tokio watch channel. Every listener stops accepting and drains its requests.
+///
+/// # Panics
+/// Calls Tokio's blocking entry point and must be invoked outside a running runtime.
+fn serve(
+	runtime: &ServerRuntime,
+	listeners: NonEmpty<TcpListener>,
 	router: Router,
 	shutdown: impl Future<Output = ()> + Send + 'static,
 ) {

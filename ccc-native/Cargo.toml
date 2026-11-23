@@ -5,13 +5,14 @@ description = "Native HTTP entry point for the CCC API"
 publish = false
 edition.workspace = true
 license.workspace = true
-rust-version = "1.85"
+rust-version = "1.88"
 
 [lints]
 workspace = true
 
 [dependencies]
-axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "tracing"] }
+ccc-schema = { path = "../ccc-schema" }
 reqwest = { workspace = true }
 socket2 = "0.6.5"
-tokio = { workspace = true, features = ["net", "signal"] }
+tokio = { workspace = true, features = ["net", "signal", "sync"] }
