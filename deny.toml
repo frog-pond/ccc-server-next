@@ -3,7 +3,7 @@
 # The wasm-bindgen test harness has a Tokio dependency only for Emscripten.
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 # Entry points use their runtime-specific clients. Keep the shared route in the graph.
-exclude = ["e2e", "fixture-experiment-native", "worker-experiment"]
+exclude = ["ccc-native", "e2e", "fixture-experiment-native", "worker-experiment"]
 
 [bans]
 multiple-versions = "allow"

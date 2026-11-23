@@ -1,0 +1,93 @@
+"""Exercise the native container's listeners and SIGTERM shutdown on Linux."""
+
+import http.client
+import select
+import socket
+import subprocess
+import sys
+import time
+
+PORT = 8080
+REQUESTS = b"GET /ping HTTP/1.1\r\nHost: localhost\r\n\r\n" * 1024
+
+
+def check_ping(host):
+    deadline = time.monotonic() + 10
+    while True:
+        connection = http.client.HTTPConnection(host, PORT, timeout=1)
+        try:
+            connection.request("GET", "/ping")
+            response = connection.getresponse()
+            status, body = response.status, response.read()
+            if status != 200 or body != b"pong":
+                raise RuntimeError(f"{host} returned {status}, {body!r}")
+            print(f"{host} returned HTTP 200 pong", flush=True)
+            return
+        except OSError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.1)
+        finally:
+            connection.close()
+
+
+def signal_during_response(engine, container):
+    # Pipelined real /ping requests fill the response window while this client
+    # is not reading. Waiting for backpressure avoids racing the fast handler.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+        connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+        connection.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 32768)
+        connection.settimeout(2)
+        connection.connect(("127.0.0.1", PORT))
+        for _ in range(512):
+            try:
+                connection.sendall(REQUESTS)
+            except TimeoutError:
+                break
+        else:
+            raise RuntimeError("the pipelined HTTP connection never became backpressured")
+        if not select.select([connection], [], [], 2)[0]:
+            raise RuntimeError("no response was in flight")
+        if not connection.recv(1, socket.MSG_PEEK):
+            raise RuntimeError("the HTTP connection closed before shutdown")
+        deadline = time.monotonic() + 10
+        subprocess.run([engine, "kill", "--signal=TERM", container], check=True, timeout=5)
+        # Let the in-flight response make progress after the signal.
+        try:
+            while time.monotonic() < deadline and connection.recv(65536):
+                pass
+        except (ConnectionResetError, TimeoutError):
+            pass
+        return deadline
+
+
+def main(engine, image):
+    container = subprocess.check_output(
+        [engine, "run", "--detach", "--network=host", image], text=True, timeout=15
+    ).strip()
+    try:
+        for host in ("127.0.0.1", "::1"):
+            check_ping(host)
+        subprocess.run(
+            [engine, "exec", container, "/usr/local/bin/ccc-native", "healthcheck"],
+            check=True, timeout=5,
+        )
+        deadline = signal_during_response(engine, container)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("container did not stop within ten seconds")
+        status = subprocess.check_output(
+            [engine, "wait", container], text=True, timeout=remaining,
+        ).strip()
+        if status != "0":
+            raise RuntimeError(f"container exited with status {status}")
+        print("SIGTERM during HTTP traffic exited cleanly", flush=True)
+    except Exception:
+        subprocess.run([engine, "logs", container], check=False)
+        raise
+    finally:
+        subprocess.run([engine, "rm", "--force", container], check=False, stdout=subprocess.DEVNULL)
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])

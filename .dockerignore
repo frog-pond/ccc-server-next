@@ -1,0 +1,11 @@
+*
+!Cargo.lock
+!Cargo.toml
+!ccc-native/
+!ccc-schema/
+!e2e/
+!trifecta-freshness/
+!experiments/*/Cargo.toml
+!experiments/*/src/
+!experiments/worker/build.rs
+!experiments/worker/examples/
