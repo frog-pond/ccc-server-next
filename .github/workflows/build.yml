@@ -59,6 +59,9 @@ jobs:
           MISE_OFFLINE: 'true'
           MISE_AUTO_INSTALL: 'false'
         run: mise run test -- ${{ matrix.target.args }}
+      - name: Check builds without std
+        if: matrix.target.name == 'wasm32-unknown-unknown'
+        run: mise run check:features
 
   native-image:
     name: Build the native container image
