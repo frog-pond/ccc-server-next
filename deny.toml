@@ -1,6 +1,7 @@
 [graph]
-# The e2e executable makes HTTP requests to the servers it compares.
-exclude = ["e2e"]
+# The native server and e2e executable need a runtime and HTTP client.
+# Check the dependency graph of the shared crates.
+exclude = ["ccc-native", "e2e"]
 
 [bans]
 multiple-versions = "allow"

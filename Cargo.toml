@@ -1,13 +1,14 @@
 [workspace]
 resolver = "2"
 members = [
+	"ccc-native",
 	"ccc-schema",
 	"e2e",
 	"trifecta-freshness",
 ]
 
 [workspace.metadata.wasm]
-exclude = ["e2e"]
+exclude = ["ccc-native", "e2e"]
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

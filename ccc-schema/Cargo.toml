@@ -7,7 +7,11 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
 [dev-dependencies]
+serde_json = { workspace = true }
 wasm-bindgen-test = "=0.3.77"
 
 [lints]

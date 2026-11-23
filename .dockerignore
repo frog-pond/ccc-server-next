@@ -1,0 +1,7 @@
+*
+!Cargo.lock
+!Cargo.toml
+!ccc-native/
+!ccc-schema/
+!e2e/
+!trifecta-freshness/
