@@ -1,0 +1,13 @@
+[graph]
+# The e2e executable makes HTTP requests to the servers it compares.
+exclude = ["e2e"]
+
+[bans]
+multiple-versions = "allow"
+wildcards = "allow"
+deny = [
+    { crate = "axum", reason = "Only native server code uses the web framework" },
+    { crate = "reqwest", reason = "Only native code uses this HTTP client" },
+    { crate = "tokio", reason = "Only native code uses this runtime" },
+    { crate = "worker", reason = "Only Worker-specific code uses workers-rs" },
+]
