@@ -5,37 +5,48 @@
 #![allow(clippy::todo, reason = "Signatures are under review in draft PR #487")]
 
 use std::{
+	ffi::OsStr,
 	fmt,
-	future::Ready,
+	future::{Future, Ready},
 	io,
 	net::{AddrParseError, SocketAddr},
+	process::ExitCode,
 	time::SystemTime,
 };
 
-use axum::Router;
+use axum::{http::Method, response::Response, Router};
 use reqwest::Client;
+use tokio::net::TcpListener;
 
 /// Process settings parsed by the native entry point before starting the listener.
 struct Config {
-	/// IP address and port at which the native process accepts HTTP connections.
-	listen_address: SocketAddr,
+	/// Every IP address and port at which the process accepts HTTP connections.
+	/// A successful configuration parse always supplies at least one address.
+	listen_addresses: Vec<SocketAddr>,
 }
 
 /// Provides the current wall-clock time to native handlers. A handler that
 /// needs time passes the sampled timestamp to shared library code.
 type Clock = fn() -> SystemTime;
 
-/// Why the native process could not start or continue serving HTTP.
+/// Why the native process could not start serving HTTP.
 #[derive(Debug)]
 enum ServerError {
 	/// The listen address setting is present and is not Unicode.
 	ListenAddressEncoding,
 	/// The listen address setting is not an IP socket address.
-	ListenAddressSyntax(AddrParseError),
+	ListenAddressSyntax {
+		/// The list entry that could not be parsed.
+		value: String,
+		/// The socket-address parser's failure.
+		source: AddrParseError,
+	},
 	/// The Tokio runtime could not be initialized.
 	Runtime(io::Error),
 	/// The upstream HTTP client could not be initialized.
 	HttpClient(reqwest::Error),
+	/// The process could not register the SIGTERM handler.
+	SignalHandler(io::Error),
 	/// The TCP listener could not bind to the configured address.
 	Bind {
 		/// The configured IP address and port the listener tried to bind.
@@ -43,8 +54,6 @@ enum ServerError {
 		/// The underlying failure returned by the TCP listener.
 		source: io::Error,
 	},
-	/// The HTTP server terminated with an I/O error.
-	Serve(io::Error),
 }
 
 impl fmt::Display for ServerError {
@@ -59,13 +68,15 @@ impl std::error::Error for ServerError {
 	}
 }
 
-/// Reads `CCC_LISTEN_ADDR` as an IP address and port, defaulting to
-/// `0.0.0.0:8080` when it is unset.
+/// Parses the value of `CCC_LISTEN_ADDR` supplied by the entry point.
+/// A comma-separated list accepts surrounding whitespace per entry.
+/// An unset or blank value selects both `0.0.0.0:80` and `[::]:80`.
 ///
 /// # Errors
 ///
-/// Returns an error if the setting is not Unicode or has invalid socket syntax.
-fn config_from_env() -> Result<Config, ServerError> {
+/// Returns an error if the setting is not Unicode or any entry is not an IP
+/// address with a port.
+fn parse_config(value: Option<&OsStr>) -> Result<Config, ServerError> {
 	todo!("review draft")
 }
 
@@ -84,29 +95,64 @@ fn ping() -> Ready<&'static str> {
 	todo!("review draft")
 }
 
-/// Maps native HTTP requests to the routes served by this process.
-fn router() -> Router {
+/// Returns the JSON 405 response for a method the native router does not serve.
+fn method_not_allowed() -> Ready<Response> {
 	todo!("review draft")
 }
 
-/// Runs the native HTTP server with the dependencies assembled by the entry point.
-/// The listener uses the configured address. Handlers can use the supplied
-/// clock and client when a route needs a timestamp or an upstream response.
-///
-/// # Errors
-///
-/// Returns an error if the listener cannot bind or Axum reports a server error.
-async fn serve(config: Config, clock: Clock, http_client: Client) -> Result<(), ServerError> {
+/// Returns the JSON 404 response for an unmatched GET. Other methods receive
+/// the same JSON 405 response as they would on a matched path.
+fn unmatched_path(method: Method) -> Ready<Response> {
 	todo!("review draft")
 }
 
-/// Assembles the configuration, clock, HTTP client, and Tokio runtime, then
-/// runs the server with those dependencies.
+/// Builds the native router with the supplied clock and HTTP client available
+/// for routes that need them. `/ping` accepts GET on every host. HEAD is
+/// explicitly routed to the method error handler so Axum cannot use GET for it.
+fn router(clock: Clock, http_client: Client) -> Router {
+	todo!("review draft")
+}
+
+/// Binds every configured address before serving begins. IPv6 sockets accept
+/// only IPv6 connections so IPv4 and IPv6 listeners can share a port number.
 ///
 /// # Errors
 ///
-/// Returns configuration, client initialization, runtime initialization, listener,
-/// or server errors.
-fn main() -> Result<(), ServerError> {
+/// Returns the attempted address and I/O error if any listener cannot be opened.
+fn bind_listeners(config: &Config) -> Result<Vec<TcpListener>, ServerError> {
+	todo!("review draft")
+}
+
+/// Registers SIGTERM and provides a future that completes on receipt.
+///
+/// # Errors
+///
+/// Returns an error if the process cannot register the signal handler.
+fn install_shutdown_signal() -> Result<impl Future<Output = ()> + Send + 'static, ServerError> {
+	Ok(async { todo!("review draft") })
+}
+
+/// Serves the same router on every bound listener. When shutdown resolves,
+/// all listeners stop accepting and the server waits for in-flight requests.
+async fn serve(
+	listeners: Vec<TcpListener>,
+	router: Router,
+	shutdown: impl Future<Output = ()> + Send + 'static,
+) {
+	todo!("review draft")
+}
+
+/// Initializes native dependencies, binds the listeners and serves until shutdown.
+///
+/// # Errors
+///
+/// Returns errors from runtime, client, listener or signal initialization.
+fn run(config: Config, clock: Clock) -> Result<(), ServerError> {
+	todo!("review draft")
+}
+
+/// Reads process configuration and starts the native server. On startup
+/// failure, writes the error and its causes to stderr and returns failure.
+fn main() -> ExitCode {
 	todo!("review draft")
 }
