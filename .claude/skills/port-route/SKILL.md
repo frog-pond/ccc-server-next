@@ -45,7 +45,7 @@ This procedure was written before any route had been brought over. Steps marked 
 ## 4. Finish
 
 11. Use the network during setup for `mise install` and `cargo fetch --locked`. After setup, `MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test` makes no network requests. `mise run check` passes.
-12. For any crate meant to be shared by both builds: `cargo check --target wasm32-unknown-unknown -p <crate>` passes.
+12. For any crate meant to be shared by both builds, `mise run check:wasm` passes. See the README for setup.
 13. Run the `arch-review` skill and deal with what it finds.
 14. In the pull request description: the summary from step 4, the reference commit from `docs/reference/REFERENCE_COMMIT`, and anything that behaves differently from the reference. There should be nothing. A deliberate difference is agreed in an issue first.
 15. If you found `docs/reference/` wrong or incomplete, fix it in the same pull request.

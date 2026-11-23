@@ -66,11 +66,9 @@ For example, in the WordPress conversion test, with `Posts` and `Feed`
 standing for the crate's upstream and app response types:
 
 ```rust,ignore
-#[cfg_attr(
-    all(target_arch = "wasm32", target_os = "unknown"),
-    wasm_bindgen_test::wasm_bindgen_test
-)]
-#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+use wasm_bindgen_test::wasm_bindgen_test;
+
+#[wasm_bindgen_test(unsupported = test)]
 fn stolaf_posts_match_the_reference() -> Result<(), Box<dyn std::error::Error>> {
     let input = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
