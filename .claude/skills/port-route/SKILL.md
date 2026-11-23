@@ -37,14 +37,14 @@ This procedure was written before any route had been brought over. Steps marked 
 
 ## 3. Write the bodies against the reference's outputs
 
-7. Expected outputs come from the reference, never from your reading of what looks right. Take each input and its expected output from the reference's fixtures and tests, and say which test you took it from. *Provisional:* a script that runs the reference's conversion functions over its fixtures is planned and does not exist yet; until it does, copy the pairs from the reference's test files by hand.
-8. *Provisional:* keep these input and output pairs beside the crate that owns the conversion, the way the nearest approved route does. If no route has been approved yet, ask where they should go.
+7. Use the [reference fixtures](../../../fixtures/ccc-server/README.md). Take the input and expected output from the pinned reference's tests and record which test uses them. When an input exists without a complete output file, add a case to `tools/reference-fixture.mjs` that calls the reference conversion with the test's parameters. Run it, commit the JSON under `fixtures/ccc-server/generated/`, and add a row to the fixture README table.
+8. Add at least one offline comparison test in the crate that owns each conversion. Deserialize the input, call the conversion, serialize the result and compare it with the reference's expected output.
 9. Conversions do no I/O and read no clock or environment. That is what lets both builds share them.
-10. Tests never use the network. If you think a fixture is missing, ask the maintainer. Do not fetch from a live site.
+10. If the pinned reference has the fixture, copy it as `fixtures/ccc-server/README.md` describes and add a row. If the reference has no capture, ask the maintainer. Do not fetch from a live site.
 
 ## 4. Finish
 
-11. `mise run check` passes.
+11. Use the network during setup for `mise install` and `cargo fetch --locked`. After setup, `MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test` makes no network requests. `mise run check` passes.
 12. For any crate meant to be shared by both builds: `cargo check --target wasm32-unknown-unknown -p <crate>` passes.
 13. Run the `arch-review` skill and deal with what it finds.
 14. In the pull request description: the summary from step 4, the reference commit from `docs/reference/REFERENCE_COMMIT`, and anything that behaves differently from the reference. There should be nothing. A deliberate difference is agreed in an issue first.
