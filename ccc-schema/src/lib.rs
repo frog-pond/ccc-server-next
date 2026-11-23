@@ -9,9 +9,11 @@
 
 pub mod routing;
 
-#[cfg(all(test, target_arch = "wasm32", target_os = "unknown"))]
+#[cfg(test)]
 mod tests {
-	// Exercise the Wasm test runner on the shared schema crate.
-	#[wasm_bindgen_test::wasm_bindgen_test]
+	use wasm_bindgen_test::wasm_bindgen_test;
+
+	// Exercise both test runners for the shared schema crate.
+	#[wasm_bindgen_test(unsupported = test)]
 	fn schema_test_harness_runs() {}
 }

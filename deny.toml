@@ -8,7 +8,9 @@ multiple-versions = "allow"
 wildcards = "allow"
 deny = [
     { crate = "axum", reason = "Only native server code uses the web framework" },
+    { crate = "hyper", reason = "Only native code uses this HTTP implementation" },
     { crate = "reqwest", reason = "Only native code uses this HTTP client" },
     { crate = "tokio", reason = "Only native code uses this runtime" },
     { crate = "worker", reason = "Only Worker-specific code uses workers-rs" },
+    { crate = "worker-sys", reason = "Only Worker-specific code uses the low-level Workers bindings" },
 ]

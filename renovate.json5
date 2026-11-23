@@ -6,4 +6,10 @@
     ':maintainLockFilesWeekly',
     'helpers:pinGitHubActionDigests',
   ],
+  packageRules: [
+    {
+      matchPackageNames: ['wasm-bindgen-test', 'wasm-bindgen/wasm-bindgen'],
+      groupName: 'wasm-bindgen test runner and crate',
+    },
+  ],
 }

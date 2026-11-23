@@ -24,10 +24,8 @@ jobs:
         target:
           - name: host
             triple: host-tuple
-            args: ''
           - name: wasm32-unknown-unknown
             triple: wasm32-unknown-unknown
-            args: --target wasm32-unknown-unknown --exclude ccc-native --exclude e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,21 +45,35 @@ jobs:
           rustup target add wasm32-unknown-unknown
           mise install github:wasm-bindgen/wasm-bindgen
       - name: Fetch dependencies for offline tests
-        run: cargo fetch --locked --target ${{ matrix.target.triple }}
-      - name: Build
-        run: cargo build --workspace --all-features --locked ${{ matrix.target.args }}
-      - name: Lint
-        run: mise run clippy -- ${{ matrix.target.args }}
-      - name: Check documentation
-        run: mise run doc -- ${{ matrix.target.args }}
-      - name: Test
+        # The Wasm job also lists host tests to compare test discovery.
+        run: cargo fetch --locked --target host-tuple --target ${{ matrix.target.triple }}
+      - name: Check shared crates on Wasm
+        if: matrix.target.name == 'wasm32-unknown-unknown'
         env:
           MISE_OFFLINE: 'true'
-          MISE_AUTO_INSTALL: 'false'
-        run: mise run test -- ${{ matrix.target.args }}
+          CARGO_NET_OFFLINE: 'true'
+        run: mise run check:wasm
       - name: Check builds without std
         if: matrix.target.name == 'wasm32-unknown-unknown'
+        env:
+          CARGO_NET_OFFLINE: 'true'
         run: mise run check:features
+      - name: Build
+        if: matrix.target.name == 'host'
+        run: cargo build --workspace --all-features --locked
+      - name: Lint
+        if: matrix.target.name == 'host'
+        run: mise run clippy
+      - name: Check documentation
+        if: matrix.target.name == 'host'
+        run: mise run doc
+      - name: Test
+        if: matrix.target.name == 'host'
+        env:
+          MISE_OFFLINE: 'true'
+        run: |
+          mise run test
+          mise run test:doc
 
   native-image:
     name: Build the native container image
@@ -84,11 +96,23 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
-          rustup toolchain install nightly-2026-11-22 --profile minimal
       - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
         with:
           install_args: aqua:EmbarkStudios/cargo-deny cargo:cargo-public-api
       - run: mise run fmt-check
       - run: mise run check:dependencies
+      - run: mise run setup:api
       - run: mise run check:api
       - run: mise run test:tools
+
+  ci:
+    name: ci
+    # List every other job in needs so this status covers the whole workflow.
+    needs: [build, native-image, structure]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<< "$NEEDS"
