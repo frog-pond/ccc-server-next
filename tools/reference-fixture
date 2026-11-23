@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Print one expected JSON response from the pinned reference conversion.
+set -euo pipefail
+
+case "${1:-}" in
+    athletics-scores|carleton-sumo) ;;
+    *)
+        echo "Usage: tools/reference-fixture {athletics-scores|carleton-sumo}" >&2
+        exit 2
+        ;;
+esac
+if [[ $# != 1 ]]; then
+    echo "Expected exactly one fixture case" >&2
+    exit 2
+fi
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+reference=$("$root/tools/reference-path")
+commit=$(cat "$root/fixtures/ccc-server/REFERENCE_COMMIT")
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+# Use the committed sources and lockfile even if the reference checkout has moved.
+git -C "$reference" archive "$commit" package.json package-lock.json workers/package.json source workers/test/fixtures |
+    tar -xf - -C "$scratch"
+cp "$root/tools/reference-fixture.mjs" "$scratch/"
+cd -P "$scratch"
+# Install only the locked runtime dependencies in the disposable copy.
+npm ci --omit=dev --ignore-scripts --workspaces=false --no-audit --no-fund >&2
+TZ=UTC node --permission --allow-fs-read="$PWD" reference-fixture.mjs "$1"
