@@ -9,16 +9,18 @@ One issue, one session, one branch, one pull request. The issue says what and wh
 
 ## 1. Before starting
 
+If you are returning to an issue, use its existing worktree. Read the issue, check that the worktree is on the issue's branch, and check the pull request if one has opened. Then follow section 3 for the work in the follow-up request. The steps below and in section 2 are for the first start.
+
 1. Run `tools/board`. If it does not mark the issue ready (→) and print `[start from …]` for it, stop and report the reason it gives. If the sandbox stops it from reaching GitHub, ask for approval to run it outside the sandbox; the same goes later for `git push`, `gh` and `tools/board status`. Readiness is defined in one place, the board's own help text, and nowhere else.
 2. Read the issue, its parent and the issues it is blocked by, and `AGENTS.md`. For a route, follow `port-route`. For any new or changed type, follow `design-types`.
 3. Create your branch (section 2), then set the issue's status to "In progress" (`tools/board status <N> "In progress"`), and link the issue to your session if the host offers that.
 
 ## 2. Branch
 
-- Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, use it; otherwise `git worktree add ../ccc-server-next-<N> origin/<base>`. If the issue already has a branch, continue on it (`git switch rearch/<N>-<name>`) instead of starting another.
+- Work in your own git worktree, never in the main checkout. If the host gave you a fresh worktree, use it; otherwise `git worktree add ../ccc-server-next-<N> origin/<base>`. If the issue already has a branch, use that branch in the issue's worktree.
 - In a new worktree, `mise trust` may be needed once. The Worker build needs `rustup target add wasm32-unknown-unknown`.
 - Name the branch `rearch/<issue number>-<short-name>`, where the short name is two to four words of the issue's title, lowercase and joined by hyphens (`rearch/428-check-structure-in-ci`). `tools/board` only recognizes branches named this way.
-- Branch from the base `tools/board` prints for the issue (`[start from …]`), after `git fetch origin`: `git switch -c rearch/<N>-<name> origin/<base>`. If the board prints no base, the issue is not ready: stop and say why.
+- If the branch needs to be created, use the base `tools/board` prints for the issue (`[start from …]`), after `git fetch origin`: `git switch -c rearch/<N>-<name> origin/<base>`. If the board prints no base, the issue is not ready: stop and say why.
 - Never rewrite a branch that has been pushed. If the branch you built on gains commits, merge it into yours. Do not rebase and do not force-push.
 
 ## 3. Do the work

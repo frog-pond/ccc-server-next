@@ -19,23 +19,22 @@ The parent issue is #424. The board is the project "@rye's Rearchitecting Push".
 
 ## Ending a session
 
-Before you stop, end with this as your last message in the session. Do not post it on an issue.
+Before you stop, read the worker sessions again as in "Look" below and act on new reports. Send each reminder or request for a decision separately before the handoff.
+
+The handoff is the last message in the driver's session. It is a single record, with one self-contained line per issue and pull request. Use an "In flight" line for work that still needs tending and a "State" line for work that finished. Name the topic in place of the issue for a standalone pull request.
 
 ```
-State: <what moved this session: pull requests opened, reviewed, ready to merge, merged>
 Level: <the grant this session ran under, and whether it reached its end point>
-In flight: <each worker still running, its session link or name, issue, pull request if open, and level>
+In flight: <issue, pull request or "no pull request yet", state, worker link and thread ID (or session name and ID where available), worktree path, level, next step, and where any open question was asked>
+State: <issue, pull request, and what finished>
 Next: <what the next session should do first>
-Waiting on the maintainer: <one line per item, with the issue, pull request if open, and where the question was asked>
 ```
 
-At level 4 or 5, add "Decisions I made" with one line per decision naming the issue and pull request if open. Point to the session or review where you recorded it.
-
-Send any reminder to the maintainer separately for each pull request or issue.
+At level 4 or 5, use the same format for the summary at the end point. Include "Decisions I made" on the line for each issue where you made a decision and point to the session or review where you recorded it.
 
 ## Each time round
 
-1. **Look.** Follow `board-maintenance` first, so the board matches the issues and pull requests. Then run `tools/board`. It lists every issue under #424 with its status, priority, size, estimate, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs the maintainer (`sync-reference`).
+1. **Look.** Read every worker session you started or took over from the previous handoff, including ones without a pull request. In T3 Code, use `t3_thread_read` with the worker's thread ID. A top-level worker finishing does not wake the driver. Act on each new report within your grant, including a report that stops with a question before a pull request opens. Follow `board-maintenance` so the board matches the issues and pull requests. Then run `tools/board`. It lists every issue under #424 with its status, priority, size, estimate, what blocks it, its pull request and whether it is ready. Run `tools/reference-drift` too. If the reference has moved, tell the maintainer and do not start new route work; syncing needs the maintainer (`sync-reference`).
 2. **Tend what is in flight first.** For each open pull request on the stack:
    - checks failing: send the failure to the issue's worker session, using the follow-up request below;
    - not yet reviewed at its current head: run `arch-review`. Workers do not review their own work. A pull request's review is the "Review" section of its description, naming the commit it covers; GitHub's review decision is separate and is the maintainer's;
@@ -43,7 +42,7 @@ Send any reminder to the maintainer separately for each pull request or issue.
    - a draft: leave it, unless its types are waiting for review;
    - reviewed at its current head and passing: it is ready to merge (see "Merging").
 3. **Start what is ready.** An issue is ready when `tools/board` marks it (→) and prints a base for it. The board's help text is the only definition of ready. Start at most three at once, and never two that touch the same crate's public types. Among ready issues, take higher Priority first (Urgent, then High, then Medium, then Low), and within the same priority, what unblocks the most other issues. An issue with no Priority comes after Low; list it for the maintainer, as `board-maintenance` says.
-4. **Hand over.** Start a top-level session for each issue, named for the issue and in its own worktree (`docs/agent-hosts.md`). Give it the request below. Share the session link or name so the maintainer can open it and talk to the worker directly. Use that same session for follow-ups on the issue.
+4. **Hand over.** Start a top-level session for each issue, named for the issue and in its own worktree (`docs/agent-hosts.md`). Give it the request below. If your host cannot start the session, give the maintainer the exact command and request to run. Share the session link and keep its thread ID, or record the session name and ID where available, so the maintainer can open it and talk to the worker directly. Use that same session for follow-ups on the issue.
 5. **Record.** Set statuses on the board, and follow `board-maintenance` again after pull requests open or merge. If you learned something later workers need, put it in the documentation or in your requests to them. Something that changes what an issue asks goes to the maintainer.
 6. **Stop** at your grant's end point, when nothing is ready and nothing in flight can move, or when the next step needs the maintainer. Record where each pending decision was asked for in the handoff.
 
@@ -58,12 +57,13 @@ Report: the pull request URL, the head commit, what you checked for each
 "Done when" item, and any question for the maintainer.
 ```
 
-Read the worker's report in its session. To send a pull request back, send this request in the same session:
+Read the worker's report in its session. Send a follow-up in that same session:
 
 ```
 Continue issue #<N> in frog-pond/ccc-server-next on branch <branch>, following the
-work-issue skill. Pull request #<P> needs: <the failing check, or the findings
-to fix, each with file:line>. Report the new head commit and what you changed.
+work-issue skill. <Name the pull request if open. Give the failing check, the
+findings to fix with file:line, or the decision that lets the work continue.>
+Report the new head commit and what you changed.
 ```
 
 Add nothing about how to do the work. If the issue is not enough to work from, fix the issue.
@@ -90,7 +90,9 @@ Some issues are too large for one pull request, such as #434. Split along the li
 
 Read workers' questions in their reports and answer what your level allows in the issue's session. Discuss an issue's design there. When the maintainer needs to decide, give the options you see and a recommendation. For a design question, point the maintainer to the issue's session to answer it there. Leave the issue's status as it is, move on to other ready work, and record where the question was asked when you stop.
 
-In your own updates and questions to the maintainer, name the issue and its pull request. If the pull request has yet to open, name the issue and say so. Send each pull request's findings and questions in its own message or set of questions. For a standalone topic pull request, name the topic and pull request.
+Before tending that issue again, read its worker session for the maintainer's answer. Record the answer or that the question is still open.
+
+Send each progress update, finding, question and reminder to the maintainer in a message about one issue and its pull request. If the pull request has yet to open, name the issue and say so. For a standalone topic pull request, name the topic and pull request. The end-of-session handoff above is the exception, including the end-point summary at levels 4 and 5.
 
 What goes to the maintainer depends on your level, and the list in `docs/delegation-levels.md` goes to them at every level.
 
