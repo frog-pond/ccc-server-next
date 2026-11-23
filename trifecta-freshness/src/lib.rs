@@ -14,10 +14,10 @@
 //! clock and does no I/O: every time is an argument.
 //!
 //! The default `std` feature implements [`Timestamp`] for
-//! `std::time::SystemTime` and [`Error`] for `std::error::Error`. The optional
-//! `jiff` feature implements [`Timestamp`] for `jiff::Timestamp`. Without either,
-//! the crate needs only `core`, and the caller supplies its own [`Timestamp`]
-//! type.
+//! `std::time::SystemTime`. The optional `jiff` feature implements it for
+//! `jiff::Timestamp`. Without either, the crate needs only `core`, and the
+//! caller supplies its own [`Timestamp`] type. [`Error`] implements
+//! `core::error::Error` either way.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
@@ -34,8 +34,9 @@ use core::{fmt, num::NonZeroU32, time::Duration};
 /// Why a value's freshness record could not be built.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Error {
-	/// The value's validity period ends at or before its fetch started. A period
-	/// contains the fetch's start, so its end is strictly later. This comes from
+	/// The value's validity period ends at or before its fetch started: the name
+	/// covers "at" too. A period contains the fetch's start, so its end is
+	/// strictly later. This comes from
 	/// a faulty [`FreshnessPolicy::period_end`] function, or from a stored record
 	/// that was written wrongly or has been damaged.
 	PeriodEndsBeforeFetch,
@@ -47,20 +48,19 @@ impl fmt::Display for Error {
 	}
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for Error {}
+impl core::error::Error for Error {}
 
 /// A read rewrites the last-read time only after more than this interval.
 ///
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L20).
-pub const TOUCH_EVERY: Duration = Duration::from_secs(60 * 10);
+pub const TOUCH_EVERY: Duration = Duration::from_mins(10);
 
 /// An entry is idle only when more than this interval has passed since its
 /// recorded last read. An idle entry gets no refresh hint and may not be
 /// refreshed.
 ///
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L18).
-pub const IDLE_AFTER: Duration = Duration::from_secs(2 * 24 * 60 * 60);
+pub const IDLE_AFTER: Duration = Duration::from_hours(48);
 
 /// Base backoff for the first consecutive failure, measured from fetch start.
 ///
@@ -70,20 +70,21 @@ pub const MIN_BACKOFF: Duration = Duration::from_secs(30);
 /// Upper bound for the exponential part of backoff.
 ///
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L16).
-pub const MAX_BACKOFF: Duration = Duration::from_secs(60 * 60);
+pub const MAX_BACKOFF: Duration = Duration::from_hours(1);
 
 /// Longest upstream-requested delay accepted from `Retry-After`.
 ///
 /// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/conditional.ts#L53).
-pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
+pub const MAX_RETRY_AFTER: Duration = Duration::from_hours(24);
 
 /// A point in time supplied by the caller.
 ///
 /// Implemented for `std::time::SystemTime` with the default `std` feature, and
 /// for `jiff::Timestamp` with the `jiff` feature. A caller without `std`
 /// implements it for its own type. A Cloudflare Worker can use `SystemTime`
-/// built as `UNIX_EPOCH + Duration::from_millis(Date.now())`: arithmetic works
-/// on `wasm32-unknown-unknown`, but `SystemTime::now()` panics there, so nothing
+/// built as `UNIX_EPOCH.checked_add(Duration::from_millis(Date.now()))`, which
+/// returns `None` rather than panicking on overflow. Arithmetic works on
+/// `wasm32-unknown-unknown`, but `SystemTime::now()` panics there, so nothing
 /// handed to the policy may call it.
 ///
 /// Implementations must be pure: no clock, no I/O, and the same result for the
@@ -140,9 +141,11 @@ pub struct FreshnessPolicy<T> {
 	/// Default freshness interval measured from fetch start. A value may carry
 	/// its own interval, read with [`CachedValueMetadata::fresh_for`].
 	pub fresh_for: Duration,
-	/// Additional time after freshness when a read is answered with the cached
-	/// value and asks for a refresh, while the value's period is current. This is
-	/// the reference's [`staleIfError`][window], described in
+	/// Additional time after freshness during which a read asks for a refresh
+	/// instead of fetching, while the value's period is current. Whether the
+	/// reader then waits for that refresh or is answered with the cached value is
+	/// the refresher's choice (see [`ReadAction`]). This is the reference's
+	/// [`staleIfError`][window], described in
 	/// `docs/reference/cache-semantics.md` §6.6.
 	///
 	/// [window]: https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/define-source.ts#L13
@@ -153,13 +156,14 @@ pub struct FreshnessPolicy<T> {
 	///
 	/// This sets a value's *refresh point*, the one rule that
 	/// [`Self::on_read`], [`Self::next_refresh_hint`] and [`Self::may_refresh`]
-	/// share. When the lead is shorter than the value's freshness interval, the
-	/// refresh point is the fetch start plus the interval less the lead.
-	/// Otherwise the lead is ignored and the refresh point is the fetch start
-	/// plus the interval, when the value goes stale. So a value fresh for one
-	/// minute under a ten-minute lead is refreshed after its minute, not
-	/// continuously, and a value fresh for zero is due at once, as in the
-	/// reference.
+	/// share. It is an age, so it is compared with the value's signed age and
+	/// never with a computed time that could saturate. When the lead is shorter
+	/// than the value's freshness interval, a value reaches its refresh point
+	/// once its age is at least the interval less the lead. Otherwise the lead is
+	/// ignored, and it reaches it once its age is at least the interval, when it
+	/// goes stale. So a value fresh for one minute under a ten-minute lead is
+	/// refreshed after its minute, not continuously, and a value fresh for zero
+	/// is due at once, as in the reference.
 	pub refresh_ahead: Duration,
 	/// Age limit, measured from fetch start, for serving a cached value as a
 	/// fallback after a failure. `None` serves it at any age, as the
@@ -191,7 +195,7 @@ pub struct FreshnessPolicy<T> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry<T, E> {
 	/// Time recorded when the entry is created, and on a read more than
-	/// [`TOUCH_EVERY`] later (see [`FreshnessPolicy::record_read`]).
+	/// [`TOUCH_EVERY`] later (see [`record_read`]).
 	pub last_read: T,
 	/// Metadata present exactly when the cache holds a value.
 	pub cached: Option<CachedValueMetadata<T>>,
@@ -242,8 +246,10 @@ impl<T: Timestamp> CachedValueMetadata<T> {
 	}
 
 	/// The end of the validity period that contains the fetch's start, strictly
-	/// after it, or `None` when the source has no periods. The value is still
-	/// served as a fallback after this time.
+	/// after it, or `None` when the source has no periods. It decides only
+	/// whether the value is fresh or stale; it has no effect on whether the
+	/// value may be served as a fallback, which
+	/// [`FreshnessPolicy::may_serve_fallback`] decides by age alone.
 	#[must_use]
 	pub fn period_ends_at(&self) -> Option<T> {
 		todo!()
@@ -331,6 +337,16 @@ pub enum ReadAction<'a, T, E> {
 	FetchWithoutFallback,
 }
 
+/// Written by hand because a derive would require `E: Clone`, although the
+/// action only borrows the error.
+impl<T: Copy, E> Clone for ReadAction<'_, T, E> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+
+impl<T: Copy, E> Copy for ReadAction<'_, T, E> {}
+
 impl<T: Timestamp> FreshnessPolicy<T> {
 	/// Decide how to answer a read.
 	///
@@ -352,6 +368,10 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	///    recorded, regardless of the age limit. With a failure recorded, it is
 	///    served after the failure during backoff, or asks for a refresh after
 	///    backoff, if it is within the age limit.
+	///
+	/// "Within the age limit" is inclusive, as in [`Self::may_serve_fallback`]:
+	/// a value whose signed age equals [`Self::serve_cached_after_failure`] is
+	/// within it, and every value is within no limit.
 	/// 3. Otherwise, during backoff, a value within the age limit is served after
 	///    the failure, and without one the recorded error is reported.
 	/// 4. Otherwise the read fetches, keeping a value within the age limit as the
@@ -360,17 +380,6 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L106-L130).
 	#[must_use]
 	pub fn on_read<'a, E>(&self, now: T, entry: Option<&'a Entry<T, E>>) -> ReadAction<'a, T, E> {
-		todo!()
-	}
-
-	/// The time to record as the entry's last read, if any: `now` when there is
-	/// no entry, or when more than [`TOUCH_EVERY`] has passed since the recorded
-	/// last read. Otherwise `None`, including when the recorded time is after
-	/// `now`.
-	///
-	/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L92-L104).
-	#[must_use]
-	pub fn record_read<E>(&self, now: T, entry: Option<&Entry<T, E>>) -> Option<T> {
 		todo!()
 	}
 
@@ -405,15 +414,21 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 		todo!()
 	}
 
-	/// A hint for a refresher that schedules: the next time a refresh would do
-	/// any good. A refresher may ignore it. An inline refresher never uses it.
+	/// A hint for a refresher that schedules: when to set its next refresh, as
+	/// the reference's `#schedule` sets its alarm after every fetch. A refresher
+	/// may ignore it. An inline refresher never uses it.
 	///
 	/// `None` when the entry is idle under [`IDLE_AFTER`]: stop scheduling it.
 	/// During backoff, when backoff ends: the earliest a retry is allowed.
-	/// Otherwise, for a cached value, its refresh point (see
-	/// [`Self::refresh_ahead`]), and without one, `now` plus [`Self::fresh_for`].
-	/// A time at or before `now` means a refresh is due. Additions saturate.
+	/// Otherwise, for a cached value, its fetch start plus the age of its refresh
+	/// point (see [`Self::refresh_ahead`]), and without one, `now` plus
+	/// [`Self::fresh_for`]. A time at or before `now` means a refresh is due.
 	/// Period ends are not scheduled, as in the reference.
+	///
+	/// A time past the [`Timestamp`] type's ceiling comes back as the ceiling,
+	/// which in practice is never reached. Only this hint computes a time;
+	/// [`Self::on_read`] and [`Self::may_refresh`] compare ages, so they never
+	/// disagree with each other at the ceiling.
 	///
 	/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L239-L249).
 	#[must_use]
@@ -426,6 +441,14 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	/// value has not reached its refresh point (see [`Self::refresh_ahead`]).
 	/// True otherwise.
 	///
+	/// A refresh asked for by a read also passes this check, because a
+	/// sidetracked refresh may run after backoff has begun. The entry given must
+	/// already carry that read's time from [`record_read`], whether or not
+	/// writing it to storage succeeded, as the reference writes `last_read`
+	/// before it sets its alarm. Otherwise a read of an idle entry would ask for
+	/// a refresh that this check then refuses, and an inline reader would wait
+	/// for a fetch that never starts.
+	///
 	/// The reference's [`alarm()`][alarm] checks only idleness, but it is never
 	/// set for a time when freshness or backoff would stop it. This check, agreed
 	/// in #439, stops a refresher that runs early, such as a queue, from fetching
@@ -436,6 +459,21 @@ impl<T: Timestamp> FreshnessPolicy<T> {
 	pub fn may_refresh<E>(&self, now: T, entry: Option<&Entry<T, E>>) -> bool {
 		todo!()
 	}
+}
+
+/// The time to record as the entry's last read, if any: `now` when there is no
+/// entry, or when more than [`TOUCH_EVERY`] has passed since the recorded last
+/// read. Otherwise `None`, including when the recorded time is after `now`.
+/// The rule uses no source setting, so this is a function, not a policy method.
+///
+/// Record the read before acting on [`FreshnessPolicy::on_read`]'s answer, as
+/// the reference does: a read of an idle entry makes it no longer idle, which
+/// [`FreshnessPolicy::may_refresh`] relies on.
+///
+/// [Reference](https://github.com/frog-pond/ccc-server/blob/54cf5862e4a09917e9bdc932fa1632fd1c3e0f49/workers/src/source-do.ts#L92-L104).
+#[must_use]
+pub fn record_read<T: Timestamp, E>(now: T, entry: Option<&Entry<T, E>>) -> Option<T> {
+	todo!()
 }
 
 /// The failure record after a fetch that began at `started_at` failed with

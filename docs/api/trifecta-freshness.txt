@@ -69,6 +69,9 @@ pub fn trifecta_freshness::ReadAction<'a, T, E>::eq(&self, &Self) -> bool
 impl<'a, T: core::cmp::PartialEq, E: core::cmp::PartialEq> core::marker::StructuralPartialEq for trifecta_freshness::ReadAction<'a, T, E>
 impl<'a, T: core::fmt::Debug, E: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::ReadAction<'a, T, E>
 pub fn trifecta_freshness::ReadAction<'a, T, E>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T: core::marker::Copy, E> core::clone::Clone for trifecta_freshness::ReadAction<'_, T, E>
+pub fn trifecta_freshness::ReadAction<'_, T, E>::clone(&self) -> Self
+impl<T: core::marker::Copy, E> core::marker::Copy for trifecta_freshness::ReadAction<'_, T, E>
 impl<'a, T, E> core::marker::Forget for trifecta_freshness::ReadAction<'a, T, E>
 impl<'a, T, E> core::marker::Freeze for trifecta_freshness::ReadAction<'a, T, E> where T: core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze + core::marker::Freeze, &'a E: core::marker::Freeze
 impl<'a, T, E> core::marker::Move for trifecta_freshness::ReadAction<'a, T, E>
@@ -86,12 +89,18 @@ pub fn trifecta_freshness::ReadAction<'a, T, E>::try_from(U) -> core::result::Re
 impl<T, U> core::convert::TryInto<U> for trifecta_freshness::ReadAction<'a, T, E> where U: core::convert::TryFrom<T>
 pub type trifecta_freshness::ReadAction<'a, T, E>::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn trifecta_freshness::ReadAction<'a, T, E>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for trifecta_freshness::ReadAction<'a, T, E> where T: core::clone::Clone
+pub type trifecta_freshness::ReadAction<'a, T, E>::Owned = T
+pub fn trifecta_freshness::ReadAction<'a, T, E>::clone_into(&self, &mut T)
+pub fn trifecta_freshness::ReadAction<'a, T, E>::to_owned(&self) -> T
 impl<T> core::any::Any for trifecta_freshness::ReadAction<'a, T, E> where T: 'static + ?core::marker::Sized
 pub fn trifecta_freshness::ReadAction<'a, T, E>::type_id(&self) -> core::any::TypeId
 impl<T> core::borrow::Borrow<T> for trifecta_freshness::ReadAction<'a, T, E> where T: ?core::marker::Sized
 pub fn trifecta_freshness::ReadAction<'a, T, E>::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for trifecta_freshness::ReadAction<'a, T, E> where T: ?core::marker::Sized
 pub fn trifecta_freshness::ReadAction<'a, T, E>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for trifecta_freshness::ReadAction<'a, T, E> where T: core::clone::Clone
+pub unsafe fn trifecta_freshness::ReadAction<'a, T, E>::clone_to_uninit(&self, *mut u8)
 impl<T> core::convert::From<T> for trifecta_freshness::ReadAction<'a, T, E>
 pub fn trifecta_freshness::ReadAction<'a, T, E>::from(T) -> T
 pub struct trifecta_freshness::CachedValueMetadata<T>
@@ -240,7 +249,6 @@ pub fn trifecta_freshness::FreshnessPolicy<T>::may_refresh<E>(&self, T, core::op
 pub fn trifecta_freshness::FreshnessPolicy<T>::may_serve_fallback(&self, T, T) -> bool
 pub fn trifecta_freshness::FreshnessPolicy<T>::next_refresh_hint<E>(&self, T, &trifecta_freshness::Entry<T, E>) -> core::option::Option<T>
 pub fn trifecta_freshness::FreshnessPolicy<T>::on_read<'a, E>(&self, T, core::option::Option<&'a trifecta_freshness::Entry<T, E>>) -> trifecta_freshness::ReadAction<'a, T, E>
-pub fn trifecta_freshness::FreshnessPolicy<T>::record_read<E>(&self, T, core::option::Option<&trifecta_freshness::Entry<T, E>>) -> core::option::Option<T>
 impl<T: core::clone::Clone> core::clone::Clone for trifecta_freshness::FreshnessPolicy<T>
 pub fn trifecta_freshness::FreshnessPolicy<T>::clone(&self) -> Self
 impl<T: core::fmt::Debug> core::fmt::Debug for trifecta_freshness::FreshnessPolicy<T>
@@ -293,3 +301,4 @@ pub fn std::time::SystemTime::checked_duration_since(self, Self) -> core::option
 pub fn std::time::SystemTime::saturating_add_duration(self, core::time::Duration) -> Self
 pub fn trifecta_freshness::backoff_delay(core::num::nonzero::NonZeroU32, core::time::Duration) -> core::time::Duration
 pub fn trifecta_freshness::failure_after<T: trifecta_freshness::Timestamp, E>(T, core::option::Option<core::num::nonzero::NonZeroU32>, E, core::time::Duration) -> trifecta_freshness::Failure<T, E>
+pub fn trifecta_freshness::record_read<T: trifecta_freshness::Timestamp, E>(T, core::option::Option<&trifecta_freshness::Entry<T, E>>) -> core::option::Option<T>
