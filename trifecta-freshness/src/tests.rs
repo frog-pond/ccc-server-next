@@ -210,6 +210,24 @@ fn each_consecutive_failure_doubles_backoff_until_the_cap() {
 		previous = Some(failure.consecutive_failures);
 	}
 	assert_eq!(previous, NonZeroU32::new(9));
+
+	let policy = policy();
+	let mut entry = Entry {
+		last_read: started,
+		cached: None,
+		failure: None,
+	};
+	fail(&mut entry, started);
+	let second_failure = started + Duration::from_secs(31);
+	fail(&mut entry, second_failure);
+	assert_eq!(
+		policy.on_read(second_failure + Duration::from_secs(45), Some(&entry)),
+		ReadAction::ReportCachedError(&"boom"),
+	);
+	assert_eq!(
+		policy.on_read(second_failure + Duration::from_secs(61), Some(&entry)),
+		ReadAction::FetchWithoutFallback,
+	);
 }
 
 fn period_policy() -> FreshnessPolicy<SystemTime> {
@@ -242,6 +260,13 @@ fn an_earlier_period_is_not_served_as_fresh_or_stale() {
 fn an_earlier_period_remains_a_fallback_after_failure() {
 	let policy = period_policy();
 	let mut entry = cached(&policy, at(0));
+	assert_eq!(
+		policy.on_read(at(60), Some(&entry)),
+		ReadAction::FetchWithStaleFallback {
+			fallback_fetch_started_at: at(0),
+		},
+	);
+	assert!(policy.may_serve_fallback(at(60), at(0)));
 	fail(&mut entry, at(60));
 	assert_eq!(
 		policy.on_read(at(60), Some(&entry)),

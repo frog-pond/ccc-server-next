@@ -80,8 +80,9 @@ pub const MAX_RETRY_AFTER: Duration = Duration::from_hours(24);
 /// Implemented for `std::time::SystemTime` with the default `std` feature, and
 /// for `jiff::Timestamp` with the `jiff` feature. A caller without `std`
 /// implements it for its own type. A Cloudflare Worker can use `SystemTime`
-/// built as `UNIX_EPOCH.checked_add(Duration::from_millis(Date.now()))`, which
-/// returns `None` rather than panicking on overflow. Arithmetic works on
+/// built as `UNIX_EPOCH.checked_add(Duration::from_millis(js_sys::Date::now() as u64))`.
+/// The float-to-integer cast saturates and turns NaN into zero, so it cannot
+/// panic. The checked addition returns `None` on overflow. Arithmetic works on
 /// `wasm32-unknown-unknown`, but `SystemTime::now()` panics there, so nothing
 /// handed to the policy may call it.
 ///
@@ -344,9 +345,10 @@ pub enum ReadAction<'a, T, E> {
 		/// When the fetch that produced the fallback began.
 		fallback_fetch_started_at: T,
 	},
-	/// Nothing can be answered now and there is no usable fallback: start a fetch
-	/// or join the one in flight. A failed fetch reports its error. A read with no
-	/// entry gets this action.
+	/// Nothing can be answered now: start a fetch or join the one in flight.
+	/// This read contributes no fallback of its own. The cached pipeline (#441)
+	/// decides the final answer for all waiting readers from the shared fetch's
+	/// result and any fallback it holds. A read with no entry gets this action.
 	FetchWithoutFallback,
 }
 
