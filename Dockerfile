@@ -5,9 +5,11 @@ RUN cargo build --locked --release --package ccc-native
 
 FROM docker.io/library/debian:trixie-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && apt-get install -y --no-install-recommends ca-certificates curl libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /build/target/release/ccc-native /usr/local/bin/ccc-native
+# Let the unprivileged server bind port 80 on runtimes that reserve low ports.
+RUN setcap cap_net_bind_service=+ep /usr/local/bin/ccc-native
 USER 65532:65532
 EXPOSE 80
 HEALTHCHECK --interval=20s --timeout=2s \
