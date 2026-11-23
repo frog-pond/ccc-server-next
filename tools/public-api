@@ -4,6 +4,7 @@ import argparse
 import difflib
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
 from workspace import ROOT, WASM_TARGET, wasm_exclusions, workspace_members, workspace_metadata
 
@@ -13,7 +14,7 @@ NIGHTLY = "nightly-2026-11-22"
 LIBRARY_KINDS = {"lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"}
 
 
-def listings():
+def listings(target_dir):
     metadata = workspace_metadata()
     excluded = set(wasm_exclusions(metadata))
     for package in sorted(workspace_members(metadata), key=lambda package: package["name"]):
@@ -27,6 +28,7 @@ def listings():
             for feature_suffix, feature_args in (("", ["--all-features"]), (".default", [])):
                 output = subprocess.check_output(
                     ["cargo", f"+{NIGHTLY}", "public-api", "--color", "never",
+                     "--target-dir", target_dir,
                      "--manifest-path", package["manifest_path"], *target_args, *feature_args],
                     cwd=ROOT,
                     text=True,
@@ -48,7 +50,9 @@ def main():
         )
         return 0
 
-    generated = dict(listings())
+    # mise can run cargo doc and API checks at the same time.
+    with TemporaryDirectory(prefix="ccc-public-api-") as target_dir:
+        generated = dict(listings(target_dir))
     outdated = False
     for path in sorted(set(generated) | set(LISTINGS.glob("*.txt"))):
         expected = generated.get(path)
