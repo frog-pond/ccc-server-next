@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Print one expected JSON response from the pinned reference conversion.
+set -euo pipefail
+
+if [[ $# != 1 ]]; then
+    echo "Usage: tools/reference-fixture <case>" >&2
+    exit 2
+fi
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+reference=$("$root/tools/reference-path")
+commit=$(cat "$root/docs/reference/REFERENCE_COMMIT")
+node_version=$(git -C "$reference" show "$commit:.config/mise.toml" |
+    sed -nE 's/^[[:space:]]*node[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)"[[:space:]]*$/\1/p')
+if [[ -z "$node_version" ]]; then
+    echo "No pinned Node.js version in $commit:.config/mise.toml" >&2
+    exit 1
+fi
+installed_version=$(node --version 2>/dev/null || true)
+if [[ "$installed_version" != "v$node_version" ]]; then
+    echo "The reference requires Node.js v$node_version (found ${installed_version:-no Node.js executable})." >&2
+    exit 1
+fi
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+# Use the committed sources and lockfile even if the reference checkout has moved.
+git -C "$reference" archive "$commit" package.json package-lock.json workers/package.json source workers/test/fixtures |
+    tar -xf - -C "$scratch"
+cp "$root/tools/reference-fixture.mjs" "$scratch/"
+cd -P "$scratch"
+# Install only the locked runtime dependencies in the disposable copy.
+npm ci --omit=dev --ignore-scripts --workspaces=false --no-audit --no-fund >&2
+TZ=UTC node --permission --allow-fs-read="$PWD" reference-fixture.mjs "$1"

@@ -23,8 +23,10 @@ jobs:
         rust: [stable, beta]
         target:
           - name: host
+            triple: host-tuple
             args: ''
           - name: wasm32-unknown-unknown
+            triple: wasm32-unknown-unknown
             args: --target wasm32-unknown-unknown --exclude e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,6 +46,8 @@ jobs:
         run: |
           rustup target add wasm32-unknown-unknown
           mise install github:wasm-bindgen/wasm-bindgen
+      - name: Fetch dependencies for offline tests
+        run: cargo fetch --locked --target ${{ matrix.target.triple }}
       - name: Build
         run: cargo build --workspace --all-features --locked ${{ matrix.target.args }}
       - name: Lint
@@ -51,6 +55,9 @@ jobs:
       - name: Check documentation
         run: mise run doc -- ${{ matrix.target.args }}
       - name: Test
+        env:
+          MISE_OFFLINE: 'true'
+          MISE_AUTO_INSTALL: 'false'
         run: mise run test -- ${{ matrix.target.args }}
 
   structure:
