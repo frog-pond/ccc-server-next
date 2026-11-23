@@ -39,7 +39,7 @@ pub mod probes {
 	/// Checks whether the native reqwest redirect-policy API is present on WASM.
 	#[cfg(worker_experiment_probe = "reqwest_redirect")]
 	pub fn reqwest_redirect() {
-		let _ = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none());
+		let _builder = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none());
 	}
 }
 

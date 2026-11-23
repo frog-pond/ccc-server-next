@@ -29,12 +29,9 @@ pub enum RouteErrorMessage {
 #[cfg(test)]
 mod tests {
 	use super::{RouteErrorBody, RouteErrorMessage};
+	use wasm_bindgen_test::wasm_bindgen_test;
 
-	#[cfg_attr(
-		all(target_arch = "wasm32", target_os = "unknown"),
-		wasm_bindgen_test::wasm_bindgen_test
-	)]
-	#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+	#[wasm_bindgen_test(unsupported = test)]
 	fn route_errors_serialize_to_the_reference_bytes() {
 		for (error, expected) in [
 			(RouteErrorMessage::NotFound, r#"{"error":"not found"}"#),

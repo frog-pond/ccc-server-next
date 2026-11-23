@@ -38,6 +38,7 @@ use worker::{
 };
 
 use address::LoopbackUrl;
+use input_gate::InputGate;
 
 const FIXTURES: &str = "FIXTURES";
 // Use a short fresh period so the local run can observe the next alarm.
@@ -134,6 +135,7 @@ struct ObjectCallFailure {
 #[durable_object(alarm)]
 pub struct FixtureObject {
 	state: State,
+	input_gate: InputGate,
 	env: Env,
 	// get_alarm() can return None while the alarm handler is running.
 	alarm_running: Rc<Cell<bool>>,
@@ -143,8 +145,10 @@ pub struct FixtureObject {
 
 impl DurableObject for FixtureObject {
 	fn new(state: State, env: Env) -> Self {
+		let (state, input_gate) = InputGate::from_state(state);
 		Self {
 			state,
+			input_gate,
 			env,
 			alarm_running: Rc::new(Cell::new(false)),
 			unwritten_read: Rc::new(Cell::new(None)),
@@ -164,9 +168,9 @@ impl DurableObject for FixtureObject {
 		// Keep the storage/alarm lookup and re-arm together. Return routine
 		// failures as values so they do not fail the concurrency gate.
 		let result = self
-			.state
-			.block_concurrency_while(async move {
-				Ok(read_or_schedule(&storage, owner, requested, &alarm_running, &unwritten_read).await)
+			.input_gate
+			.run(async move {
+				read_or_schedule(&storage, owner, requested, &alarm_running, &unwritten_read).await
 			})
 			.await;
 		match result {
@@ -760,6 +764,8 @@ fn log_and_reply(fixture: Fixture, failure: &ObjectFailure) -> worker::Result<Re
 	record_object_failure(Some(fixture), failure);
 	reply(failure.reply())
 }
+
+mod input_gate;
 
 mod address {
 	use fixture_experiment_route::Fixture;

@@ -1,8 +1,8 @@
 [graph]
 # The supported builds are the Linux container and the Worker WASM target.
-# The wasm-bindgen test harness has a Tokio dependency only for Emscripten.
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
-# Entry points use their runtime-specific clients. Keep the shared route in the graph.
+# The native servers and e2e executable use native HTTP clients and Tokio.
+# The fixture Worker entry point uses the Workers SDK and worker-sys.
 exclude = ["ccc-native", "e2e", "fixture-experiment-native", "worker-experiment"]
 
 [bans]
@@ -10,7 +10,9 @@ multiple-versions = "allow"
 wildcards = "allow"
 deny = [
     { crate = "axum", reason = "Only native server code uses the web framework" },
+    { crate = "hyper", reason = "Only native code uses this HTTP implementation" },
     { crate = "reqwest", reason = "Only native code uses this HTTP client" },
     { crate = "tokio", reason = "Only native code uses this runtime" },
     { crate = "worker", reason = "Only Worker-specific code uses workers-rs" },
+    { crate = "worker-sys", reason = "Only Worker-specific code uses the low-level Workers bindings" },
 ]

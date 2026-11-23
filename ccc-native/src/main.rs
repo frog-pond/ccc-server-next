@@ -342,10 +342,14 @@ impl fmt::Display for ErrorCauses<'_> {
 fn report_failure(error: &ServerError) {
 	if matches!(error, ServerError::Tracing(_)) {
 		let mut stderr = io::stderr().lock();
-		let _ = writeln!(stderr, "{error}");
+		if writeln!(stderr, "{error}").is_err() {
+			return;
+		}
 		let mut cause = error.source();
 		while let Some(error) = cause {
-			let _ = writeln!(stderr, "  caused by {error}");
+			if writeln!(stderr, "  caused by {error}").is_err() {
+				break;
+			}
 			cause = error.source();
 		}
 	} else {
@@ -363,10 +367,6 @@ fn report_failure(error: &ServerError) {
 ///
 /// # Errors
 /// Returns tracing, command-line, configuration, runtime, or command errors.
-#[allow(
-	clippy::disallowed_methods,
-	reason = "The entry point supplies the wall clock to the native router"
-)]
 fn start() -> Result<ExitCode, ServerError> {
 	let subscriber = tracing_subscriber::fmt()
 		.with_writer(io::stderr)
@@ -374,12 +374,24 @@ fn start() -> Result<ExitCode, ServerError> {
 		.log_internal_errors(false)
 		.finish();
 	tracing::subscriber::set_global_default(subscriber).map_err(ServerError::Tracing)?;
+	#[expect(
+		clippy::disallowed_methods,
+		reason = "The native entry point parses the process arguments"
+	)]
 	let mode = parse_mode(std::env::args_os().skip(1))?;
+	#[expect(
+		clippy::disallowed_methods,
+		reason = "The native entry point reads the configured listener addresses"
+	)]
 	let config = parse_config(std::env::var_os("CCC_LISTEN_ADDR").as_deref())?;
 	let runtime = tokio::runtime::Builder::new_multi_thread()
 		.enable_all()
 		.build()
 		.map_err(ServerError::Runtime)?;
+	#[expect(
+		clippy::disallowed_methods,
+		reason = "The native entry point supplies the wall clock to the router"
+	)]
 	let result = runtime.block_on(run(config, mode, SystemTime::now));
 	runtime.shutdown_background();
 	result

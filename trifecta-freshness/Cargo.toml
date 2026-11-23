@@ -22,4 +22,4 @@ jiff = ["dep:jiff"]
 jiff = { version = "0.2", optional = true, default-features = false }
 
 [dev-dependencies]
-wasm-bindgen-test = "=0.3.80"
+wasm-bindgen-test = "=0.3.77"

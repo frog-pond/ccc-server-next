@@ -30,7 +30,11 @@ thiserror = "2"
 trifecta.workspace = true
 trifecta-freshness = { path = "../../trifecta-freshness" }
 url.workspace = true
-worker = "=0.9.0"
+# The workspace test runner pins wasm-bindgen 0.2.127.
+worker = "=0.8.5"
+
+[dev-dependencies]
+wasm-bindgen-test = "=0.3.77"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 reqwest = { version = "=0.13.4", default-features = false }

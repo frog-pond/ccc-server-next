@@ -62,15 +62,17 @@ upstream type, call the same conversion as the route, serialize the app
 response, and compare JSON values. This comparison ignores object key order
 and whitespace while preserving array order, field presence and values.
 
+Add `wasm-bindgen-test = "=0.3.77"` under the crate's unconditional
+`[dev-dependencies]`. It matches the runner pinned in `.config/mise/config.toml`.
+Renovate updates the two pins together.
+
 For example, in the WordPress conversion test, with `Posts` and `Feed`
 standing for the crate's upstream and app response types:
 
 ```rust,ignore
-#[cfg_attr(
-    all(target_arch = "wasm32", target_os = "unknown"),
-    wasm_bindgen_test::wasm_bindgen_test
-)]
-#[cfg_attr(not(all(target_arch = "wasm32", target_os = "unknown")), test)]
+use wasm_bindgen_test::wasm_bindgen_test;
+
+#[wasm_bindgen_test(unsupported = test)]
 fn stolaf_posts_match_the_reference() -> Result<(), Box<dyn std::error::Error>> {
     let input = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

@@ -1,7 +1,9 @@
 # Worker experiment
 
 Use Rust 1.100 or newer with the `wasm32-unknown-unknown` target, Node.js, and
-Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.9.0.
+Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.8.5.
+The Rust SDK is pinned to workers-rs 0.8.5 so it can use the workspace's
+wasm-bindgen 0.2.127 and wasm-bindgen-test 0.3.77.
 
 The crates under `experiments/` belong to the #452 prototype. They do not set
 the design for the production builds. They pin the Trifecta draft through a
@@ -293,10 +295,14 @@ cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --feat
 ## Test and lint coverage
 
 `mise run check` checks workspace formatting, documentation, dependency
-boundaries and public API listings. It runs host Clippy, offline Rust and tool
-tests, and checks the freshness crate's WASM builds without std. The shared route tests check fixture naming, stable JSON,
-status construction, body decoding, failure classification, and the common
-event fields. On pull requests, GitHub Actions builds and tests the native
+boundaries and public API listings for host and WASM with default and all
+features. It runs host Clippy, offline Rust tests, doctests, tool tests, and
+checks the freshness crate's WASM builds without std.
+`mise run check:wasm` builds, lints, documents and tests the shared crates
+on WASM and compares their test lists with the host. The shared route tests
+check fixture naming, stable JSON, status construction, body decoding,
+failure classification, and the common event fields. On pull requests,
+GitHub Actions builds and tests the native
 server and checks its value and redirect replies against the loopback fixture.
 A separate job builds the Worker with pinned worker-build and lints its WASM
 library. It runs without Wrangler and needs no Cloudflare resources.

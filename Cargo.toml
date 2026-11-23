@@ -10,6 +10,10 @@ members = [
 	"trifecta-freshness",
 ]
 
+[workspace.metadata.wasm]
+# These entry points need the native runtime and sockets.
+exclude = ["ccc-native", "e2e", "fixture-experiment-native"]
+
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 cargo = { level = "warn", priority = -1 }
@@ -19,11 +23,18 @@ unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
 todo = "deny"
+unreachable = "deny"
+unimplemented = "deny"
 indexing_slicing = "deny"
+string_slice = "deny"
+exit = "deny"
+let_underscore_must_use = "deny"
+allow_attributes_without_reason = "deny"
 disallowed_methods = "deny"
 
 [workspace.lints.rust]
 missing_docs = "deny"
+unused_must_use = "deny"
 
 [workspace.package]
 edition = "2021"

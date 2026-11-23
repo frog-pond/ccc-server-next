@@ -12,9 +12,7 @@ serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }
-
-[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
-wasm-bindgen-test = "=0.3.80"
+wasm-bindgen-test = "=0.3.77"
 
 [lints]
 workspace = true

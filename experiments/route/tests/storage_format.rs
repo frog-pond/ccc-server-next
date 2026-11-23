@@ -1,9 +1,11 @@
 //! Stable JSON and route identifiers shared by the two entry points.
 
 use fixture_experiment_route::{
-	Fixture, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob, RefreshOutcome,
+	Fixture, InvalidNonSuccessStatus, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob,
+	RefreshOutcome,
 };
 use serde::Serialize;
+use wasm_bindgen_test::wasm_bindgen_test;
 
 #[allow(
 	clippy::unwrap_used,
@@ -13,10 +15,9 @@ fn assert_storage_format(value: &impl Serialize, json: &str) {
 	assert_eq!(serde_json::to_string(value).unwrap(), json);
 }
 
-#[test]
-fn refresh_job_json_is_stable() {
-	let job: RefreshJob =
-		serde_json::from_str(r#"{"name":"read_fixture","parameters":"redirect"}"#).unwrap();
+#[wasm_bindgen_test(unsupported = test)]
+fn refresh_job_json_is_stable() -> serde_json::Result<()> {
+	let job: RefreshJob = serde_json::from_str(r#"{"name":"read_fixture","parameters":"redirect"}"#)?;
 	assert_eq!(job, RefreshJob::ReadFixture(Fixture::Redirect));
 	assert_storage_format(
 		&RefreshJob::ReadFixture(Fixture::Value),
@@ -26,9 +27,10 @@ fn refresh_job_json_is_stable() {
 		&RefreshJob::ReadFixture(Fixture::Redirect),
 		r#"{"name":"read_fixture","parameters":"redirect"}"#,
 	);
+	Ok(())
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn fixture_segments_identify_the_route_parameter() {
 	for (fixture, segment) in [(Fixture::Value, "value"), (Fixture::Redirect, "redirect")] {
 		assert_eq!(segment.parse(), Ok(fixture));
@@ -39,13 +41,13 @@ fn fixture_segments_identify_the_route_parameter() {
 	}
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn unknown_and_nested_fixture_paths_are_rejected() {
 	assert!(Fixture::from_route_path("/experiment/missing").is_err());
 	assert!(Fixture::from_route_path("/experiment/value/extra").is_err());
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn object_names_identify_the_fixture() {
 	for (fixture, object) in [
 		(Fixture::Value, "fixture-value"),
@@ -56,13 +58,13 @@ fn object_names_identify_the_fixture() {
 	}
 }
 
-#[test]
-fn refresh_outcome_json_is_stable() {
+#[wasm_bindgen_test(unsupported = test)]
+fn refresh_outcome_json_is_stable() -> Result<(), InvalidNonSuccessStatus> {
 	assert_storage_format(
 		&RefreshOutcome::Value { value: 42 },
 		r#"{"outcome":"value","value":42}"#,
 	);
-	let status = NonSuccessStatus::try_from(302).unwrap();
+	let status = NonSuccessStatus::try_from(302)?;
 	for (failure, json) in [
 		(RefreshFailure::Fetch, r#"{"kind":"fetch"}"#),
 		(RefreshFailure::Timeout, r#"{"kind":"timeout"}"#),
@@ -84,9 +86,10 @@ fn refresh_outcome_json_is_stable() {
 			&format!(r#"{{"outcome":"failed","failure":{json}}}"#),
 		);
 	}
+	Ok(())
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn object_reply_json_is_stable() {
 	for (reply, json) in [
 		(ObjectReply::Pending, r#"{"state":"pending"}"#),
@@ -113,11 +116,11 @@ fn object_reply_json_is_stable() {
 			r#"{"state":"stored_record_invalid"}"#,
 		),
 	] {
-		assert_eq!(serde_json::to_string(&reply).unwrap(), json);
+		assert_storage_format(&reply, json);
 	}
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn object_call_failure_uses_the_object_reply_format() {
 	assert_storage_format(
 		&ObjectReply::ObjectCallFailed,
@@ -125,18 +128,19 @@ fn object_call_failure_uses_the_object_reply_format() {
 	);
 }
 
-#[test]
+#[wasm_bindgen_test(unsupported = test)]
 fn invalid_object_identity_uses_its_own_reply() {
 	assert_storage_format(&ObjectReply::InvalidObject, r#"{"state":"invalid_object"}"#);
 }
 
-#[test]
-fn failure_status_rejects_success_and_non_http_codes() {
+#[wasm_bindgen_test(unsupported = test)]
+fn failure_status_rejects_success_and_non_http_codes() -> Result<(), InvalidNonSuccessStatus> {
 	for status in [0, 99, 200, 204, 299, 600, u16::MAX] {
 		assert!(NonSuccessStatus::try_from(status).is_err());
 	}
 	for status in [100, 199, 300, 302, 599] {
 		let json = status.to_string();
-		assert_storage_format(&NonSuccessStatus::try_from(status).unwrap(), &json);
+		assert_storage_format(&NonSuccessStatus::try_from(status)?, &json);
 	}
+	Ok(())
 }

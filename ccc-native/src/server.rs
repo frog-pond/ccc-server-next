@@ -126,7 +126,8 @@ async fn serve_listener(
 	let mut notification = stopping.clone();
 	axum::serve(listener, router)
 		.with_graceful_shutdown(async move {
-			let _ = notification.wait_for(|stop| *stop).await;
+			// Channel closure also stops Axum. Check for a shutdown signal below.
+			drop(notification.wait_for(|stop| *stop).await);
 		})
 		.await
 		.map_err(|source| ServerError::ListenerIo { address, source })?;

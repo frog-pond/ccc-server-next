@@ -34,11 +34,11 @@ mise trust
 ```
 
 ```sh
-rustup toolchain install nightly-2026-11-22 --profile minimal # public API listings
 rustup target add wasm32-unknown-unknown
 mise install               # download the pinned tools
-cargo fetch --locked --target host-tuple # download host dependencies, including test dependencies
-mise run check             # lint, test, check docs, dependencies and API listings
+mise run setup:api         # install the pinned nightly and its Wasm target for API listings
+cargo fetch --locked --target host-tuple --target wasm32-unknown-unknown
+mise run check             # run the host and repository checks
 mise run board             # the state of every issue under #424
 mise run reference:drift   # what changed in the reference since the recorded commit
 ```
@@ -53,19 +53,25 @@ MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test
 
 After changing a library's public API, run `mise run update:api` and commit the
 updated listings in [`docs/api/`](docs/api/). The listings cover workspace
-libraries with all features enabled on the host.
+libraries with both default and all features on the host and, for libraries
+built for Wasm, on `wasm32-unknown-unknown`.
+
 `mise run check` also compiles `trifecta-freshness` for Wasm without `std`,
 with and without `jiff`.
 
 CI runs the host workspace and the shared crates on stable and beta. To run the
-shared tests on `wasm32-unknown-unknown` locally, make Node.js available and run
-the following commands. Use `#[wasm_bindgen_test::wasm_bindgen_test]` for tests
-that should execute in Wasm.
+shared checks on `wasm32-unknown-unknown` locally, make Node.js available and
+run the following commands. Use `#[wasm_bindgen_test(unsupported = test)]`
+for shared tests so both runners execute them. The Wasm check also compares the
+test names reported by the host and Wasm runners. In each crate with shared
+tests, add `wasm-bindgen-test = "=0.3.77"` to the unconditional
+`[dev-dependencies]` table. It matches the Wasm runner pinned in
+`.config/mise/config.toml`. Renovate updates the two pins together.
 
 ```sh
 mise install github:wasm-bindgen/wasm-bindgen
-cargo fetch --locked --target wasm32-unknown-unknown
-MISE_OFFLINE=true MISE_AUTO_INSTALL=false mise run test -- --target wasm32-unknown-unknown --exclude ccc-native --exclude e2e
+cargo fetch --locked --target host-tuple --target wasm32-unknown-unknown
+MISE_OFFLINE=true MISE_AUTO_INSTALL=false CARGO_NET_OFFLINE=true mise run check:wasm
 ```
 
 ## Native server

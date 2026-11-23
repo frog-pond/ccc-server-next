@@ -3,16 +3,20 @@ _.file = '.env'
 
 [tools]
 "npm:wrangler" = "4.166.0"
-"cargo:worker-build" = "0.9.0"
+"cargo:worker-build" = "0.8.5"
 "aqua:EmbarkStudios/cargo-deny" = "0.22.0"
 "cargo:cargo-public-api" = "0.52.0"
-"github:wasm-bindgen/wasm-bindgen" = "0.2.130"
+"github:wasm-bindgen/wasm-bindgen" = "0.2.127"
 
 [tasks.build]
 run = "cargo build"
 
 [tasks.check]
-depends = ["clippy", "fmt-check", "test", "test:tools", "doc", "check:dependencies", "check:api", "check:features"]
+depends = ["clippy", "fmt-check", "test", "test:doc", "test:tools", "doc", "check:dependencies", "check:api", "check:features"]
+
+[tasks."check:wasm"]
+description = "Build, lint, check documentation and test the shared crates on Wasm"
+run = "python3 -B tools/workspace.py"
 
 [tasks.doc]
 run = "cargo doc --workspace --all-features --locked --no-deps"
@@ -30,11 +34,15 @@ run = [
 
 [tasks."check:api"]
 description = "Check committed public API listings"
-run = "python3 tools/public-api --check"
+run = "python3 -B tools/public-api --check"
+
+[tasks."setup:api"]
+description = "Install the pinned Rust toolchain and Wasm target for public API listings"
+run = "python3 -B tools/public-api --install-toolchain"
 
 [tasks."update:api"]
 description = "Regenerate public API listings"
-run = "python3 tools/public-api"
+run = "python3 -B tools/public-api"
 
 [tasks.clippy]
 run = "cargo clippy --workspace --all-features --all-targets --locked"
@@ -48,8 +56,11 @@ run = "cargo fmt --all -- --check"
 [tasks.test]
 run = "cargo test --workspace --all-features --all-targets --locked --offline --no-fail-fast"
 
+[tasks."test:doc"]
+run = "cargo test --workspace --all-features --locked --offline --doc"
+
 [tasks."test:tools"]
-description = "Test the rules in tools/board offline"
+description = "Check board rules and workspace structure offline"
 run = "python3 -m unittest discover -s tools/tests -p 'test_*.py'"
 env = { PYTHONDONTWRITEBYTECODE = "1" }
 
