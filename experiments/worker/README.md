@@ -1,9 +1,9 @@
 # Worker experiment
 
 Use Rust 1.100 or newer with the `wasm32-unknown-unknown` target, Node.js, and
-Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.8.5.
-The Rust SDK is pinned to workers-rs 0.8.5 so it can use the workspace's
-wasm-bindgen 0.2.127 and wasm-bindgen-test 0.3.77.
+Python 3. The Worker package pins Wrangler 4.166.0, worker-build 0.9.0,
+and workers-rs 0.9.0. The SDK uses wasm-bindgen 0.2.130, which the workspace
+matches with its runner and wasm-bindgen-test 0.3.80.
 
 The crates under `experiments/` belong to the #452 prototype. They do not set
 the design for the production builds. They pin the Trifecta draft through a

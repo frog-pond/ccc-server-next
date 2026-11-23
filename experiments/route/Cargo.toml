@@ -18,4 +18,4 @@ thiserror = "2"
 trifecta.workspace = true
 
 [dev-dependencies]
-wasm-bindgen-test = "=0.3.77"
+wasm-bindgen-test = "=0.3.80"

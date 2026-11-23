@@ -2,7 +2,7 @@
   "name": "ccc-fixture-worker-experiment",
   "private": true,
   "scripts": {
-    "worker-build:install": "cargo install --locked --version '=0.8.5' --root .worker-tools worker-build",
+    "worker-build:install": "cargo install --locked --version '=0.9.0' --root .worker-tools worker-build",
     "worker-build": ".worker-tools/bin/worker-build",
     "dev": "WRANGLER_SEND_METRICS=false WRANGLER_SEND_ERROR_REPORTS=false CLOUDFLARE_CF_FETCH_ENABLED=false WRANGLER_HIDE_BANNER=true wrangler dev --local"
   },

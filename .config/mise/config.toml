@@ -3,10 +3,10 @@ _.file = '.env'
 
 [tools]
 "npm:wrangler" = "4.166.0"
-"cargo:worker-build" = "0.8.5"
+"cargo:worker-build" = "0.9.0"
 "aqua:EmbarkStudios/cargo-deny" = "0.22.0"
 "cargo:cargo-public-api" = "0.52.0"
-"github:wasm-bindgen/wasm-bindgen" = "0.2.127"
+"github:wasm-bindgen/wasm-bindgen" = "0.2.130"
 
 [tasks.build]
 run = "cargo build"
