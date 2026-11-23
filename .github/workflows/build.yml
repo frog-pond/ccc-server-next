@@ -1,58 +1,74 @@
 name: Build and Test
 
 on:
+  pull_request:
   push:
+    branches: [main, rearchitecture]
   schedule:
     - cron: 0 0 * * *
 
+permissions:
+  contents: read
+
+env:
+  MISE_AUTO_INSTALL: 'false'
+
 jobs:
-  check:
-    name: Check the code
+  build:
+    name: Build and test (${{ matrix.rust }}, ${{ matrix.target.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         rust: [stable, beta]
+        target:
+          - name: host
+            args: ''
+          - name: wasm32-unknown-unknown
+            args: --target wasm32-unknown-unknown --exclude e2e
     steps:
-      - name: Install the appropriate Rust toolchain
-        run: |
-          rustup toolchain install ${{ matrix.rust }}
-          rustup default ${{ matrix.rust }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        env:
+          TOOLCHAIN: ${{ matrix.rust }}
+        run: |
+          rustup toolchain install "$TOOLCHAIN" --profile minimal --component clippy
+          rustup default "$TOOLCHAIN"
       - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
-      - name: Run rustfmt
+        with:
+          install: false
+      - name: Set up Wasm tests
+        if: matrix.target.name == 'wasm32-unknown-unknown'
         run: |
-          rustup component add rustfmt
-          mise run fmt-check
-      - name: Run clippy
-        run: |
-          rustup component add clippy
-          mise run clippy
+          rustup target add wasm32-unknown-unknown
+          mise install github:wasm-bindgen/wasm-bindgen
+      - name: Build
+        run: cargo build --workspace --all-features --locked ${{ matrix.target.args }}
+      - name: Lint
+        run: mise run clippy -- ${{ matrix.target.args }}
+      - name: Check documentation
+        run: mise run doc -- ${{ matrix.target.args }}
+      - name: Test
+        run: mise run test -- ${{ matrix.target.args }}
 
-  test:
-    name: Test the code
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [stable, beta]
-    steps:
-      - name: Install the appropriate Rust toolchain
-        run: |
-          rustup toolchain install ${{ matrix.rust }}
-          rustup default ${{ matrix.rust }}
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
-      - name: Run cargo test
-        run: |
-          mise run test
-
-  tools:
-    name: Test the tools
+  structure:
+    name: Check formatting, dependencies and public API listings
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
-      - name: Test the rules in tools/board
+        with:
+          persist-credentials: false
+      - name: Install Rust
         run: |
-          mise run test:tools
+          rustup toolchain install stable --profile minimal --component rustfmt
+          rustup default stable
+          rustup toolchain install nightly-2026-11-22 --profile minimal
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
+        with:
+          install_args: aqua:EmbarkStudios/cargo-deny cargo:cargo-public-api
+      - run: mise run fmt-check
+      - run: mise run check:dependencies
+      - run: mise run check:api
+      - run: mise run test:tools

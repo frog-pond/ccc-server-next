@@ -1,2 +1,11 @@
 too-many-lines-threshold = 30
 cognitive-complexity-threshold = 5
+allow-expect-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-panic-in-tests = true
+allow-unwrap-in-consts = false
+allow-unwrap-in-tests = true
+disallowed-methods = [
+    { path = "std::env::var", reason = "Read configuration in the entry point and pass it to the library" },
+    { path = "std::time::SystemTime::now", reason = "Pass the current time to the library" },
+]

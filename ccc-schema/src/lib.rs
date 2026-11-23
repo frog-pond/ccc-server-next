@@ -6,3 +6,10 @@
 //!
 //! Each API area has its own module. A conversion imports only its own area's module,
 //! and types used by multiple areas live in a shared module.
+
+#[cfg(all(test, target_arch = "wasm32", target_os = "unknown"))]
+mod tests {
+	// Exercise the Wasm runner while the schema crate has no public types to test.
+	#[wasm_bindgen_test::wasm_bindgen_test]
+	fn schema_test_harness_runs() {}
+}
