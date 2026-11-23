@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+	"ccc-native",
 	"ccc-schema",
 	"e2e",
 	"trifecta-freshness",
