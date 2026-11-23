@@ -4,8 +4,7 @@ version = "0.1.0"
 publish = false
 edition.workspace = true
 license.workspace = true
-# workers-rs requires Rust 1.91 and the pinned Trifecta draft requires 1.98.
-rust-version = "1.98"
+rust-version.workspace = true
 autoexamples = false
 
 [lib]
@@ -29,6 +28,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
 thiserror = "2"
 trifecta.workspace = true
+trifecta-freshness = { path = "../../trifecta-freshness" }
 url.workspace = true
 worker = "=0.9.0"
 

@@ -1,6 +1,6 @@
 # Worker experiment
 
-Use Rust 1.98 or newer with the `wasm32-unknown-unknown` target, Node.js, and
+Use Rust 1.100 or newer with the `wasm32-unknown-unknown` target, Node.js, and
 Python 3. The Worker package pins Wrangler 4.166.0 and worker-build 0.9.0.
 
 The crates under `experiments/` belong to the #452 prototype. They do not set
@@ -47,9 +47,19 @@ value is 42 and the redirect reports `http_status` 302. The fixture log should
 show no request to `/redirect-target`. An unknown fixture returns 404. A non-GET
 request for a known fixture, including `PROPFIND`, returns 405 with `Allow: GET`.
 
-Each completed attempt schedules another refresh in five seconds. The Worker
-serves the cached reply during that refresh. A failed refresh preserves the last
-good value and logs `worker_experiment.stale_value_served` when a read serves it.
+The Worker uses `trifecta-freshness` to select each reply and when to run
+its next alarm. The fixture policy makes a value fresh for five seconds from
+the start of the successful fetch, with a 60-second stale window and no age
+limit for fallback after failure. The first GET records the read and returns
+202 while the initial alarm is pending. The Worker serves a stale value during
+a background refresh when the policy allows it. On failure it records the
+failed reply and the policy's backoff, preserves an eligible cached value, and
+logs `worker_experiment.stale_value_served` when a later read serves it. The
+first retry is due 30 seconds after the failed fetch started. A successful
+refresh replaces the value and clears the failure. Alarms stop when the
+freshness crate considers the fixture idle and resume when a later GET records
+a read.
+
 Both builds share a five-second deadline covering the source, response
 adapter, and transform.
 
@@ -106,7 +116,9 @@ for db in "$state"/v3/do/ccc-fixture-experiment-FixtureObject/*.sqlite; do
   echo "$db"
   sqlite3 -readonly "$db" \
     'SELECT name, payload FROM fixture_records;
-     SELECT state, refresh_after_ms, payload FROM fixture_cache;'
+     SELECT last_read_ms, value_started_ms, value_payload,
+            failure_count, backoff_until_ms, failure_payload
+     FROM fixture_entry;'
 done
 ```
 
@@ -203,19 +215,25 @@ PYCODE
 ```
 
 In `503` mode, wait for a refresh failure event with upstream status 503,
-then read `/experiment/value`. Expect 42, a stale-serving event, and
-`fixture_cache.state = 'stale'`. Restore the normal fixture to observe recovery.
+then read `/experiment/value`. Expect 42 and a stale-serving event.
+In `fixture_entry`, the value reply and fetch start stay unchanged,
+`failure_count` is 1, and `failure_payload` contains the 503 failure.
+Restore the normal fixture before `backoff_until_ms`. After the recovery
+alarm, the successful value has a new fetch start and the failure columns
+are NULL. SQLite can confirm recovery even before the next GET.
 
 In `stall` mode, the first request stalls before headers and the next stalls
 after the first body byte. Both should log the typed `timeout` failure after
 five seconds. With empty state the completed reply includes that failure.
-The third alarm should store 42.
+The retry alarms run after the 30- and 60-second backoffs. The third
+attempt should store 42 and clear the failure.
 
 ### Restart before the alarm
 
 With a fresh state directory, request `/experiment/value` and stop Wrangler
-after the 202 and before the three-second initial alarm fires. Query SQLite
-as above to confirm the job exists and `fixture_cache` is empty. Restart
+after the 202 and before the five-second initial alarm fires. Query SQLite
+as above to confirm the job and read time exist and `value_payload` and
+`failure_payload` in `fixture_entry` are NULL. Restart
 Wrangler with the same persistence directory. Query SQLite again before
 making another HTTP request. The alarm should store the completed reply on
 its own. The first GET after the write should return 42.
@@ -243,8 +261,9 @@ cargo rustc --locked --target wasm32-unknown-unknown -p worker-experiment --feat
 
 ## Test and lint coverage
 
-`mise run check` checks workspace formatting and runs host Clippy, Rust tests,
-and board tool tests. The shared route tests check fixture naming, stable JSON,
+`mise run check` checks workspace formatting, documentation, dependency
+boundaries and public API listings. It runs host Clippy, offline Rust and tool
+tests, and checks the freshness crate's WASM builds without std. The shared route tests check fixture naming, stable JSON,
 status construction, body decoding, failure classification, and the common
 event fields. On pull requests, GitHub Actions builds and tests the native
 server and checks its value and redirect replies against the loopback fixture.

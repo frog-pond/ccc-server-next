@@ -1,6 +1,9 @@
 [graph]
-# The e2e executable makes HTTP requests to the servers it compares.
-exclude = ["e2e"]
+# The supported builds are the Linux container and the Worker WASM target.
+# The wasm-bindgen test harness has a Tokio dependency only for Emscripten.
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+# Entry points use their runtime-specific clients. Keep the shared route in the graph.
+exclude = ["e2e", "fixture-experiment-native", "worker-experiment"]
 
 [bans]
 multiple-versions = "allow"

@@ -233,7 +233,7 @@ pub enum ObjectReply {
 	/// A completed attempt for the fixture that owns this object.
 	#[serde(rename = "complete")]
 	Complete {
-		/// The last good value, or a failed refresh when no good value exists.
+		/// A good value or the failed refresh selected by the freshness policy.
 		result: RefreshOutcome,
 	},
 	/// The object could not read or write SQLite storage.

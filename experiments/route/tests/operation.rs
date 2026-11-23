@@ -1,3 +1,5 @@
+//! Shared fixture pipeline and failure event tests with in-memory upstreams.
+
 use std::{
 	future::Future,
 	pin::pin,
@@ -79,6 +81,7 @@ impl AdaptResponse<Sample> for SampleAdapter {
 	}
 }
 
+#[allow(clippy::panic, reason = "A pending sample is a test harness failure")]
 fn run(sample: Sample) -> Result<u32, RefreshFailure> {
 	let operation = fixture_operation(SampleSource, SampleAdapter);
 	let mut result = pin!(operation.perform(sample));

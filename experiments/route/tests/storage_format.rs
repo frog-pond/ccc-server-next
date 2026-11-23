@@ -1,8 +1,14 @@
+//! Stable JSON and route identifiers shared by the two entry points.
+
 use fixture_experiment_route::{
 	Fixture, NonSuccessStatus, ObjectReply, RefreshFailure, RefreshJob, RefreshOutcome,
 };
 use serde::Serialize;
 
+#[allow(
+	clippy::unwrap_used,
+	reason = "Fail the test if the reply cannot be serialized"
+)]
 fn assert_storage_format(value: &impl Serialize, json: &str) {
 	assert_eq!(serde_json::to_string(value).unwrap(), json);
 }
@@ -31,6 +37,10 @@ fn fixture_segments_identify_the_route_parameter() {
 			Ok(fixture)
 		);
 	}
+}
+
+#[test]
+fn unknown_and_nested_fixture_paths_are_rejected() {
 	assert!(Fixture::from_route_path("/experiment/missing").is_err());
 	assert!(Fixture::from_route_path("/experiment/value/extra").is_err());
 }
