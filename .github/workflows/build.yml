@@ -73,16 +73,6 @@ jobs:
       - run: docker build --tag ccc-native:ci .
       - run: python3 tools/test-native-image docker ccc-native:ci
 
-  native-msrv:
-    name: Build the native server with Rust 1.88
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: rustup toolchain install 1.88.0 --profile minimal
-      - run: cargo +1.88.0 build --locked --package ccc-native
-
   structure:
     name: Check formatting, dependencies and public API listings
     runs-on: ubuntu-latest

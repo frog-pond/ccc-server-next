@@ -5,7 +5,7 @@ description = "Native HTTP entry point for the CCC API"
 publish = false
 edition.workspace = true
 license.workspace = true
-rust-version = "1.88"
+rust-version.workspace = true
 
 [lints]
 workspace = true
