@@ -15,17 +15,13 @@ env:
 
 jobs:
   build:
-    name: Build and test (${{ matrix.rust }}, ${{ matrix.target.name }})
+    name: Build and test (${{ matrix.rust }}, ${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         rust: [stable, beta]
-        target:
-          - name: host
-            args: ''
-          - name: wasm32-unknown-unknown
-            args: --target wasm32-unknown-unknown --exclude e2e
+        target: [host, wasm32-unknown-unknown]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,18 +36,28 @@ jobs:
         with:
           install: false
       - name: Set up Wasm tests
-        if: matrix.target.name == 'wasm32-unknown-unknown'
+        if: matrix.target == 'wasm32-unknown-unknown'
         run: |
           rustup target add wasm32-unknown-unknown
           mise install github:wasm-bindgen/wasm-bindgen
+      - name: Check shared crates on Wasm
+        if: matrix.target == 'wasm32-unknown-unknown'
+        run: mise run check:wasm
       - name: Build
-        run: cargo build --workspace --all-features --locked ${{ matrix.target.args }}
+        if: matrix.target == 'host'
+        run: cargo build --workspace --all-features --locked
       - name: Lint
-        run: mise run clippy -- ${{ matrix.target.args }}
+        if: matrix.target == 'host'
+        run: mise run clippy
       - name: Check documentation
-        run: mise run doc -- ${{ matrix.target.args }}
+        if: matrix.target == 'host'
+        run: mise run doc
       - name: Test
-        run: mise run test -- ${{ matrix.target.args }}
+        if: matrix.target == 'host'
+        run: mise run test
+      - name: Test documentation
+        if: matrix.target == 'host'
+        run: mise run test:doc
 
   structure:
     name: Check formatting, dependencies and public API listings
@@ -64,11 +70,22 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
-          rustup toolchain install nightly-2026-11-22 --profile minimal
       - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5
         with:
           install_args: aqua:EmbarkStudios/cargo-deny cargo:cargo-public-api
       - run: mise run fmt-check
       - run: mise run check:dependencies
+      - run: mise run setup:api
       - run: mise run check:api
       - run: mise run test:tools
+
+  ci:
+    name: ci
+    needs: [build, structure]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<< "$NEEDS"

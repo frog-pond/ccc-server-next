@@ -25,7 +25,7 @@ One issue, one session, one branch, one pull request. The issue says what and wh
 
 - Do what the issue's "Changes" say, and nothing it does not ask for. If the work needs a decision the issue does not make, stop and put the question in your report.
 - Check each "Done when" item yourself and keep the evidence: a command and its output, or a test name.
-- `mise run check` passes. A crate meant for both builds also passes `cargo check --target wasm32-unknown-unknown -p <crate>`.
+- `mise run check` passes. For changes to a crate meant for both builds, also run `mise run check:wasm`. That task needs the Wasm Rust target, Node.js and the pinned `wasm-bindgen` runner. See the README for setup.
 - Commit in small steps, with short imperative subjects: `Add the WordPress post schema`. Say `Part of #<N>` in the body.
 
 ## 4. Open the pull request
